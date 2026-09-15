@@ -526,6 +526,7 @@ git commit -m "feat: add business profile schema, loader and the two demo profil
   - `formatMoney(cents: number): string` — `"$412.50"`.
   - `taxOn(taxableSubtotalCents: number, taxRateBps: number): number` — half-up, una sola vez.
   - `businessToday(timezone: string, now: Date): string` — `YYYY-MM-DD`.
+  - `shiftDays(dateIso: string, days: number): string` — mueve una fecha civil N días.
   - `resolveDue(input: string, timezone: string, now: Date): string | null` — `today`, `tomorrow`, día de la semana o `YYYY-MM-DD`.
   - `type Period = 'today' | 'yesterday' | 'this_week' | 'last_week' | 'this_month' | 'last_month'`
   - `periodRange(period: Period, timezone: string, now: Date): { from: string; to: string; prevFrom: string; prevTo: string }` — rangos inclusivos.
@@ -642,7 +643,7 @@ function weekdayIndex(dateIso: string): number {
   return new Date(`${dateIso}T12:00:00Z`).getUTCDay();
 }
 
-function shift(dateIso: string, days: number): string {
+export function shiftDays(dateIso: string, days: number): string {
   const d = new Date(`${dateIso}T12:00:00Z`);
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
@@ -654,13 +655,13 @@ export function resolveDue(input: string, timezone: string, now: Date): string |
   const today = businessToday(timezone, now);
 
   if (value === 'today') return today;
-  if (value === 'tomorrow') return shift(today, 1);
+  if (value === 'tomorrow') return shiftDays(today, 1);
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
 
   const target = WEEKDAYS.indexOf(value);
   if (target >= 0) {
     const delta = (target - weekdayIndex(today) + 7) % 7;
-    return shift(today, delta);
+    return shiftDays(today, delta);
   }
   return null;
 }
@@ -674,18 +675,18 @@ export function periodRange(period: Period, timezone: string, now: Date): {
 
   switch (period) {
     case 'today':
-      return { from: today, to: today, prevFrom: shift(today, -1), prevTo: shift(today, -1) };
+      return { from: today, to: today, prevFrom: shiftDays(today, -1), prevTo: shiftDays(today, -1) };
     case 'yesterday': {
-      const y = shift(today, -1);
-      return { from: y, to: y, prevFrom: shift(y, -1), prevTo: shift(y, -1) };
+      const y = shiftDays(today, -1);
+      return { from: y, to: y, prevFrom: shiftDays(y, -1), prevTo: shiftDays(y, -1) };
     }
     case 'this_week': {
-      const from = shift(today, -mondayOffset);
-      return { from, to: shift(from, 6), prevFrom: shift(from, -7), prevTo: shift(from, -1) };
+      const from = shiftDays(today, -mondayOffset);
+      return { from, to: shiftDays(from, 6), prevFrom: shiftDays(from, -7), prevTo: shiftDays(from, -1) };
     }
     case 'last_week': {
-      const from = shift(today, -mondayOffset - 7);
-      return { from, to: shift(from, 6), prevFrom: shift(from, -7), prevTo: shift(from, -1) };
+      const from = shiftDays(today, -mondayOffset - 7);
+      return { from, to: shiftDays(from, 6), prevFrom: shiftDays(from, -7), prevTo: shiftDays(from, -1) };
     }
     case 'this_month':
       return monthRange(today.slice(0, 7));
@@ -926,7 +927,7 @@ git commit -m "feat: add order domain rules for totals, stages and close-out"
 - Consumes: `CatalogItem`, `Order`, `OrderLine`, `PurchaseOrder` (Task 4).
 - Produces:
   - `findItem(query: string, items: CatalogItem[]): { kind: 'one'; item: CatalogItem } | { kind: 'none'; suggestions: CatalogItem[] } | { kind: 'ambiguous'; candidates: CatalogItem[] }`
-  - `addLineToOrder(order: Order, item: CatalogItem, quantity: number, items: CatalogItem[]): { line: OrderLine; itemUpdates: CatalogItem[] }` — descuenta el ítem y lo que consume; `backordered` sale de lo que no alcanzó.
+  - `addLineToOrder(item: CatalogItem, quantity: number, items: CatalogItem[]): { line: OrderLine; itemUpdates: CatalogItem[] }` — descuenta el ítem y lo que consume; `backordered` sale de lo que no alcanzó.
   - `lowStock(items: CatalogItem[]): CatalogItem[]`
   - `planReorder(items: CatalogItem[], openOrders: Order[], openPOs: PurchaseOrder[], only?: CatalogItem): { purchaseOrders: Array<{ supplierId: string; lines: Array<{ itemId: string; qty: number }> }>; skipped: CatalogItem[] }`
 
@@ -971,7 +972,7 @@ describe('inventario', () => {
   });
 
   it('descuenta stock y marca backorder cuando no alcanza', () => {
-    const { line, itemUpdates } = addLineToOrder(emptyOrder, pads, 2, [pads, filter, oil]);
+    const { line, itemUpdates } = addLineToOrder(pads, 2, [pads, filter, oil]);
     expect(line).toEqual({
       itemId: 'i1', name: 'Front brake pads', quantity: 2, unitPriceCents: 4500, taxable: true, backordered: 1
     });
@@ -979,7 +980,7 @@ describe('inventario', () => {
   });
 
   it('descuenta también lo que el ítem consume', () => {
-    const { itemUpdates } = addLineToOrder(emptyOrder, oilChange, 1, [pads, filter, oil, oilChange]);
+    const { itemUpdates } = addLineToOrder(oilChange, 1, [pads, filter, oil, oilChange]);
     expect(itemUpdates.find(i => i.id === 'i2')!.onHand).toBe(3);
     expect(itemUpdates.find(i => i.id === 'i3')!.onHand).toBe(15);
   });
@@ -1017,7 +1018,7 @@ Expected: FAIL — no existe `src/domain/inventory.ts`.
 - [ ] **Step 3: Implementar `src/domain/inventory.ts`**
 
 ```typescript
-import { normalize, tokenScore } from './resolver.js';
+import { tokenScore } from './resolver.js';
 import type { CatalogItem, Order, OrderLine, PurchaseOrder } from './types.js';
 
 /** Busca un ítem del catálogo por nombre o sinónimo, con el mismo criterio que las referencias habladas. */
@@ -1042,7 +1043,7 @@ export function findItem(query: string, items: CatalogItem[]):
 
 /** Arma la partida y devuelve los ítems con el stock ya descontado. `onHand` nunca baja de cero. */
 export function addLineToOrder(
-  _order: Order, item: CatalogItem, quantity: number, items: CatalogItem[]
+  item: CatalogItem, quantity: number, items: CatalogItem[]
 ): { line: OrderLine; itemUpdates: CatalogItem[] } {
   const updates = new Map<string, CatalogItem>();
 
@@ -1104,7 +1105,6 @@ export function planReorder(
   };
 }
 
-export { normalize };
 ```
 
 Nota: `tokenScore` y `normalize` se implementan en la Task 6. Mientras tanto la prueba de esta tarea falla al importar; por eso el orden correcto es hacer la Task 6 antes de correr esta suite completa. Si prefieres no bloquearte, implementa primero la Task 6 y regresa al Step 4 de esta.
@@ -1408,6 +1408,7 @@ Expected: FAIL — no existe `src/domain/reports.ts`.
 
 ```typescript
 import type { Profile } from '../profiles/schema.js';
+import { shiftDays } from './dates.js';
 import { lowStock } from './inventory.js';
 import type { OrderRef } from './resolver.js';
 import type { CatalogItem, Order, Payment } from './types.js';
@@ -1428,12 +1429,6 @@ export interface SalesReport {
 }
 
 const day = (p: Payment): string => p.paidAt.slice(0, 10);
-
-function shiftDays(dateIso: string, days: number): string {
-  const d = new Date(`${dateIso}T12:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
 
 /** Etiqueta hablable de una orden: el activo si lo hay, si no el cliente. */
 export function refLabel(ref: OrderRef): string {
@@ -1873,10 +1868,6 @@ function list(parts: string[]): string {
   return `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`;
 }
 
-function quantity(value: number): string {
-  return Number.isInteger(value) ? String(value) : String(value);
-}
-
 export const say = {
   list,
 
@@ -1902,9 +1893,9 @@ export const say = {
 
   lineAdded(profile: Profile, ref: OrderRef, line: OrderLine, totalCents: number): string {
     const backorder = line.backordered > 0
-      ? ` Only ${quantity(line.quantity - line.backordered)} in stock, so ${quantity(line.backordered)} is backordered.`
+      ? ` Only ${line.quantity - line.backordered} in stock, so ${line.backordered} is backordered.`
       : '';
-    return `Added ${quantity(line.quantity)} ${line.name} to ${say.orderName(profile, ref.order.number)}. `
+    return `Added ${line.quantity} ${line.name} to ${say.orderName(profile, ref.order.number)}. `
       + `The total is now ${formatMoney(totalCents)}.${backorder}`;
   },
 
@@ -2980,7 +2971,7 @@ export function registerAddLine(server: McpServer, ctx: ToolContext): void {
       if (match.kind === 'ambiguous') return fail(`Did you mean ${say.list(match.candidates.map(c => c.name))}?`);
 
       const quantity = args.quantity ?? 1;
-      const { line, itemUpdates } = addLineToOrder(found.ref.order, match.item, quantity, items);
+      const { line, itemUpdates } = addLineToOrder(match.item, quantity, items);
       const updated = recalcTotals(
         { ...found.ref.order, lines: [...found.ref.order.lines, line] },
         ctx.business.taxRateBps
