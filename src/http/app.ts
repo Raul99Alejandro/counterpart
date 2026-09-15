@@ -15,8 +15,8 @@ export function createApp(createServer: () => McpServer): Express {
     const server = createServer();
     const transport = new NodeStreamableHTTPServerTransport({ sessionIdGenerator: undefined });
     res.on('close', () => {
-      void transport.close();
-      void server.close();
+      transport.close().catch(() => {});
+      server.close().catch(() => {});
     });
     await server.connect(transport);
     await transport.handleRequest(req, res, req.body);
