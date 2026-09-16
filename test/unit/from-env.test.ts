@@ -20,4 +20,24 @@ describe('configuración del store', () => {
   it('rechaza un tipo de store desconocido', () => {
     expect(() => storeConfig({ COUNTERPART_STORE: 'postgres' })).toThrow(/COUNTERPART_STORE/);
   });
+
+  describe('en producción', () => {
+    it('no arranca en memoria si falta COUNTERPART_STORE', () => {
+      expect(() => storeConfig({ NODE_ENV: 'production' })).toThrow(/COUNTERPART_STORE=dynamo/);
+    });
+
+    it('no arranca en memoria aunque se pida explícitamente', () => {
+      expect(() => storeConfig({ NODE_ENV: 'production', COUNTERPART_STORE: 'memory' })).toThrow(/COUNTERPART_STORE=dynamo/);
+    });
+
+    it('acepta DynamoDB', () => {
+      expect(storeConfig({ NODE_ENV: 'production', COUNTERPART_STORE: 'dynamo' }))
+        .toEqual({ kind: 'dynamo', table: 'counterpart', region: 'us-east-1', endpoint: undefined });
+    });
+  });
+
+  it('fuera de producción sigue usando memoria por defecto', () => {
+    expect(storeConfig({ NODE_ENV: 'development' }).kind).toBe('memory');
+    expect(storeConfig({ NODE_ENV: 'test' }).kind).toBe('memory');
+  });
 });

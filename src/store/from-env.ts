@@ -10,6 +10,10 @@ export function storeConfig(env: NodeJS.ProcessEnv): StoreConfig {
   if (kind !== 'memory' && kind !== 'dynamo') {
     throw new Error(`COUNTERPART_STORE debe ser "memory" o "dynamo", no "${kind}"`);
   }
+  // Fallar cerrado: en memoria se siembran los tokens de demo, que son públicos en el repo.
+  if (kind === 'memory' && env.NODE_ENV === 'production') {
+    throw new Error('En producción (NODE_ENV=production) el store en memoria no se permite: usa COUNTERPART_STORE=dynamo');
+  }
   return {
     kind,
     table: env.DYNAMODB_TABLE || 'counterpart',
