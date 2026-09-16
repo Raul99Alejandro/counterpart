@@ -1794,6 +1794,7 @@ say.notFound(profile: Profile, query: string, open: OrderRef[]): string
 say.ambiguous(profile: Profile, refs: OrderRef[]): string
 say.unknownItem(profile: Profile, query: string, suggestions: CatalogItem[]): string
 say.list(parts: string[]): string   // "a, b and c"
+say.date(dateIso: string): string   // "Saturday, September 19"
 ```
 
 - [ ] **Step 1: Escribir la prueba que falla**
@@ -1839,7 +1840,9 @@ describe('frases', () => {
 
   it('avisa del backorder', () => {
     const line = { itemId: 'i1', name: 'Front brake pads', quantity: 2, unitPriceCents: 4500, taxable: true, backordered: 1 };
-    expect(say.lineAdded(profile, ref, line, 41250)).toContain('1 is backordered');
+    expect(say.lineAdded(profile, ref, line, 41250)).toBe(
+      'Added 2 Front brake pads to work order 42, but only 1 was in stock, so 1 is backordered. The total is now $412.50.'
+    );
   });
 
   it('enumera candidatas cuando hay ambigüedad', () => {
@@ -1847,6 +1850,13 @@ describe('frases', () => {
       customer: { id: 'c2', name: 'Mark Ortiz', nameNormalized: 'mark ortiz' } };
     expect(say.ambiguous(profile, [ref, other]))
       .toBe("I found two: work order 42, Dana Lee's 2019 Honda Civic and work order 57, Mark Ortiz's 2019 Honda Civic. Which one?");
+  });
+
+  it('dice la fecha hablada, no la ISO', () => {
+    expect(say.date('2026-09-19')).toBe('Saturday, September 19');
+    const withDue: OrderRef = { ...ref, order: { ...order, dueOn: '2026-09-19' } };
+    expect(say.opened(profile, withDue)).toContain("It's due Saturday, September 19.");
+    expect(say.opened(profile, withDue)).not.toContain('2026-09-19');
   });
 
   it('une listas en inglés', () => {
@@ -1892,8 +1902,15 @@ export const say = {
       : `${say.orderName(profile, ref.order.number)}, ${ref.customer.name}'s ${label}`;
   },
 
+  /** Fecha hablada: "Saturday, September 19". Ancla a mediodía UTC para no depender del servidor. */
+  date(dateIso: string): string {
+    return new Intl.DateTimeFormat('en-US', {
+      weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC'
+    }).format(new Date(`${dateIso}T12:00:00Z`));
+  },
+
   opened(profile: Profile, ref: OrderRef): string {
-    const due = ref.order.dueOn ? ` It's due ${ref.order.dueOn}.` : '';
+    const due = ref.order.dueOn ? ` It's due ${say.date(ref.order.dueOn)}.` : '';
     return `Opened ${say.orderPhrase(profile, ref)}.${due}`;
   },
 
@@ -1902,11 +1919,11 @@ export const say = {
   },
 
   lineAdded(profile: Profile, ref: OrderRef, line: OrderLine, totalCents: number): string {
-    const backorder = line.backordered > 0
-      ? ` Only ${line.quantity - line.backordered} in stock, so ${line.backordered} is backordered.`
-      : '';
-    return `Added ${line.quantity} ${line.name} to ${say.orderName(profile, ref.order.number)}. `
-      + `The total is now ${formatMoney(totalCents)}.${backorder}`;
+    const orderName = say.orderName(profile, ref.order.number);
+    const first = line.backordered > 0
+      ? `Added ${line.quantity} ${line.name} to ${orderName}, but only ${line.quantity - line.backordered} was in stock, so ${line.backordered} is backordered.`
+      : `Added ${line.quantity} ${line.name} to ${orderName}.`;
+    return `${first} The total is now ${formatMoney(totalCents)}.`;
   },
 
   closed(profile: Profile, ref: OrderRef, payment: Payment): string {
