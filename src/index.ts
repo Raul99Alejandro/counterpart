@@ -1,5 +1,6 @@
 import { createApp } from './http/app.js';
 import type { Sessions } from './http/sessions.js';
+import { log } from './log.js';
 import { openStore, storeConfig } from './store/from-env.js';
 import { ensureTable } from './store/table.js';
 import { seedAll } from '../seed/run.js';
@@ -21,7 +22,7 @@ if (cfg.kind === 'memory') {
 
 const app = createApp({ store, host, devBusinessId });
 const httpServer = app.listen(port, host, () => {
-  console.log(JSON.stringify({ msg: 'listening', port, host, store: cfg.kind }));
+  log({ level: 'info', msg: 'listening', port, host, store: cfg.kind });
 });
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {

@@ -9,6 +9,8 @@ import type { Store } from '../store/store.js';
 import type { Business } from '../domain/types.js';
 import { bearerFrom, businessFor } from './auth.js';
 import { Sessions } from './sessions.js';
+import { log } from '../log.js';
+import { withRequest, type RequestContext } from './request-context.js';
 
 const IDLE_MS = 30 * 60 * 1000;
 
@@ -27,41 +29,59 @@ export function createApp(deps: { store: Store; devBusinessId?: string; host: st
     res.status(200).type('text/plain').send('ok');
   });
 
-  app.all('/mcp', async (req: Request, res: Response) => {
-    const business = await resolveBusiness(deps, req);
-    if (!business) {
-      res.status(401).json({ error: 'unauthorized' });
-      return;
-    }
+  app.all('/mcp', (req: Request, res: Response) => {
+    const context: RequestContext = { requestId: randomUUID() };
+    const started = performance.now();
 
-    const sessionId = req.header('mcp-session-id');
-
-    if (sessionId) {
-      const entry = sessions.get(sessionId, business.id);
-      if (!entry) {
-        res.status(403).json({ error: 'forbidden' });
-        return;
-      }
-      sessions.touch(sessionId, Date.now());
-      await entry.transport.handleRequest(req, res, req.body);
-      return;
-    }
-
-    const server = new McpServer({ name: 'counterpart', version: '0.1.0' });
-    const ctx: ToolContext = {
-      business, profile: loadProfile(business.profileId), store: deps.store,
-      now: () => new Date(), newId: prefix => `${prefix}-${randomUUID()}`
-    };
-    registerTools(server, ctx);
-
-    const transport = new NodeStreamableHTTPServerTransport({
-      sessionIdGenerator: () => randomUUID(),
-      onsessioninitialized: id => sessions.set(id, { transport, server, businessId: business.id, lastSeen: Date.now() }),
-      onsessionclosed: id => sessions.drop(id)
+    res.on('finish', () => {
+      const assigned = res.getHeader('mcp-session-id');
+      log({
+        level: 'info', msg: 'http', requestId: context.requestId,
+        method: req.method, path: req.path, status: res.statusCode,
+        businessId: context.businessId,
+        sessionId: context.sessionId ?? (assigned === undefined ? undefined : String(assigned)),
+        durationMs: Math.round(performance.now() - started)
+      });
     });
 
-    await server.connect(transport);
-    await transport.handleRequest(req, res, req.body);
+    return withRequest(context, async () => {
+      const business = await resolveBusiness(deps, req);
+      if (!business) {
+        res.status(401).json({ error: 'unauthorized' });
+        return;
+      }
+      context.businessId = business.id;
+
+      const sessionId = req.header('mcp-session-id');
+      context.sessionId = sessionId;
+
+      if (sessionId) {
+        const entry = sessions.get(sessionId, business.id);
+        if (!entry) {
+          res.status(403).json({ error: 'forbidden' });
+          return;
+        }
+        sessions.touch(sessionId, Date.now());
+        await entry.transport.handleRequest(req, res, req.body);
+        return;
+      }
+
+      const server = new McpServer({ name: 'counterpart', version: '0.1.0' });
+      const ctx: ToolContext = {
+        business, profile: loadProfile(business.profileId), store: deps.store,
+        now: () => new Date(), newId: prefix => `${prefix}-${randomUUID()}`
+      };
+      registerTools(server, ctx);
+
+      const transport = new NodeStreamableHTTPServerTransport({
+        sessionIdGenerator: () => randomUUID(),
+        onsessioninitialized: id => sessions.set(id, { transport, server, businessId: business.id, lastSeen: Date.now() }),
+        onsessionclosed: id => sessions.drop(id)
+      });
+
+      await server.connect(transport);
+      await transport.handleRequest(req, res, req.body);
+    });
   });
 
   app.locals.sessions = sessions;

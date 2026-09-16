@@ -1,0 +1,108 @@
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import type { Server } from 'node:http';
+import { Client, InMemoryTransport, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
+import { McpServer } from '@modelcontextprotocol/server';
+import { createApp } from '../../src/http/app.js';
+import { captureLogs } from '../../src/log.js';
+import { loadProfile } from '../../src/profiles/load.js';
+import { MemoryStore } from '../../src/store/memory.js';
+import { registerTools, type ToolContext } from '../../src/tools/context.js';
+import { DEMO_TOKENS, seedAll } from '../../seed/run.js';
+
+const NOW = new Date('2026-09-15T15:00:00Z');
+const settle = (): Promise<void> => new Promise(resolve => setTimeout(resolve, 25));
+
+let server: Server;
+let base: string;
+
+beforeAll(async () => {
+  const store = new MemoryStore();
+  await seedAll(store, NOW);
+  server = createApp({ store, host: '127.0.0.1' }).listen(0, '127.0.0.1');
+  await new Promise<void>(resolve => server.once('listening', () => resolve()));
+  const address = server.address();
+  base = `http://127.0.0.1:${typeof address === 'object' && address ? address.port : 0}`;
+});
+
+afterAll(() => { server.close(); });
+
+async function connectOverHttp(token: string): Promise<Client> {
+  const transport = new StreamableHTTPClientTransport(new URL(`${base}/mcp`), {
+    fetch: (input: string | URL | Request, init?: RequestInit) => {
+      const headers = new Headers(init?.headers);
+      headers.set('authorization', `Bearer ${token}`);
+      return fetch(input, { ...init, headers });
+    }
+  });
+  const client = new Client({ name: 'test', version: '1.0.0' });
+  await client.connect(transport);
+  return client;
+}
+
+describe('logs estructurados', () => {
+  it('registra la petición y la tool con la misma requestId, y nunca el token', async () => {
+    const cap = captureLogs();
+    try {
+      const client = await connectOverHttp(DEMO_TOKENS.shop);
+      await client.callTool({ name: 'get_shop_snapshot', arguments: {} });
+      await client.close();
+      await settle();
+
+      const lines = cap.lines();
+      const tool = lines.find(l => l.msg === 'tool' && l.tool === 'get_shop_snapshot');
+      expect(tool).toMatchObject({ level: 'info', businessId: 'shop', outcome: 'ok' });
+      expect(typeof tool!.durationMs).toBe('number');
+
+      const http = lines.filter(l => l.msg === 'http');
+      expect(http.some(l => l.businessId === 'shop' && typeof l.sessionId === 'string')).toBe(true);
+      // La línea de la tool comparte requestId con la petición HTTP que la originó.
+      expect(http.map(l => l.requestId)).toContain(tool!.requestId);
+
+      expect(JSON.stringify(lines)).not.toContain(DEMO_TOKENS.shop);
+    } finally {
+      cap.restore();
+    }
+  });
+
+  it('una petición sin token queda registrada como 401 y sin negocio', async () => {
+    const cap = captureLogs();
+    try {
+      await fetch(`${base}/mcp`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
+      await settle();
+      const http = cap.lines().find(l => l.msg === 'http');
+      expect(http).toMatchObject({ status: 401 });
+      expect(http!.businessId).toBeUndefined();
+    } finally {
+      cap.restore();
+    }
+  });
+
+  it('una excepción inesperada queda registrada como INTERNAL', async () => {
+    class BrokenStore extends MemoryStore {
+      override async listItems(): Promise<never> { throw new TypeError('boom'); }
+    }
+    const store = new BrokenStore();
+    await seedAll(store, NOW);
+    const business = (await store.getBusiness('shop'))!;
+    const ctx: ToolContext = {
+      business, profile: loadProfile('auto-repair'), store, now: () => NOW, newId: p => `${p}-1`
+    };
+    const mcp = new McpServer({ name: 'counterpart', version: '0.1.0' });
+    registerTools(mcp, ctx);
+    const [clientEnd, serverEnd] = InMemoryTransport.createLinkedPair();
+    const client = new Client({ name: 'test', version: '1.0.0' });
+    await mcp.server.connect(serverEnd);
+    await client.connect(clientEnd);
+
+    const cap = captureLogs();
+    try {
+      await client.callTool({ name: 'get_shop_snapshot', arguments: {} });
+      const lines = cap.lines();
+      expect(lines.find(l => l.msg === 'internal')).toMatchObject({ level: 'error', code: 'INTERNAL' });
+      expect(lines.find(l => l.msg === 'tool')).toMatchObject({ tool: 'get_shop_snapshot', outcome: 'internal' });
+    } finally {
+      cap.restore();
+      await client.close();
+    }
+  });
+});

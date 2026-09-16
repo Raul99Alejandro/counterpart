@@ -1,5 +1,6 @@
 import type { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node';
 import type { McpServer } from '@modelcontextprotocol/server';
+import { log } from '../log.js';
 
 export interface SessionEntry {
   transport: NodeStreamableHTTPServerTransport;
@@ -26,9 +27,9 @@ export class Sessions {
     const entry = this.entries.get(sessionId);
     if (!entry) return;
     this.entries.delete(sessionId);
-    // try/catch: en tests, transport/server pueden ser dobles sin close() real.
-    try { entry.transport.close().catch(() => {}); } catch { /* ignorar */ }
-    try { entry.server.close().catch(() => {}); } catch { /* ignorar */ }
+    // try/catch: en pruebas, transport y server pueden ser dobles sin close() real.
+    try { entry.transport.close().catch(err => closeFailed(sessionId, err)); } catch { /* doble de prueba */ }
+    try { entry.server.close().catch(err => closeFailed(sessionId, err)); } catch { /* doble de prueba */ }
   }
 
   touch(sessionId: string, now: number): void {
@@ -45,4 +46,11 @@ export class Sessions {
   closeAll(): void {
     for (const sessionId of [...this.entries.keys()]) this.drop(sessionId);
   }
+}
+
+function closeFailed(sessionId: string, err: unknown): void {
+  log({
+    level: 'error', msg: 'session_close_failed', sessionId,
+    error: err instanceof Error ? err.message : String(err)
+  });
 }

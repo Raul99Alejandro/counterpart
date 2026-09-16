@@ -4,6 +4,9 @@ import type { Profile } from '../profiles/schema.js';
 import type { OrderRef } from '../domain/resolver.js';
 import type { Business } from '../domain/types.js';
 import type { Store } from '../store/store.js';
+import { currentRequest } from '../http/request-context.js';
+import { log } from '../log.js';
+import { instrument, internalResults } from './instrument.js';
 import { registerSnapshot } from './snapshot.js';
 import { registerFind } from './find.js';
 import { registerStock } from './stock.js';
@@ -52,14 +55,15 @@ export function guard<A extends unknown[]>(
     try {
       return await handler(...args);
     } catch (err) {
-      console.error(JSON.stringify({
-        level: 'error',
-        code: 'INTERNAL',
-        requestId: randomUUID(),
+      const failed = fail(INTERNAL_TEXT);
+      internalResults.add(failed);
+      log({
+        level: 'error', msg: 'internal', code: 'INTERNAL',
+        requestId: currentRequest()?.requestId ?? randomUUID(),
         error: err instanceof Error ? `${err.name}: ${err.message}` : String(err),
         stack: err instanceof Error ? err.stack : undefined
-      }));
-      return fail(INTERNAL_TEXT);
+      });
+      return failed;
     }
   };
 }
@@ -91,13 +95,14 @@ export function stageLabel(profile: Profile, stageId: string): string {
 }
 
 export function registerTools(server: McpServer, ctx: ToolContext): void {
-  registerSnapshot(server, ctx);
-  registerFind(server, ctx);
-  registerStock(server, ctx);
-  registerSalesReport(server, ctx);
-  registerOpen(server, ctx);
-  registerMove(server, ctx);
-  registerAddLine(server, ctx);
-  registerReorder(server, ctx);
-  registerCloseOut(server, ctx);
+  const s = instrument(server, ctx);
+  registerSnapshot(s, ctx);
+  registerFind(s, ctx);
+  registerStock(s, ctx);
+  registerSalesReport(s, ctx);
+  registerOpen(s, ctx);
+  registerMove(s, ctx);
+  registerAddLine(s, ctx);
+  registerReorder(s, ctx);
+  registerCloseOut(s, ctx);
 }

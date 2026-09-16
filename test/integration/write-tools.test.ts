@@ -1,6 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
 import { McpServer } from '@modelcontextprotocol/server';
+import { captureLogs } from '../../src/log.js';
 import { MemoryStore } from '../../src/store/memory.js';
 import { ConflictError } from '../../src/store/store.js';
 import { loadProfile } from '../../src/profiles/load.js';
@@ -171,8 +172,7 @@ describe('tools de escritura', () => {
         throw new TypeError('cannot read properties of undefined (reading x)');
       }
     }
-    const errors: string[] = [];
-    const spy = vi.spyOn(console, 'error').mockImplementation(line => { errors.push(String(line)); });
+    const cap = captureLogs();
     try {
       const { client } = await fixture(new BrokenStore());
       const r = await client.callTool({ name: 'check_parts_stock', arguments: { item: 'brake pads' } });
@@ -183,13 +183,14 @@ describe('tools de escritura', () => {
       expect(r.structuredContent).toBeUndefined();
 
       // El detalle va al log en JSON, con un identificador para poder encontrarlo.
-      expect(errors).toHaveLength(1);
-      const logged = JSON.parse(errors[0]!) as { code: string; requestId: string; error: string };
+      const internal = cap.lines().filter(l => l.msg === 'internal');
+      expect(internal).toHaveLength(1);
+      const logged = internal[0] as { code: string; requestId: string; error: string };
       expect(logged.code).toBe('INTERNAL');
       expect(logged.requestId).toBeTruthy();
       expect(logged.error).toContain('cannot read properties');
     } finally {
-      spy.mockRestore();
+      cap.restore();
     }
   });
 
