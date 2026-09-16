@@ -11,6 +11,7 @@ Resuelto en la rama `feat/local-delivery`:
 - **§3:** logs JSON a stdout, una línea por petición y otra por tool, correlacionadas por `requestId`; `Sessions.drop()` registra las fallas de `close()`; la línea `INTERNAL` va a stdout.
 - **§4:** vencimientos de la pastelería fijados por día de la semana; semilla y cierres usan la fecha del negocio.
 - **§5:** concordancia de número, `notFound` en singular, dos oraciones en resumen y reporte, ids reservados en los perfiles, campos del activo genéricos en vez de `plate`, filtro de `.ts` en `copy-assets`, `npm run seed -- --reset`, `toy.ts` fuera de la imagen, y plurales en -s/-es en las referencias habladas.
+- **Revisión final de la rama:** una sesión desconocida o de otro negocio responde 404 (MCP pide 404 para que el cliente abra otra); la imagen falla cerrada sin `COUNTERPART_STORE`, porque con `NODE_ENV=production` se rechaza el store en memoria; `npm run seed -- --reset` contra AWS borra y vuelve a sembrar solo los negocios del demo, sin tocar la tabla ni los tokens; logs JSON también para los errores fuera de las tools y para las peticiones abortadas; el rango de la semana del resumen se calcula en fechas civiles; el apóstrofo tipográfico en los posesivos; un caso de aislamiento entre negocios en el contrato del store; y DynamoDB Local con `-sharedDb`.
 
 Sigue abierto:
 
@@ -18,6 +19,7 @@ Sigue abierto:
 - **§3:** envío de los logs a CloudWatch.
 - **§4:** `this_week` contra `last_week` a mitad de semana; interoperabilidad con `basic-host`, incluido ver las dos UIs de MCP Apps en un host real.
 - **§5:** solapamiento de disparadores entre resumen y reporte (medirlo con `test/golden/`, que se corre en orden, en una sola sesión y con semilla fresca); umbrales duplicados entre `findItem` y `resolveOrder`; guardas de cantidad; "closest matches" con puntaje 0; boilerplate de `package.json`; y todos los "detalles con consecuencias acotadas".
+- **Revisión final de la rama:** instrucciones de `basic-host` en el README (spec §13); `putPurchaseOrders` sin transacción (un fallo a medias contradice el "Nothing was changed" de la respuesta); `createdAt` en las filas de token (spec §7.3); la gráfica de ventas sin etiquetas de fecha ni serie del periodo anterior (spec §7.9); `ui/*/main.ts` y `ui/vite.config.ts` fuera del chequeo de tipos; y el comportamiento distinto de los dos stores ante un negocio inexistente.
 
 Este documento existe porque el espacio de trabajo de ejecución (`.superpowers/sdd/`) está ignorado por git y se borra al cerrar el plan. Aquí queda lo que sí debe sobrevivir.
 
@@ -28,7 +30,7 @@ Este documento existe porque el espacio de trabajo de ejecución (`.superpowers/
 Dos propiedades están fijadas por pruebas y las asume toda la capa de tools. `TransactWriteItems` las da gratis; el riesgo es "simplificarlas" al portar.
 
 - **`commitOrderWithItems` valida TODAS las versiones antes de escribir cualquier registro.** Si algo choca, no se escribe nada. La prueba de `memory-store.test.ts` afirma que el ítem queda intacto tras un commit rechazado.
-- **`listPayments(bizId, from, to)` es un rango de fechas civiles inclusivo en ambos extremos**, comparando los primeros 10 caracteres de `paidAt` en la zona horaria del negocio.
+- **`listPayments(bizId, from, to)` es un rango inclusivo de fechas civiles (`YYYY-MM-DD`) en ambos extremos**, comparado sobre `paidOn`, la fecha civil del cobro en la zona horaria del negocio; nunca sobre el instante `paidAt`.
 
 ## 2. Seguridad, antes de desplegar
 
