@@ -88,7 +88,8 @@ describe('HTTP', () => {
     const sessionId = transportA.sessionId;
     expect(sessionId).toBeTruthy();
 
-    // Un pedido posterior con ese mismo session id pero el token del negocio B: rechazado.
+    // Un pedido posterior con ese mismo session id pero el token del negocio B: rechazado con 404,
+    // igual que un id desconocido, para no revelar que la sesión existe en otro negocio.
     const withOtherToken = await fetch(`${base}/mcp`, {
       method: 'POST',
       headers: {
@@ -99,7 +100,7 @@ describe('HTTP', () => {
       },
       body: JSON.stringify({ jsonrpc: '2.0', id: 200, method: 'tools/list', params: {} })
     });
-    expect(withOtherToken.status).toBe(403);
+    expect(withOtherToken.status).toBe(404);
 
     // El mismo session id con el token propio del negocio A: la sesión sigue viva, no fue el
     // session id lo que se rechazó arriba, sino el negocio del token.
@@ -117,5 +118,20 @@ describe('HTTP', () => {
     await withOwnToken.body?.cancel();
 
     await clientA.close();
+  });
+
+  it('un session id inventado recibe 404 para que el cliente abra una sesión nueva', async () => {
+    const r = await fetch(`${base}/mcp`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        accept: 'application/json, text/event-stream',
+        'mcp-session-id': 'sesion-que-no-existe',
+        authorization: `Bearer ${TOKEN}`
+      },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 300, method: 'tools/list', params: {} })
+    });
+    expect(r.status).toBe(404);
+    expect(await r.json()).toEqual({ error: 'session not found' });
   });
 });

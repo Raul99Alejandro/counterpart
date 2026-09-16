@@ -58,7 +58,9 @@ export function createApp(deps: { store: Store; devBusinessId?: string; host: st
       if (sessionId) {
         const entry = sessions.get(sessionId, business.id);
         if (!entry) {
-          res.status(403).json({ error: 'forbidden' });
+          // 404, como pide MCP para una sesión terminada: el cliente abre una nueva. Mismo código
+          // si el id es de otro negocio, para no revelar que existe.
+          res.status(404).json({ error: 'session not found' });
           return;
         }
         sessions.touch(sessionId, Date.now());
