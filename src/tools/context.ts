@@ -7,6 +7,11 @@ import { registerSnapshot } from './snapshot.js';
 import { registerFind } from './find.js';
 import { registerStock } from './stock.js';
 import { registerSalesReport } from './sales-report.js';
+import { registerOpen } from './open.js';
+import { registerMove } from './move.js';
+import { registerAddLine } from './add-line.js';
+import { registerReorder } from './reorder.js';
+import { registerCloseOut } from './close-out.js';
 
 export interface ToolContext {
   business: Business;
@@ -62,4 +67,9 @@ export function registerTools(server: McpServer, ctx: ToolContext): void {
   registerFind(server, ctx);
   registerStock(server, ctx);
   registerSalesReport(server, ctx);
+  registerOpen(server, ctx);
+  registerMove(server, ctx);
+  registerAddLine(server, ctx);
+  registerReorder(server, ctx);
+  registerCloseOut(server, ctx);
 }
