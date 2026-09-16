@@ -5,7 +5,7 @@ import { refLabel } from '../domain/reports.js';
 import { tokenScore } from '../domain/resolver.js';
 import { say } from '../speech/say.js';
 import { findInput, toolSpecs } from './specs.js';
-import { loadRefs, ok, openOnly, stageLabel, type ToolContext } from './context.js';
+import { guard, loadRefs, ok, openOnly, stageLabel, type ToolContext } from './context.js';
 
 const output = z.object({
   total: z.number(),
@@ -25,7 +25,7 @@ export function registerFind(server: McpServer, ctx: ToolContext): void {
       inputSchema: findInput(ctx.profile), outputSchema: output,
       annotations: { readOnlyHint: true, idempotentHint: true }
     },
-    async (args: { query?: string; stage?: string; due?: string }) => {
+    guard(async (args: { query?: string; stage?: string; due?: string }) => {
       let refs = openOnly(ctx, await loadRefs(ctx));
 
       if (args.stage) refs = refs.filter(r => r.order.stage === args.stage);
@@ -49,6 +49,6 @@ export function registerFind(server: McpServer, ctx: ToolContext): void {
           + `${say.list(refs.slice(0, 5).map(r => say.orderPhrase(ctx.profile, r)))}.`;
 
       return ok(text, { total: refs.length, orders: listed });
-    }
+    })
   );
 }

@@ -5,7 +5,7 @@ import { resolveOrder } from '../domain/resolver.js';
 import { say } from '../speech/say.js';
 import { ConflictError } from '../store/store.js';
 import { moveInput, toolSpecs } from './specs.js';
-import { fail, loadRefs, ok, openOnly, stageLabel, type ToolContext } from './context.js';
+import { fail, guard, loadRefs, ok, openOnly, stageLabel, type ToolContext } from './context.js';
 
 const output = z.object({ orderId: z.string(), number: z.number(), stage: z.string(), stageLabel: z.string() });
 
@@ -19,7 +19,7 @@ export function registerMove(server: McpServer, ctx: ToolContext): void {
       inputSchema: moveInput(ctx.profile), outputSchema: output,
       annotations: { idempotentHint: true }
     },
-    async (args: Record<string, unknown>) => {
+    guard(async (args: Record<string, unknown>) => {
       const order = String(args.order);
       const stage = String(args.stage);
 
@@ -51,6 +51,6 @@ export function registerMove(server: McpServer, ctx: ToolContext): void {
       return ok(say.moved(ctx.profile, ref, label), {
         orderId: moved.order.id, number: moved.order.number, stage: moved.order.stage, stageLabel: label
       });
-    }
+    })
   );
 }

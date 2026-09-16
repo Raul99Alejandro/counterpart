@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
 import { McpServer } from '@modelcontextprotocol/server';
 import { MemoryStore } from '../../src/store/memory.js';
@@ -163,6 +163,34 @@ describe('tools de escritura', () => {
     const second = await client.callTool({ name: 'reorder_parts', arguments: {} });
     expect(text(second)).toContain('already on order');
     expect(await store.listOpenPurchaseOrders('b1')).toHaveLength(1);
+  });
+
+  it('convierte una excepción inesperada en la frase de INTERNAL, sin filtrar el error crudo', async () => {
+    class BrokenStore extends MemoryStore {
+      override async listItems(): Promise<never> {
+        throw new TypeError('cannot read properties of undefined (reading x)');
+      }
+    }
+    const errors: string[] = [];
+    const spy = vi.spyOn(console, 'error').mockImplementation(line => { errors.push(String(line)); });
+    try {
+      const { client } = await fixture(new BrokenStore());
+      const r = await client.callTool({ name: 'check_parts_stock', arguments: { item: 'brake pads' } });
+
+      expect(r.isError).toBe(true);
+      expect(text(r)).toBe('Something went wrong on my end. Nothing was changed.');
+      expect(text(r)).not.toContain('cannot read properties');
+      expect(r.structuredContent).toBeUndefined();
+
+      // El detalle va al log en JSON, con un identificador para poder encontrarlo.
+      expect(errors).toHaveLength(1);
+      const logged = JSON.parse(errors[0]!) as { code: string; requestId: string; error: string };
+      expect(logged.code).toBe('INTERNAL');
+      expect(logged.requestId).toBeTruthy();
+      expect(logged.error).toContain('cannot read properties');
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('convierte un ConflictError de la store en el mensaje hablado, no en el texto interno', async () => {

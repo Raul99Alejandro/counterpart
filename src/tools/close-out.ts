@@ -6,7 +6,7 @@ import { resolveOrder } from '../domain/resolver.js';
 import { say } from '../speech/say.js';
 import { ConflictError } from '../store/store.js';
 import { closeOutInput, toolSpecs } from './specs.js';
-import { fail, loadRefs, ok, stageLabel, type ToolContext } from './context.js';
+import { fail, guard, loadRefs, ok, stageLabel, type ToolContext } from './context.js';
 import type { Payment } from '../domain/types.js';
 
 const output = z.object({
@@ -24,7 +24,7 @@ export function registerCloseOut(server: McpServer, ctx: ToolContext): void {
       inputSchema: closeOutInput(ctx.profile), outputSchema: output,
       annotations: { idempotentHint: true }
     },
-    async (args: Record<string, unknown>) => {
+    guard(async (args: Record<string, unknown>) => {
       const orderQuery = String(args.order);
       const paymentMethod = args.paymentMethod as Payment['method'];
 
@@ -66,6 +66,6 @@ export function registerCloseOut(server: McpServer, ctx: ToolContext): void {
         orderId: result.order.id, number: result.order.number,
         amountCents: result.payment.amountCents, method: result.payment.method, alreadyClosed: false
       });
-    }
+    })
   );
 }

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { McpServer } from '@modelcontextprotocol/server';
 import type { Profile } from '../profiles/schema.js';
 import type { OrderRef } from '../domain/resolver.js';
@@ -34,6 +35,33 @@ export function ok(text: string, structuredContent: unknown): ToolResult {
 /** Error de dominio: solo texto. El SDK no valida outputSchema cuando isError es true. */
 export function fail(text: string): ToolResult {
   return { content: [{ type: 'text', text }], isError: true };
+}
+
+const INTERNAL_TEXT = 'Something went wrong on my end. Nothing was changed.';
+
+/**
+ * Frontera de errores (§7.7, `INTERNAL`). Cualquier excepción que no sea un resultado de negocio
+ * se registra en JSON con un identificador y se contesta con una sola frase. Sin esto, el SDK
+ * convierte la excepción en el texto de la respuesta y el asistente lee el error en voz alta.
+ * Los errores de negocio, `ConflictError` incluido, los resuelve cada tool antes de llegar aquí.
+ */
+export function guard<A extends unknown[]>(
+  handler: (...args: A) => Promise<ToolResult>
+): (...args: A) => Promise<ToolResult> {
+  return async (...args: A): Promise<ToolResult> => {
+    try {
+      return await handler(...args);
+    } catch (err) {
+      console.error(JSON.stringify({
+        level: 'error',
+        code: 'INTERNAL',
+        requestId: randomUUID(),
+        error: err instanceof Error ? `${err.name}: ${err.message}` : String(err),
+        stack: err instanceof Error ? err.stack : undefined
+      }));
+      return fail(INTERNAL_TEXT);
+    }
+  };
 }
 
 /** Une órdenes con su cliente y su activo. */

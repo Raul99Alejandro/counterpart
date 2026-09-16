@@ -4,7 +4,7 @@ import { periodRange, type Period } from '../domain/dates.js';
 import { formatMoney } from '../domain/money.js';
 import { buildSalesReport } from '../domain/reports.js';
 import { salesReportInput, toolSpecs } from './specs.js';
-import { ok, type ToolContext } from './context.js';
+import { guard, ok, type ToolContext } from './context.js';
 
 const output = z.object({
   from: z.string(), to: z.string(), prevFrom: z.string(), prevTo: z.string(),
@@ -23,7 +23,7 @@ export function registerSalesReport(server: McpServer, ctx: ToolContext): void {
       inputSchema: salesReportInput, outputSchema: output,
       annotations: { readOnlyHint: true, idempotentHint: true }
     },
-    async (args: { period: Period; compare?: boolean }) => {
+    guard(async (args: { period: Period; compare?: boolean }) => {
       const range = periodRange(args.period, ctx.business.timezone, ctx.now());
       const [payments, orders] = await Promise.all([
         ctx.store.listPayments(ctx.business.id, range.prevFrom, range.to),
@@ -42,6 +42,6 @@ export function registerSalesReport(server: McpServer, ctx: ToolContext): void {
         + `${formatMoney(report.averageTicketCents)}.${comparison}${best}`,
         report
       );
-    }
+    })
   );
 }

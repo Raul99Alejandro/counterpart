@@ -4,7 +4,7 @@ import { findItem, planReorder } from '../domain/inventory.js';
 import { say } from '../speech/say.js';
 import { ConflictError } from '../store/store.js';
 import { itemQueryInput, toolSpecs } from './specs.js';
-import { fail, ok, type ToolContext } from './context.js';
+import { fail, guard, ok, type ToolContext } from './context.js';
 import type { PurchaseOrder } from '../domain/types.js';
 
 const output = z.object({
@@ -23,7 +23,7 @@ export function registerReorder(server: McpServer, ctx: ToolContext): void {
       inputSchema: itemQueryInput(ctx.profile), outputSchema: output,
       annotations: { idempotentHint: true }
     },
-    async (args: { item?: string }) => {
+    guard(async (args: { item?: string }) => {
       const [items, orders, openPOs] = await Promise.all([
         ctx.store.listItems(ctx.business.id),
         ctx.store.listOrders(ctx.business.id),
@@ -70,6 +70,6 @@ export function registerReorder(server: McpServer, ctx: ToolContext): void {
         skipped: plan.skipped.map(i => ({ itemId: i.id, name: i.name })),
         purchaseOrderIds: purchaseOrders.map(po => po.id)
       });
-    }
+    })
   );
 }

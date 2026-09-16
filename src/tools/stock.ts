@@ -3,7 +3,7 @@ import * as z from 'zod/v4';
 import { findItem, lowStock } from '../domain/inventory.js';
 import { say } from '../speech/say.js';
 import { itemQueryInput, toolSpecs } from './specs.js';
-import { fail, ok, type ToolContext } from './context.js';
+import { fail, guard, ok, type ToolContext } from './context.js';
 
 const output = z.object({
   items: z.array(z.object({
@@ -22,7 +22,7 @@ export function registerStock(server: McpServer, ctx: ToolContext): void {
       inputSchema: itemQueryInput(ctx.profile), outputSchema: output,
       annotations: { readOnlyHint: true, idempotentHint: true }
     },
-    async (args: { item?: string }) => {
+    guard(async (args: { item?: string }) => {
       const items = await ctx.store.listItems(ctx.business.id);
 
       if (!args.item) {
@@ -44,7 +44,7 @@ export function registerStock(server: McpServer, ctx: ToolContext): void {
         ? `${item.onHand} ${item.name} on hand.${item.onHand <= item.reorderPoint ? ' That is at or below the reorder point.' : ''}`
         : `${item.name} is a service, so there is nothing to count.`;
       return ok(text, { items: [view(item)] });
-    }
+    })
   );
 }
 

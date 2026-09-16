@@ -8,7 +8,7 @@ import type { Profile } from '../profiles/schema.js';
 import { say } from '../speech/say.js';
 import { ConflictError } from '../store/store.js';
 import { openInput, toolSpecs } from './specs.js';
-import { fail, loadRefs, ok, type ToolContext } from './context.js';
+import { fail, guard, loadRefs, ok, type ToolContext } from './context.js';
 
 const output = z.object({
   orderId: z.string(), number: z.number(), stage: z.string(), label: z.string(), dueOn: z.string().optional()
@@ -22,7 +22,7 @@ export function registerOpen(server: McpServer, ctx: ToolContext): void {
   server.registerTool(
     spec.name,
     { title: spec.title, description: spec.description, inputSchema: openInput(ctx.profile), outputSchema: output },
-    async (args: Record<string, unknown>) => {
+    guard(async (args: Record<string, unknown>) => {
       const now = ctx.now();
       const customerName = String(args.customerName);
       const assetFields = (args.asset ?? {}) as Record<string, string | number>;
@@ -105,7 +105,7 @@ export function registerOpen(server: McpServer, ctx: ToolContext): void {
         asset: assetId ? { id: assetId, customerId: customer.id, fields: assetFields, spokenLabel: label } : undefined
       };
       return ok(say.opened(ctx.profile, ref), toOutput(ref));
-    }
+    })
   );
 }
 

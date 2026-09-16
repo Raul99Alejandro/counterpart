@@ -5,7 +5,7 @@ import { formatMoney } from '../domain/money.js';
 import { buildSnapshot } from '../domain/reports.js';
 import { say } from '../speech/say.js';
 import { toolSpecs } from './specs.js';
-import { loadRefs, ok, type ToolContext } from './context.js';
+import { guard, loadRefs, ok, type ToolContext } from './context.js';
 
 const output = z.object({
   todayRevenueCents: z.number(),
@@ -25,7 +25,7 @@ export function registerSnapshot(server: McpServer, ctx: ToolContext): void {
       inputSchema: z.object({}), outputSchema: output,
       annotations: { readOnlyHint: true, idempotentHint: true }
     },
-    async () => {
+    guard(async () => {
       const today = businessToday(ctx.business.timezone, ctx.now());
       const weekAgo = new Date(ctx.now().getTime() - 7 * 24 * 3600 * 1000);
       const [refs, items, payments] = await Promise.all([
@@ -41,6 +41,6 @@ export function registerSnapshot(server: McpServer, ctx: ToolContext): void {
         + (snapshot.low.length > 0 ? `${snapshot.low.length} ${ctx.profile.nouns.items} are running low.` : 'Stock looks fine.');
 
       return ok(text, snapshot);
-    }
+    })
   );
 }

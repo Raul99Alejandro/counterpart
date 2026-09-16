@@ -6,7 +6,7 @@ import { resolveOrder } from '../domain/resolver.js';
 import { say } from '../speech/say.js';
 import { ConflictError } from '../store/store.js';
 import { addLineInput, toolSpecs } from './specs.js';
-import { fail, loadRefs, ok, openOnly, type ToolContext } from './context.js';
+import { fail, guard, loadRefs, ok, openOnly, type ToolContext } from './context.js';
 
 const output = z.object({
   orderId: z.string(), number: z.number(), itemName: z.string(), quantity: z.number(),
@@ -19,7 +19,7 @@ export function registerAddLine(server: McpServer, ctx: ToolContext): void {
   server.registerTool(
     spec.name,
     { title: spec.title, description: spec.description, inputSchema: addLineInput(ctx.profile), outputSchema: output },
-    async (args: Record<string, unknown>) => {
+    guard(async (args: Record<string, unknown>) => {
       const order = String(args.order);
       const item = String(args.item);
 
@@ -51,6 +51,6 @@ export function registerAddLine(server: McpServer, ctx: ToolContext): void {
         orderId: updated.id, number: updated.number, itemName: line.name,
         quantity: line.quantity, backordered: line.backordered, totalCents: updated.totalCents
       });
-    }
+    })
   );
 }
