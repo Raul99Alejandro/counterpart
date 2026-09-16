@@ -20,6 +20,17 @@ export function shiftDays(dateIso: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+/**
+ * Fecha civil que además existe en el calendario. La forma no basta: "2026-02-30" pasa
+ * cualquier expresión regular y Date lo corre a marzo, así que se valida yendo y volviendo.
+ */
+function calendarDate(value: string): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const parsed = new Date(`${value}T12:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString().slice(0, 10) === value ? value : null;
+}
+
 /** Resuelve "today", "tomorrow", un día de la semana o YYYY-MM-DD. Devuelve null si no entiende. */
 export function resolveDue(input: string, timezone: string, now: Date): string | null {
   const value = input.trim().toLowerCase();
@@ -27,7 +38,7 @@ export function resolveDue(input: string, timezone: string, now: Date): string |
 
   if (value === 'today') return today;
   if (value === 'tomorrow') return shiftDays(today, 1);
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return calendarDate(value);
 
   const target = WEEKDAYS.indexOf(value);
   if (target >= 0) {

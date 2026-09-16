@@ -27,6 +27,16 @@ describe('fechas', () => {
     expect(resolveDue('whenever', TZ, now)).toBeNull();
   });
 
+  it('rechaza fechas con forma válida pero que no existen en el calendario', () => {
+    const now = new Date('2026-09-15T15:00:00Z');
+    // Aceptarlas persistía la orden y luego reventaba al decir la fecha en voz alta.
+    expect(resolveDue('2026-13-45', TZ, now)).toBeNull();
+    expect(resolveDue('2026-02-30', TZ, now)).toBeNull();
+    expect(resolveDue('2026-09-31', TZ, now)).toBeNull();
+    expect(resolveDue('2026-02-28', TZ, now)).toBe('2026-02-28');
+    expect(resolveDue('2028-02-29', TZ, now)).toBe('2028-02-29');
+  });
+
   it('calcula la semana actual de lunes a domingo y la anterior', () => {
     const now = new Date('2026-09-15T15:00:00Z'); // martes
     expect(periodRange('this_week', TZ, now)).toEqual({
