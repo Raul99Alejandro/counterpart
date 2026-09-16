@@ -5,6 +5,9 @@ import { profileSchema, TOOL_KEYS, type Profile } from './schema.js';
 
 const DIR = path.join(import.meta.dirname, '.');
 
+/** Propiedades que la tool de abrir orden ya usa; un campo propio con ese id la pisaría en silencio. */
+const RESERVED_FIELD_IDS = new Set(['customerName', 'customerPhone', 'description', 'asset', 'due']);
+
 export function parseProfile(raw: unknown): Profile {
   const p = profileSchema.parse(raw);
   const stageIds = new Set(p.stages.map(s => s.id));
@@ -31,6 +34,11 @@ export function parseProfile(raw: unknown): Profile {
     for (const m of p.asset.spokenAs.matchAll(/\{([a-z0-9_]+)\}/g)) {
       if (!fieldIds.has(m[1]!)) throw new Error(`spokenAs usa "{${m[1]}}", que no es un campo del activo`);
     }
+  }
+
+  // Verificar que orderFields no usan ids reservados
+  for (const f of p.orderFields) {
+    if (RESERVED_FIELD_IDS.has(f.id)) throw new Error(`orderFields usa el id reservado "${f.id}"`);
   }
 
   return p;

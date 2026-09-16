@@ -1,7 +1,7 @@
 import { hashToken } from '../src/http/auth.js';
 import { loadProfile } from '../src/profiles/load.js';
 import { spokenLabel } from '../src/domain/assets.js';
-import { businessToday, shiftDays } from '../src/domain/dates.js';
+import { businessToday, resolveDue, shiftDays } from '../src/domain/dates.js';
 import { newOrder, recalcTotals } from '../src/domain/orders.js';
 import type { Business, CatalogItem, Customer, Order, OrderLine, Payment } from '../src/domain/types.js';
 import type { Profile } from '../src/profiles/schema.js';
@@ -11,7 +11,6 @@ import { BAKERY_ITEMS, SHOP_ITEMS, mulberry32 } from './data.js';
 export const DEMO_TOKENS = { shop: 'demo-shop-token', bakery: 'demo-bakery-token' };
 
 const HOUR_MS = 3600 * 1000;
-const DAY_MS = 24 * HOUR_MS;
 
 const SHOP: Business = {
   id: 'shop', name: 'Oak Street Auto', profileId: 'auto-repair',
@@ -33,13 +32,14 @@ const VEHICLES: Array<[string, Record<string, string | number>, string]> = [
   ['Owen Clark', { year: 2014, make: 'Ram', model: '1500' }, 'ready_for_pickup']
 ];
 
-const CAKES: Array<[string, Record<string, string>, string, number]> = [
-  ['Grace Kim', { flavor: 'vanilla', size: '8-inch', inscription: 'Happy Birthday' }, 'ordered', 1],
-  ['Luis Romero', { flavor: 'chocolate', size: '10-inch' }, 'ordered', 4],
-  ['Emma Wright', { flavor: 'red velvet', size: '10-inch', inscription: 'Congrats' }, 'baking', 4],
-  ['Jonas Meyer', { flavor: 'carrot', size: '8-inch' }, 'decorating', 4],
-  ['Ada Silva', { flavor: 'lemon', size: '8-inch' }, 'ready', 0],
-  ['Ben Haddad', { flavor: 'chocolate', size: '10-inch', inscription: 'Thank You' }, 'ready', 2]
+// Vencimientos por día de la semana: "tres para el sábado" es cierto siembres el día que siembres.
+const CAKES: Array<[string, Record<string, string>, string, string]> = [
+  ['Grace Kim', { flavor: 'vanilla', size: '8-inch', inscription: 'Happy Birthday' }, 'ordered', 'wednesday'],
+  ['Luis Romero', { flavor: 'chocolate', size: '10-inch' }, 'ordered', 'saturday'],
+  ['Emma Wright', { flavor: 'red velvet', size: '10-inch', inscription: 'Congrats' }, 'baking', 'saturday'],
+  ['Jonas Meyer', { flavor: 'carrot', size: '8-inch' }, 'decorating', 'saturday'],
+  ['Ada Silva', { flavor: 'lemon', size: '8-inch' }, 'ready', 'thursday'],
+  ['Ben Haddad', { flavor: 'chocolate', size: '10-inch', inscription: 'Thank You' }, 'ready', 'monday']
 ];
 
 /** Siembra los dos negocios del demo. Determinista: la misma corrida produce los mismos datos. */
@@ -92,12 +92,12 @@ async function seedBakery(store: Store, now: Date): Promise<void> {
   const random = mulberry32(9137);
   let n = 0;
 
-  for (const [name, fields, stage, dueInDays] of CAKES) {
+  for (const [name, fields, stage, dueWeekday] of CAKES) {
     n += 1;
     const customerId = `bakery-cust-${n}`;
     await store.putCustomer(BAKERY.id, { id: customerId, name, nameNormalized: name.toLowerCase() });
 
-    const due = new Date(now.getTime() + dueInDays * DAY_MS).toISOString().slice(0, 10);
+    const due = resolveDue(dueWeekday, BAKERY.timezone, now)!;
     const createdAt = new Date(now.getTime() - (n * 7 + 3) * HOUR_MS);
     // El pastel que se cobra es el del tamaño pedido; a veces lleva relleno extra.
     const cake = itemById(BAKERY_ITEMS, fields.size === '10-inch' ? 'cake-10' : 'cake-8');

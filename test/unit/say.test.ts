@@ -64,4 +64,19 @@ describe('frases', () => {
     expect(say.list(['a', 'b'])).toBe('a and b');
     expect(say.list(['a', 'b', 'c'])).toBe('a, b and c');
   });
+
+  it('concuerda en número el stock y el backorder', () => {
+    const three = { itemId: 'i1', name: 'Front brake pads', quantity: 3, unitPriceCents: 4500, taxable: true, backordered: 1 };
+    expect(say.lineAdded(profile, ref, three, 41250))
+      .toBe('Added 3 Front brake pads to work order 42, but only 2 were in stock, so 1 is backordered. The total is now $412.50.');
+
+    const none = { ...three, quantity: 2, backordered: 2 };
+    expect(say.lineAdded(profile, ref, none, 41250))
+      .toBe('Added 2 Front brake pads to work order 42, but none were in stock, so 2 are backordered. The total is now $412.50.');
+  });
+
+  it('habla en singular cuando solo hay una orden abierta', () => {
+    expect(say.notFound(profile, 'Accord', [ref]))
+      .toBe(`I couldn't find an open work order for "Accord". The only open one is work order 42, Dana Lee's 2019 Honda Civic.`);
+  });
 });

@@ -56,4 +56,12 @@ describe('referencias habladas', () => {
     expect(resolveOrder('the Accord', [civic, camryA, camryB], profile)).toEqual({ kind: 'none' });
     expect(resolveOrder('the', [civic], profile)).toEqual({ kind: 'none' });
   });
+
+  it('busca en cualquier campo del activo, no solo en la placa', () => {
+    const truck: OrderRef = {
+      ...ref(90, 'Kim Park', 'Box Truck'),
+      asset: { id: 'a90', customerId: 'c90', fields: { vin: 'ZX9' }, spokenLabel: 'Box Truck' }
+    };
+    expect(resolveOrder('ZX9', [civic, truck], profile)).toEqual({ kind: 'one', ref: truck });
+  });
 });

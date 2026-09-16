@@ -54,7 +54,8 @@ export function normalizeQuery(query: string, profile: Profile): string[] {
 /** Todo el texto por el que se puede nombrar una orden hablando (§7.5). */
 export function orderHaystack(ref: OrderRef): string {
   return [
-    ref.customer.name, ref.asset?.spokenLabel ?? '', String(ref.asset?.fields.plate ?? ''),
+    ref.customer.name, ref.asset?.spokenLabel ?? '',
+    ...Object.values(ref.asset?.fields ?? {}).map(String),
     ...Object.values(ref.order.fields), ref.order.description ?? ''
   ].join(' ');
 }

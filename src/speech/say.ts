@@ -46,12 +46,14 @@ export const say = {
   },
 
   lineAdded(profile: Profile, ref: OrderRef, line: OrderLine, totalCents: number): string {
-    if (line.backordered > 0) {
-      return `Added ${line.quantity} ${line.name} to ${say.orderName(profile, ref.order.number)}, but only ${line.quantity - line.backordered} was in stock, so ${line.backordered} is backordered. `
-        + `The total is now ${formatMoney(totalCents)}.`;
-    }
-    return `Added ${line.quantity} ${line.name} to ${say.orderName(profile, ref.order.number)}. `
-      + `The total is now ${formatMoney(totalCents)}.`;
+    const orderName = say.orderName(profile, ref.order.number);
+    const total = `The total is now ${formatMoney(totalCents)}.`;
+    if (line.backordered === 0) return `Added ${line.quantity} ${line.name} to ${orderName}. ${total}`;
+
+    const inStock = line.quantity - line.backordered;
+    const stock = inStock <= 0 ? 'none were in stock' : `only ${inStock} ${inStock === 1 ? 'was' : 'were'} in stock`;
+    return `Added ${line.quantity} ${line.name} to ${orderName}, but ${stock}, `
+      + `so ${line.backordered} ${line.backordered === 1 ? 'is' : 'are'} backordered. ${total}`;
   },
 
   closed(profile: Profile, ref: OrderRef, payment: Payment): string {
@@ -65,7 +67,8 @@ export const say = {
   notFound(profile: Profile, query: string, open: OrderRef[]): string {
     if (open.length === 0) return `I couldn't find "${query}", and there are no open ${profile.nouns.orders} right now.`;
     const names = open.slice(0, 5).map(r => say.orderPhrase(profile, r));
-    return `I couldn't find an open ${profile.nouns.order} for "${query}". Open ones are ${list(names)}.`;
+    const which = names.length === 1 ? `The only open one is ${names[0]}.` : `Open ones are ${list(names)}.`;
+    return `I couldn't find an open ${profile.nouns.order} for "${query}". ${which}`;
   },
 
   ambiguous(profile: Profile, refs: OrderRef[]): string {

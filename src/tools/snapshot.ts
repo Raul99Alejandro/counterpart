@@ -36,9 +36,12 @@ export function registerSnapshot(server: McpServer, ctx: ToolContext): void {
 
       const snapshot = buildSnapshot({ profile: ctx.profile, refs, items, payments, today });
       const stages = snapshot.byStage.map(s => `${s.count} ${s.label}`);
-      const text = `Today you've taken in ${formatMoney(snapshot.todayRevenueCents)}. `
-        + (stages.length > 0 ? `You have ${say.list(stages)}. ` : `No open ${ctx.profile.nouns.orders}. `)
-        + (snapshot.low.length > 0 ? `${snapshot.low.length} ${ctx.profile.nouns.items} are running low.` : 'Stock looks fine.');
+      const low = snapshot.low.length;
+      const open = stages.length > 0 ? `, with ${say.list(stages)}` : `, with no open ${ctx.profile.nouns.orders}`;
+      const stock = low === 0
+        ? 'Stock looks fine.'
+        : `${low} ${low === 1 ? ctx.profile.nouns.item : ctx.profile.nouns.items} ${low === 1 ? 'is' : 'are'} running low.`;
+      const text = `Today you've taken in ${formatMoney(snapshot.todayRevenueCents)}${open}. ${stock}`;
 
       return ok(text, snapshot);
     })

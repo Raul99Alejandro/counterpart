@@ -31,17 +31,20 @@ export function registerSalesReport(server: McpServer, ctx: ToolContext): void {
       ]);
 
       const report = buildSalesReport({ range, payments, orders });
-      const comparison = args.compare === false || report.prevTotalCents === 0
-        ? ''
-        : ` That's ${report.totalCents >= report.prevTotalCents ? 'up' : 'down'} from `
-          + `${formatMoney(report.prevTotalCents)} the period before.`;
-      const best = report.topItems[0] ? ` Best seller: ${report.topItems[0].name}.` : '';
+      const sales = `${report.count} ${report.count === 1 ? 'sale' : 'sales'}`;
+      const first = `${formatMoney(report.totalCents)} from ${sales}, averaging ${formatMoney(report.averageTicketCents)}.`;
 
-      return ok(
-        `${formatMoney(report.totalCents)} from ${report.count} sales, averaging `
-        + `${formatMoney(report.averageTicketCents)}.${comparison}${best}`,
-        report
-      );
+      const trend = args.compare !== false && report.prevTotalCents > 0
+        ? `That's ${report.totalCents >= report.prevTotalCents ? 'up' : 'down'} from ${formatMoney(report.prevTotalCents)} the period before`
+        : '';
+      const best = report.topItems[0]?.name;
+      // Una sola segunda oración, sea cual sea la combinación.
+      const second = trend && best ? ` ${trend}, and the best seller was ${best}.`
+        : trend ? ` ${trend}.`
+        : best ? ` The best seller was ${best}.`
+        : '';
+
+      return ok(first + second, report);
     })
   );
 }

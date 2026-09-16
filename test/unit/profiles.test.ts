@@ -34,6 +34,12 @@ describe('perfiles', () => {
     bad.asset = { noun: 'vehicle', fields: [{ id: 'make', type: 'string', required: true }], spokenAs: '{year} {make}' };
     expect(() => parseProfile(bad)).toThrow(/spokenAs/);
   });
+
+  it('rechaza un orderFields con un id reservado por las tools', () => {
+    const bad = minimal();
+    bad.orderFields = [{ id: 'due', type: 'string', required: true }];
+    expect(() => parseProfile(bad)).toThrow(/reservado/);
+  });
 });
 
 function minimal(): any {
