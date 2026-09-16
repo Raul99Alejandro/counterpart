@@ -1394,7 +1394,7 @@ describe('reportes', () => {
     expect(r.count).toBe(2);
     expect(r.averageTicketCents).toBe(7500);
     expect(r.daily).toEqual([{ date: '2026-09-15', cents: 10000 }, { date: '2026-09-16', cents: 5000 }]);
-    expect(r.topItems).toEqual([{ name: 'Oil filter', quantity: 4, cents: 3600 }]);
+    expect(r.topItems).toEqual([{ name: 'Oil filter', quantity: 2, cents: 1800 }]);
   });
 });
 ```
@@ -1474,8 +1474,10 @@ export function buildSalesReport(input: {
 
   const byItem = new Map<string, { name: string; quantity: number; cents: number }>();
   const ordersById = new Map(orders.map(o => [o.id, o]));
-  for (const p of current) {
-    for (const line of ordersById.get(p.orderId)?.lines ?? []) {
+  // Una orden pagada en dos partidas no debe contar sus líneas dos veces.
+  const paidOrderIds = new Set(current.map(p => p.orderId));
+  for (const orderId of paidOrderIds) {
+    for (const line of ordersById.get(orderId)?.lines ?? []) {
       const entry = byItem.get(line.itemId) ?? { name: line.name, quantity: 0, cents: 0 };
       entry.quantity += line.quantity;
       entry.cents += Math.round(line.quantity * line.unitPriceCents);
