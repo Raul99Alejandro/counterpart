@@ -1,10 +1,12 @@
 import type { McpServer } from '@modelcontextprotocol/server';
+import { registerAppTool } from '@modelcontextprotocol/ext-apps/server';
 import * as z from 'zod/v4';
 import { periodRange, type Period } from '../domain/dates.js';
 import { formatMoney } from '../domain/money.js';
 import { buildSalesReport } from '../domain/reports.js';
 import { salesReportInput, toolSpecs } from './specs.js';
 import { guard, ok, type ToolContext } from './context.js';
+import { UI } from './ui-assets.js';
 
 const output = z.object({
   from: z.string(), to: z.string(), prevFrom: z.string(), prevTo: z.string(),
@@ -16,12 +18,14 @@ const output = z.object({
 export function registerSalesReport(server: McpServer, ctx: ToolContext): void {
   const spec = toolSpecs(ctx.profile).salesReport;
 
-  server.registerTool(
+  registerAppTool(
+    server,
     spec.name,
     {
       title: spec.title, description: spec.description,
       inputSchema: salesReportInput, outputSchema: output,
-      annotations: { readOnlyHint: true, idempotentHint: true }
+      annotations: { readOnlyHint: true, idempotentHint: true },
+      _meta: { ui: { resourceUri: UI.salesReport } }
     },
     guard(async (args: { period: Period; compare?: boolean }) => {
       const range = periodRange(args.period, ctx.business.timezone, ctx.now());

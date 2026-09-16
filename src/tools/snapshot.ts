@@ -1,4 +1,5 @@
 import type { McpServer } from '@modelcontextprotocol/server';
+import { registerAppTool } from '@modelcontextprotocol/ext-apps/server';
 import * as z from 'zod/v4';
 import { businessToday } from '../domain/dates.js';
 import { formatMoney } from '../domain/money.js';
@@ -6,6 +7,7 @@ import { buildSnapshot } from '../domain/reports.js';
 import { say } from '../speech/say.js';
 import { toolSpecs } from './specs.js';
 import { guard, loadRefs, ok, type ToolContext } from './context.js';
+import { UI } from './ui-assets.js';
 
 const output = z.object({
   todayRevenueCents: z.number(),
@@ -18,12 +20,14 @@ const output = z.object({
 export function registerSnapshot(server: McpServer, ctx: ToolContext): void {
   const spec = toolSpecs(ctx.profile).snapshot;
 
-  server.registerTool(
+  registerAppTool(
+    server,
     spec.name,
     {
       title: spec.title, description: spec.description,
       inputSchema: z.object({}), outputSchema: output,
-      annotations: { readOnlyHint: true, idempotentHint: true }
+      annotations: { readOnlyHint: true, idempotentHint: true },
+      _meta: { ui: { resourceUri: UI.snapshot } }
     },
     guard(async () => {
       const today = businessToday(ctx.business.timezone, ctx.now());

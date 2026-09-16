@@ -7,6 +7,7 @@ import type { Store } from '../store/store.js';
 import { currentRequest } from '../http/request-context.js';
 import { log } from '../log.js';
 import { instrument, internalResults } from './instrument.js';
+import { registerUiResources } from './ui-assets.js';
 import { registerSnapshot } from './snapshot.js';
 import { registerFind } from './find.js';
 import { registerStock } from './stock.js';
@@ -105,4 +106,5 @@ export function registerTools(server: McpServer, ctx: ToolContext): void {
   registerAddLine(s, ctx);
   registerReorder(s, ctx);
   registerCloseOut(s, ctx);
+  registerUiResources(s);
 }
