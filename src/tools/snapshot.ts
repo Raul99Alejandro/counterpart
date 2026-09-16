@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import { registerAppTool } from '@modelcontextprotocol/ext-apps/server';
 import * as z from 'zod/v4';
-import { businessToday } from '../domain/dates.js';
+import { businessToday, shiftDays } from '../domain/dates.js';
 import { formatMoney } from '../domain/money.js';
 import { buildSnapshot } from '../domain/reports.js';
 import { say } from '../speech/say.js';
@@ -31,11 +31,13 @@ export function registerSnapshot(server: McpServer, ctx: ToolContext): void {
     },
     guard(async () => {
       const today = businessToday(ctx.business.timezone, ctx.now());
-      const weekAgo = new Date(ctx.now().getTime() - 7 * 24 * 3600 * 1000);
+      // En fechas civiles, no restando 7×24 h al instante: la semana en que termina el horario de
+      // verano, esa resta cae en otro día y el rango pierde el mismo día de la semana pasada.
+      const weekAgo = shiftDays(today, -7);
       const [refs, items, payments] = await Promise.all([
         loadRefs(ctx),
         ctx.store.listItems(ctx.business.id),
-        ctx.store.listPayments(ctx.business.id, businessToday(ctx.business.timezone, weekAgo), today)
+        ctx.store.listPayments(ctx.business.id, weekAgo, today)
       ]);
 
       const snapshot = buildSnapshot({ profile: ctx.profile, refs, items, payments, today });

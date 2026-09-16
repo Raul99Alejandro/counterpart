@@ -75,3 +75,36 @@ describe('fecha civil del cobro', () => {
     await client.close();
   });
 });
+
+describe('rango de la semana del resumen', () => {
+  it('incluye el mismo día de la semana pasada aunque en medio termine el horario de verano', async () => {
+    // Sábado 7 de noviembre, 23:30 en Chicago (CST). Restar 7×24 h cae el 1 de noviembre a las
+    // 00:30 CDT: el rango empezaría el 1 y dejaría fuera el sábado 31 de octubre.
+    const lateSaturday = new Date('2026-11-08T05:30:00Z');
+    const store = new MemoryStore();
+    await store.putBusiness(business);
+    const sold: Order = {
+      id: 'o9', number: 9, customerId: 'c1', stage: 'picked_up', fields: {},
+      lines: [], subtotalCents: 4200, taxCents: 0, totalCents: 4200, stageHistory: [],
+      createdAt: '2026-10-31T15:00:00.000Z', closedAt: '2026-10-31T15:00:00.000Z', version: 1
+    };
+    await store.commitClose('b1', sold, {
+      id: 'p9', orderId: 'o9', amountCents: 4200, method: 'cash',
+      paidAt: '2026-10-31T15:00:00.000Z', paidOn: '2026-10-31'
+    });
+
+    const server = new McpServer({ name: 'counterpart', version: '0.1.0' });
+    registerTools(server, {
+      business, profile: loadProfile('auto-repair'), store, now: () => lateSaturday, newId: p => `${p}-1`
+    });
+    const [clientEnd, serverEnd] = InMemoryTransport.createLinkedPair();
+    const client = new Client({ name: 'test', version: '1.0.0' });
+    await server.server.connect(serverEnd);
+    await client.connect(clientEnd);
+
+    const r = await client.callTool({ name: 'get_shop_snapshot', arguments: {} });
+    expect(r.isError).toBeFalsy();
+    expect((r.structuredContent as { sameDayLastWeekCents: number }).sameDayLastWeekCents).toBe(4200);
+    await client.close();
+  });
+});
