@@ -14,9 +14,10 @@ const business: Business = {
 
 let server: Server;
 let base: string;
+let store: MemoryStore;
 
 beforeAll(async () => {
-  const store = new MemoryStore();
+  store = new MemoryStore();
   await store.putBusiness(business);
   await store.putToken(hashToken(TOKEN), 'b1');
 
@@ -63,5 +64,58 @@ describe('HTTP', () => {
     expect(tools.map(t => t.name)).toContain('open_work_order');
 
     await client.close();
+  });
+
+  it('el token de otro negocio no abre la sesión, pero el propio sigue funcionando', async () => {
+    const businessB: Business = {
+      id: 'b2', name: 'Maple Street Bakery', profileId: 'bakery',
+      timezone: 'America/Chicago', taxRateBps: 825, nextOrderNumber: 1, version: 1
+    };
+    const TOKEN_B = 'token-de-otro-negocio';
+    await store.putBusiness(businessB);
+    await store.putToken(hashToken(TOKEN_B), 'b2');
+
+    // Abrir sesión como el negocio A (b1) y capturar el session id que asigna el servidor.
+    const transportA = new StreamableHTTPClientTransport(new URL(`${base}/mcp`), {
+      fetch: (input: string | URL | Request, init?: RequestInit) => {
+        const headers = new Headers(init?.headers);
+        headers.set('authorization', `Bearer ${TOKEN}`);
+        return fetch(input, { ...init, headers });
+      }
+    });
+    const clientA = new Client({ name: 'test', version: '1.0.0' });
+    await clientA.connect(transportA);
+    const sessionId = transportA.sessionId;
+    expect(sessionId).toBeTruthy();
+
+    // Un pedido posterior con ese mismo session id pero el token del negocio B: rechazado.
+    const withOtherToken = await fetch(`${base}/mcp`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        accept: 'application/json, text/event-stream',
+        'mcp-session-id': sessionId!,
+        authorization: `Bearer ${TOKEN_B}`
+      },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 200, method: 'tools/list', params: {} })
+    });
+    expect(withOtherToken.status).toBe(403);
+
+    // El mismo session id con el token propio del negocio A: la sesión sigue viva, no fue el
+    // session id lo que se rechazó arriba, sino el negocio del token.
+    const withOwnToken = await fetch(`${base}/mcp`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        accept: 'application/json, text/event-stream',
+        'mcp-session-id': sessionId!,
+        authorization: `Bearer ${TOKEN}`
+      },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 201, method: 'tools/list', params: {} })
+    });
+    expect(withOwnToken.status).toBe(200);
+    await withOwnToken.body?.cancel();
+
+    await clientA.close();
   });
 });

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { bearerFrom, hashToken } from '../../src/http/auth.js';
 import { Sessions } from '../../src/http/sessions.js';
+import { createApp } from '../../src/http/app.js';
+import { MemoryStore } from '../../src/store/memory.js';
 
 describe('autenticación', () => {
   it('extrae el bearer y rechaza lo demás', () => {
@@ -33,5 +35,13 @@ describe('sesiones', () => {
     s.set('sid', { ...entry, lastSeen: 1000 });
     s.sweep(1000 + 31 * 60 * 1000, 30 * 60 * 1000);
     expect(s.get('sid', 'b1')).toBeNull();
+  });
+});
+
+describe('modo local sin token', () => {
+  it('rechaza COUNTERPART_DEV_BUSINESS fuera de 127.0.0.1 y lo acepta en 127.0.0.1', () => {
+    const store = new MemoryStore();
+    expect(() => createApp({ store, devBusinessId: 'shop', host: '0.0.0.0' })).toThrow();
+    expect(() => createApp({ store, devBusinessId: 'shop', host: '127.0.0.1' })).not.toThrow();
   });
 });
