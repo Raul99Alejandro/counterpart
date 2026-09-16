@@ -57,4 +57,24 @@ describe('MemoryStore', () => {
     expect(await store.listPayments('b1', '2026-09-15', '2026-09-15')).toHaveLength(1);
     expect(await store.listPayments('b1', '2026-09-16', '2026-09-20')).toHaveLength(0);
   });
+
+  it('commitOrderWithItems es atómico: rechaza si hay conflicto sin escribir nada', async () => {
+    const store = newStore();
+    const item = { id: 'i1', name: 'Wheel', synonyms: [], kind: 'part' as const, unit: 'ea', priceCents: 5000, taxable: true, stocked: true, onHand: 10, reorderPoint: 3, reorderQty: 5, consumes: {}, version: 1 };
+
+    // Guardar orden e item para que ambos lleguen a versión 2
+    await store.putOrder('b1', order);
+    await store.putItems('b1', [item]);
+
+    const itemBefore = (await store.listItems('b1'))[0];
+
+    // Intentar commitOrderWithItems con versión vieja de order pero versión actual de item
+    await expect(
+      store.commitOrderWithItems('b1', { ...order, version: 1 }, [{ ...item, version: 2 }])
+    ).rejects.toBeInstanceOf(ConflictError);
+
+    // Verificar que el item no cambió (ni versión ni onHand)
+    const itemAfter = (await store.listItems('b1'))[0];
+    expect(itemAfter).toEqual(itemBefore);
+  });
 });

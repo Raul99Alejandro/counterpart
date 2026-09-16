@@ -84,8 +84,19 @@ export class MemoryStore implements Store {
   }
 
   async commitOrderWithItems(bizId: string, order: Order, items: CatalogItem[]): Promise<void> {
-    await this.putItems(bizId, items);
-    await this.putOrder(bizId, order);
+    const t = this.tenant(bizId);
+    // Validar orden
+    const currentOrder = t.orders.get(order.id);
+    if (currentOrder && currentOrder.version !== order.version) throw new ConflictError(`order ${order.id}`);
+    // Validar items
+    for (const item of items) {
+      const current = t.items.get(item.id);
+      if (current && current.version !== item.version) throw new ConflictError(`item ${item.id}`);
+    }
+    // Escribir items
+    for (const item of items) t.items.set(item.id, copy({ ...item, version: item.version + 1 }));
+    // Escribir orden
+    t.orders.set(order.id, copy({ ...order, version: order.version + 1 }));
   }
 
   async commitClose(bizId: string, order: Order, payment: Payment): Promise<void> {
