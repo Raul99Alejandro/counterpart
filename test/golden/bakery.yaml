@@ -1,0 +1,68 @@
+profile: bakery
+phrases:
+  - say: "How's the bakery doing today?"
+    tool: get_bakery_snapshot
+    args: {}
+  - say: "What's on the board today?"
+    tool: get_bakery_snapshot
+    args: {}
+  - say: "How many cakes are due Saturday?"
+    tool: find_cake_orders
+    args: { due: saturday }
+  - say: "What's due tomorrow?"
+    tool: find_cake_orders
+    args: { due: tomorrow }
+  - say: "What's in the oven?"
+    tool: find_cake_orders
+    args: { stage: baking }
+  - say: "Which cakes are ready?"
+    tool: find_cake_orders
+    args: { stage: ready }
+  - say: "Find Luis Romero's order"
+    tool: find_cake_orders
+    args: { query: "Luis Romero" }
+  - say: "Take a cake order for Priya Shah, a 10-inch chocolate cake, due Saturday"
+    tool: take_cake_order
+    args: { customerName: "Priya Shah", flavor: chocolate, size: "10-inch", due: saturday }
+  - say: "New order for Grace Kim, 8-inch vanilla, due Friday, write Happy Birthday"
+    tool: take_cake_order
+    args: { customerName: "Grace Kim", flavor: vanilla, size: "8-inch", inscription: "Happy Birthday", due: friday }
+  - say: "Order for Tom, lemon, 8-inch, pickup tomorrow"
+    tool: take_cake_order
+    args: { customerName: "Tom", flavor: lemon, size: "8-inch", due: tomorrow }
+  - say: "Emma's red velvet is being decorated now"
+    tool: move_cake_order_stage
+    args: { order: "Emma's red velvet", stage: decorating }
+  - say: "Start baking Luis's cake"
+    tool: move_cake_order_stage
+    args: { order: "Luis's cake", stage: baking }
+  - say: "Jonas's carrot cake is ready"
+    tool: move_cake_order_stage
+    args: { order: "Jonas's carrot cake", stage: ready }
+  - say: "Add custom filling to Ben's order"
+    tool: add_to_cake_order
+    args: { order: "Ben's order", item: "custom filling" }
+  - say: "Add delivery to Luis's chocolate cake"
+    tool: add_to_cake_order
+    args: { order: "Luis's chocolate cake", item: delivery }
+  - say: "How much butter do we have?"
+    tool: check_ingredients
+    args: { item: butter }
+  - say: "What ingredients are running low?"
+    tool: check_ingredients
+    args: {}
+  - say: "Reorder whatever's low"
+    tool: reorder_ingredients
+    args: {}
+  - say: "Order more cake boxes"
+    tool: reorder_ingredients
+    args: { item: "cake boxes" }
+  - say: "Ada picked up her lemon cake and paid cash"
+    tool: close_out_cake_order
+    args: { order: "Ada's lemon cake", paymentMethod: cash }
+  - say: "Close out Ben's chocolate cake, card"
+    tool: close_out_cake_order
+    args: { order: "Ben's chocolate cake", paymentMethod: card }
+  - say: "How were sales this month?"
+    tool: sales_report
+    args: { period: this_month }

@@ -1,0 +1,68 @@
+profile: auto-repair
+phrases:
+  - say: "How's the shop looking today?"
+    tool: get_shop_snapshot
+    args: {}
+  - say: "Give me the rundown for today"
+    tool: get_shop_snapshot
+    args: {}
+  - say: "What's waiting on parts?"
+    tool: find_work_orders
+    args: { stage: waiting_on_parts }
+  - say: "What's in the bay right now?"
+    tool: find_work_orders
+    args: { stage: in_bay }
+  - say: "Anything ready for pickup?"
+    tool: find_work_orders
+    args: { stage: ready_for_pickup }
+  - say: "Pull up Dana Lee's job"
+    tool: find_work_orders
+    args: { query: "Dana Lee" }
+  - say: "Open a work order for Dana Lee's 2019 Honda Civic, front brakes"
+    tool: open_work_order
+    args: { customerName: "Dana Lee", asset: { year: 2019, make: "Honda", model: "Civic" }, description: "front brakes" }
+  - say: "Start a new RO for Sam Reyes, 2020 Ford F-150, oil change"
+    tool: open_work_order
+    args: { customerName: "Sam Reyes", asset: { year: 2020, make: "Ford", model: "F-150" }, description: "oil change" }
+  - say: "Move the Civic to in the bay"
+    tool: move_work_order_stage
+    args: { order: "the Civic", stage: in_bay }
+  - say: "The Outback is waiting on parts"
+    tool: move_work_order_stage
+    args: { order: "the Outback", stage: waiting_on_parts }
+  - say: "Mark order 44 ready for pickup"
+    tool: move_work_order_stage
+    args: { order: "order 44", stage: ready_for_pickup }
+  - say: "Add front brake pads to the Civic"
+    tool: add_parts_or_labor
+    args: { order: "the Civic", item: "front brake pads" }
+  - say: "Put two hours of diagnostic on the Malibu"
+    tool: add_parts_or_labor
+    args: { order: "the Malibu", item: "diagnostic", quantity: 2 }
+  - say: "Add an oil change to Sam's truck"
+    tool: add_parts_or_labor
+    args: { order: "Sam's truck", item: "oil change" }
+  - say: "Do we have 5W-30?"
+    tool: check_parts_stock
+    args: { item: "5W-30" }
+  - say: "What parts are running low?"
+    tool: check_parts_stock
+    args: {}
+  - say: "Reorder whatever's low"
+    tool: reorder_parts
+    args: {}
+  - say: "Order more brake rotors"
+    tool: reorder_parts
+    args: { item: "brake rotors" }
+  - say: "Close out the CX-5, they paid by card"
+    tool: close_out_work_order
+    args: { order: "the CX-5", paymentMethod: card }
+  - say: "Owen paid cash for the Ram, close it out"
+    tool: close_out_work_order
+    args: { order: "the Ram", paymentMethod: cash }
+  - say: "How did we do this week compared to last week?"
+    tool: sales_report
+    args: { period: this_week }
+  - say: "What were yesterday's sales?"
+    tool: sales_report
+    args: { period: yesterday }
