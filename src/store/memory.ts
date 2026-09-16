@@ -31,7 +31,7 @@ export class MemoryStore implements Store {
       return;
     }
     this.tenants.set(b.id, {
-      business: copy(b), customers: new Map(), assets: new Map(), orders: new Map(),
+      business: copy({ ...b, version: b.version + 1 }), customers: new Map(), assets: new Map(), orders: new Map(),
       items: new Map(), payments: [], purchaseOrders: new Map()
     });
   }

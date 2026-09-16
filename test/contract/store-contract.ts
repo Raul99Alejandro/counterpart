@@ -43,6 +43,18 @@ export function runStoreContract(name: string, makeStore: () => Promise<Store>):
       expect(await store.getBusiness('nadie')).toBeNull();
     });
 
+    it('sube la versión del negocio al crearlo, igual que las demás entidades', async () => {
+      const store = await ready();
+      expect((await store.getBusiness('b1'))?.version).toBe(2);
+    });
+
+    it('rechaza una versión vieja del negocio y acepta la vigente', async () => {
+      const store = await ready();
+      await expect(store.putBusiness({ ...biz, version: 1 })).rejects.toBeInstanceOf(ConflictError);
+      await store.putBusiness({ ...biz, version: 2 });
+      expect((await store.getBusiness('b1'))?.version).toBe(3);
+    });
+
     it('entrega números de orden consecutivos', async () => {
       const store = await ready();
       expect(await store.takeOrderNumber('b1')).toBe(41);
