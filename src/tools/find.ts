@@ -2,7 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
 import { resolveDue } from '../domain/dates.js';
 import { refLabel } from '../domain/reports.js';
-import { tokenScore } from '../domain/resolver.js';
+import { MATCH_THRESHOLD, normalizeQuery, scoreOrder } from '../domain/resolver.js';
 import { say } from '../speech/say.js';
 import { findInput, toolSpecs } from './specs.js';
 import { guard, loadRefs, ok, openOnly, stageLabel, type ToolContext } from './context.js';
@@ -34,7 +34,9 @@ export function registerFind(server: McpServer, ctx: ToolContext): void {
         refs = dueOn ? refs.filter(r => r.order.dueOn === dueOn) : [];
       }
       if (args.query) {
-        refs = refs.filter(r => tokenScore(args.query!, `${r.customer.name} ${refLabel(r)}`) >= 0.5);
+        // Mismo criterio que las referencias habladas: mismo texto buscado, mismos sustantivos ignorados.
+        const tokens = normalizeQuery(args.query, ctx.profile);
+        refs = tokens.length === 0 ? [] : refs.filter(r => scoreOrder(tokens, r) >= MATCH_THRESHOLD);
       }
 
       const listed = refs.slice(0, 10).map(r => ({

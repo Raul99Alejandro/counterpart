@@ -42,10 +42,34 @@ export function tokenScore(query: string, haystack: string): number {
   return q.filter(token => matches(token, h)).length / q.length;
 }
 
+/**
+ * Tokens de la consulta sin palabras vacías ni los sustantivos del perfil: "the work order"
+ * no distingue una orden de otra en un taller, igual que "cake" en una pastelería.
+ */
+export function normalizeQuery(query: string, profile: Profile): string[] {
+  const nouns = [profile.nouns.order, profile.nouns.orders].flatMap(n => n.split(/\s+/));
+  return normalize(query, nouns);
+}
+
+/** Todo el texto por el que se puede nombrar una orden hablando (§7.5). */
+export function orderHaystack(ref: OrderRef): string {
+  return [
+    ref.customer.name, ref.asset?.spokenLabel ?? '', String(ref.asset?.fields.plate ?? ''),
+    ...Object.values(ref.order.fields), ref.order.description ?? ''
+  ].join(' ');
+}
+
+/** Puntaje de una orden contra tokens ya normalizados. Un solo criterio para resolver y para buscar. */
+export function scoreOrder(tokens: string[], ref: OrderRef): number {
+  return tokenScore(tokens.join(' '), orderHaystack(ref));
+}
+
+/** Umbral compartido: por debajo de esto no se considera coincidencia. */
+export const MATCH_THRESHOLD = 0.5;
+
 export function resolveOrder(query: string, candidates: OrderRef[], profile: Profile):
   | { kind: 'one'; ref: OrderRef } | { kind: 'none' } | { kind: 'ambiguous'; refs: OrderRef[] } {
-  const nouns = [profile.nouns.order, profile.nouns.orders].flatMap(n => n.split(/\s+/));
-  const tokens = normalize(query, nouns);
+  const tokens = normalizeQuery(query, profile);
   if (tokens.length === 0) return { kind: 'none' };
 
   const asNumber = tokens.find(t => /^\d+$/.test(t));
@@ -54,17 +78,12 @@ export function resolveOrder(query: string, candidates: OrderRef[], profile: Pro
     if (hit) return { kind: 'one', ref: hit };
   }
 
-  const haystack = (c: OrderRef): string => [
-    c.customer.name, c.asset?.spokenLabel ?? '', String(c.asset?.fields.plate ?? ''),
-    ...Object.values(c.order.fields), c.order.description ?? ''
-  ].join(' ');
-
   const scored = candidates
-    .map(ref => ({ ref, score: tokenScore(tokens.join(' '), haystack(ref)) }))
+    .map(ref => ({ ref, score: scoreOrder(tokens, ref) }))
     .sort((a, b) => b.score - a.score);
 
   const best = scored[0];
-  if (!best || best.score < 0.5) return { kind: 'none' };
+  if (!best || best.score < MATCH_THRESHOLD) return { kind: 'none' };
 
   const tied = scored.filter(s => best.score - s.score <= 0.15);
   if (tied.length > 1) return { kind: 'ambiguous', refs: tied.slice(0, 5).map(s => s.ref) };

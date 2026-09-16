@@ -12,6 +12,38 @@ const business: Business = {
   id: 'b1', name: 'Oak Street Auto', profileId: 'auto-repair',
   timezone: 'America/Chicago', taxRateBps: 825, nextOrderNumber: 43, version: 1
 };
+const bakery: Business = {
+  id: 'b2', name: 'Sweet Crumb Bakery', profileId: 'bakery',
+  timezone: 'America/Chicago', taxRateBps: 825, nextOrderNumber: 12, version: 1
+};
+
+async function connect(ctx: ToolContext): Promise<Client> {
+  const server = new McpServer({ name: 'counterpart', version: '0.1.0' });
+  registerTools(server, ctx);
+
+  const [clientEnd, serverEnd] = InMemoryTransport.createLinkedPair();
+  const client = new Client({ name: 'test', version: '1.0.0' });
+  await server.server.connect(serverEnd);
+  await client.connect(clientEnd);
+  return client;
+}
+
+/** Pastelería: sin activo, la etiqueta hablada es el cliente y el sabor vive en los campos. */
+async function bakeryFixture(): Promise<Client> {
+  const store = new MemoryStore();
+  await store.putBusiness(bakery);
+  await store.putCustomer('b2', { id: 'bc1', name: 'Grace Kim', nameNormalized: 'grace kim' });
+  await store.putOrder('b2', {
+    id: 'bo1', number: 12, customerId: 'bc1', stage: 'baking',
+    fields: { flavor: 'chocolate', size: '10-inch' }, dueOn: '2026-09-19',
+    lines: [], subtotalCents: 0, taxCents: 0, totalCents: 0, stageHistory: [],
+    createdAt: '2026-09-14T15:00:00.000Z', version: 1
+  });
+
+  return connect({
+    business: bakery, profile: loadProfile('bakery'), store, now: () => NOW, newId: p => `${p}-test`
+  });
+}
 
 async function fixture(): Promise<{ client: Client; store: MemoryStore }> {
   const store = new MemoryStore();
@@ -33,16 +65,9 @@ async function fixture(): Promise<{ client: Client; store: MemoryStore }> {
   };
   await store.putItems('b1', [item]);
 
-  const ctx: ToolContext = {
+  const client = await connect({
     business, profile: loadProfile('auto-repair'), store, now: () => NOW, newId: p => `${p}-test`
-  };
-  const server = new McpServer({ name: 'counterpart', version: '0.1.0' });
-  registerTools(server, ctx);
-
-  const [clientEnd, serverEnd] = InMemoryTransport.createLinkedPair();
-  const client = new Client({ name: 'test', version: '1.0.0' });
-  await server.server.connect(serverEnd);
-  await client.connect(clientEnd);
+  });
   return { client, store };
 }
 
@@ -64,6 +89,27 @@ describe('tools de lectura', () => {
     const data = r.structuredContent as { byStage: Array<{ stage: string; count: number }>; low: Array<{ name: string }> };
     expect(data.byStage).toEqual([{ stage: 'waiting_on_parts', label: 'waiting on parts', count: 1 }]);
     expect(data.low.map(l => l.name)).toEqual(['Oil filter']);
+  });
+
+  it('busca con el mismo criterio que las referencias habladas', async () => {
+    // El sustantivo del perfil no debe hundir la búsqueda: es ruido, no señal.
+    const withNoun = await client.callTool({ name: 'find_work_orders', arguments: { query: "Dana's work order" } });
+    expect((withNoun.structuredContent as { total: number }).total).toBe(1);
+
+    const byModel = await client.callTool({ name: 'find_work_orders', arguments: { query: 'the Civic' } });
+    expect((byModel.structuredContent as { total: number }).total).toBe(1);
+
+    const miss = await client.callTool({ name: 'find_work_orders', arguments: { query: 'the Accord' } });
+    expect((miss.structuredContent as { total: number }).total).toBe(0);
+  });
+
+  it('busca por un campo de la orden en un perfil sin activo', async () => {
+    const bakeryClient = await bakeryFixture();
+    const r = await bakeryClient.callTool({ name: 'find_cake_orders', arguments: { query: 'chocolate' } });
+    const data = r.structuredContent as { total: number; orders: Array<{ number: number }> };
+    expect(data.total).toBe(1);
+    expect(data.orders[0]!.number).toBe(12);
+    await bakeryClient.close();
   });
 
   it('busca por etapa', async () => {
