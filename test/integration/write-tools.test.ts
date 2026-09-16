@@ -12,8 +12,38 @@ const business: Business = {
   id: 'b1', name: 'Oak Street Auto', profileId: 'auto-repair',
   timezone: 'America/Chicago', taxRateBps: 825, nextOrderNumber: 43, version: 1
 };
+const bakery: Business = {
+  id: 'b2', name: 'Sweet Crumb Bakery', profileId: 'bakery',
+  timezone: 'America/Chicago', taxRateBps: 825, nextOrderNumber: 12, version: 1
+};
 
 let idCounter = 0;
+
+/** Conecta un cliente MCP a un servidor con las tools del contexto dado. */
+async function connect(ctx: ToolContext): Promise<Client> {
+  const server = new McpServer({ name: 'counterpart', version: '0.1.0' });
+  registerTools(server, ctx);
+
+  const [clientEnd, serverEnd] = InMemoryTransport.createLinkedPair();
+  const client = new Client({ name: 'test', version: '1.0.0' });
+  await server.server.connect(serverEnd);
+  await client.connect(clientEnd);
+  return client;
+}
+
+/** Pastelería: perfil sin activo, así que la clave de duplicados depende de los campos. */
+async function bakeryFixture(): Promise<{ client: Client; store: MemoryStore }> {
+  idCounter = 0;
+  const store = new MemoryStore();
+  await store.putBusiness(bakery);
+  await store.putCustomer('b2', { id: 'bc1', name: 'Grace Kim', nameNormalized: 'grace kim' });
+
+  const client = await connect({
+    business: bakery, profile: loadProfile('bakery'), store,
+    now: () => NOW, newId: p => `${p}-${++idCounter}`
+  });
+  return { client, store };
+}
 
 async function fixture(store: MemoryStore = new MemoryStore()): Promise<{ client: Client; store: MemoryStore }> {
   idCounter = 0;
@@ -35,17 +65,10 @@ async function fixture(store: MemoryStore = new MemoryStore()): Promise<{ client
   };
   await store.putItems('b1', [pads]);
 
-  const ctx: ToolContext = {
+  const client = await connect({
     business, profile: loadProfile('auto-repair'), store,
     now: () => NOW, newId: p => `${p}-${++idCounter}`
-  };
-  const server = new McpServer({ name: 'counterpart', version: '0.1.0' });
-  registerTools(server, ctx);
-
-  const [clientEnd, serverEnd] = InMemoryTransport.createLinkedPair();
-  const client = new Client({ name: 'test', version: '1.0.0' });
-  await server.server.connect(serverEnd);
-  await client.connect(clientEnd);
+  });
   return { client, store };
 }
 
@@ -70,6 +93,27 @@ describe('tools de escritura', () => {
     await client.callTool({ name: 'open_work_order', arguments: args });
     await client.callTool({ name: 'open_work_order', arguments: args });
     expect(await store.listOrders('b1')).toHaveLength(2); // la original más una sola nueva
+  });
+
+  it('no confunde dos pedidos distintos del mismo cliente dentro de la ventana', async () => {
+    const { client, store } = await bakeryFixture();
+    const vanilla = { customerName: 'Grace Kim', flavor: 'vanilla', size: '8-inch', due: 'tomorrow' };
+    const chocolate = { customerName: 'Grace Kim', flavor: 'chocolate', size: '10-inch', due: 'saturday' };
+
+    const first = await client.callTool({ name: 'take_cake_order', arguments: vanilla });
+    const second = await client.callTool({ name: 'take_cake_order', arguments: chocolate });
+    expect(second.isError).toBeFalsy();
+
+    const orders = await store.listOrders('b2');
+    expect(orders).toHaveLength(2);
+    expect(orders.map(o => o.fields.flavor).sort()).toEqual(['chocolate', 'vanilla']);
+    expect((second.structuredContent as { number: number }).number)
+      .not.toBe((first.structuredContent as { number: number }).number);
+    expect((second.structuredContent as { dueOn: string }).dueOn).toBe('2026-09-19');
+
+    // Repetir el primero sí se deduplica: la clave incluye campos y fecha, no los ignora.
+    await client.callTool({ name: 'take_cake_order', arguments: vanilla });
+    expect(await store.listOrders('b2')).toHaveLength(2);
   });
 
   it('agrega una partida, descuenta stock y marca backorder', async () => {

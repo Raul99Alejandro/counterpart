@@ -4,6 +4,7 @@ import { normalizeName, spokenLabel } from '../domain/assets.js';
 import { resolveDue } from '../domain/dates.js';
 import { newOrder } from '../domain/orders.js';
 import type { OrderRef } from '../domain/resolver.js';
+import type { Profile } from '../profiles/schema.js';
 import { say } from '../speech/say.js';
 import { ConflictError } from '../store/store.js';
 import { openInput, toolSpecs } from './specs.js';
@@ -34,11 +35,22 @@ export function registerOpen(server: McpServer, ctx: ToolContext): void {
         dueOn = resolved;
       }
 
-      // Idempotencia: misma orden recién creada.
+      const fields = Object.fromEntries(
+        ctx.profile.orderFields
+          .filter(f => typeof args[f.id] === 'string' || typeof args[f.id] === 'number')
+          .map(f => [f.id, String(args[f.id])])
+      );
+
+      // Idempotencia (§7.8): mismo cliente, mismo activo, mismos campos y misma fecha,
+      // abierta hace menos de dos minutos. Sin los campos, dos pedidos distintos del mismo
+      // cliente se fundirían en uno en los perfiles sin activo.
       const refs = await loadRefs(ctx);
       const duplicate = refs.find(r =>
-        normalizeName(r.customer.name) === normalizeName(customerName)
+        r.order.stage !== ctx.profile.closedStage
+        && normalizeName(r.customer.name) === normalizeName(customerName)
         && (r.asset?.spokenLabel ?? r.customer.name) === label
+        && sameFields(ctx.profile, r.order.fields, fields)
+        && (r.order.dueOn ?? '') === (dueOn ?? '')
         && now.getTime() - new Date(r.order.createdAt).getTime() < TWO_MINUTES_MS);
       if (duplicate) {
         return ok(say.opened(ctx.profile, duplicate), toOutput(duplicate));
@@ -74,12 +86,6 @@ export function registerOpen(server: McpServer, ctx: ToolContext): void {
         }
       }
 
-      const fields = Object.fromEntries(
-        ctx.profile.orderFields
-          .filter(f => typeof args[f.id] === 'string' || typeof args[f.id] === 'number')
-          .map(f => [f.id, String(args[f.id])])
-      );
-
       const order = newOrder({
         id: ctx.newId('ord'),
         number: await ctx.store.takeOrderNumber(ctx.business.id),
@@ -101,6 +107,11 @@ export function registerOpen(server: McpServer, ctx: ToolContext): void {
       return ok(say.opened(ctx.profile, ref), toOutput(ref));
     }
   );
+}
+
+/** Compara solo los campos que el perfil declara: lo demás no distingue una orden de otra. */
+function sameFields(profile: Profile, a: Record<string, string>, b: Record<string, string>): boolean {
+  return profile.orderFields.every(f => (a[f.id] ?? '') === (b[f.id] ?? ''));
 }
 
 function toOutput(ref: OrderRef) {
