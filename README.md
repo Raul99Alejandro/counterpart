@@ -24,7 +24,7 @@ Counterpart has one engine for that shape and a **business profile** for each ki
 | Close out and charge | `close_out_work_order` | `close_out_cake_order` |
 | Sales report (with UI) | `sales_report` | `sales_report` |
 
-Every reply is one or two plain English sentences meant to be spoken. People say "the Civic" or "Dana's", not "order 4821", so every tool accepts spoken references and asks "which one?" when two orders match. Writes are idempotent because voice assistants retry. The two reporting tools also return an [MCP Apps](https://github.com/modelcontextprotocol/ext-apps) UI for screen devices.
+Every reply is one or two plain English sentences meant to be spoken. People say "the Civic" or "Dana's", not "order 4821", so every tool accepts spoken references and asks "which one?" when two orders match. Voice assistants retry, so the writes that can safely repeat are idempotent: opening the same order again within two minutes returns the one already open, moving an order to the stage it is already in changes nothing, reordering skips items already on order, and closing out an order that was already closed today reports it without charging again. Adding parts or labor is deliberately not deduplicated, because adding the same item twice can be intended. The two reporting tools also return an [MCP Apps](https://github.com/modelcontextprotocol/ext-apps) UI for screen devices.
 
 ## Architecture
 
@@ -33,13 +33,13 @@ MCP client (Alexa+ or any MCP host)
         │  Streamable HTTP · MCP 2025-11-25 · Authorization: Bearer <token>
         ▼
 Counterpart
-  http/      /ping · /mcp · token → business · one MCP session per business · JSON logs
+  http/      /ping · /mcp · token → business · per-client sessions bound to a business · JSON logs
   tools/     nine tools generated from the business profile · MCP Apps UIs
   domain/    pure rules: orders · inventory · spoken references · reports
   store/     MemoryStore (dev) · DynamoStore (single-table DynamoDB)
 ```
 
-The bearer token decides which business is calling. Each business gets its own MCP session, built from its own profile, and a session can only be used with the token that opened it.
+The bearer token decides which business is calling. Each client connection gets its own MCP session, built from that business's profile and bound to the business whose token opened it. A session only accepts requests that carry a token for that same business. An unknown session id, or one that belongs to another business, gets a 404 so the client starts a new session.
 
 ## Quick start
 
@@ -72,6 +72,8 @@ npx cross-env COUNTERPART_STORE=dynamo DYNAMODB_ENDPOINT=http://localhost:8000 n
 npm run smoke -- http://localhost:3000/mcp demo-shop-token
 ```
 
+DynamoDB Local runs in memory, so reseed whenever its container restarts.
+
 To issue a real token for a business, stored only as a SHA-256 hash:
 
 ```bash
@@ -84,19 +86,23 @@ npx cross-env COUNTERPART_STORE=dynamo DYNAMODB_ENDPOINT=http://localhost:8000 n
 |---|---|---|
 | `PORT` | `3000` | HTTP port |
 | `HOST` | `0.0.0.0` | Bind address |
-| `COUNTERPART_STORE` | `memory` | `memory` or `dynamo` |
+| `COUNTERPART_STORE` | `memory` | `memory` or `dynamo`. `memory` is refused when `NODE_ENV=production`, which the container image sets |
 | `DYNAMODB_TABLE` | `counterpart` | Table name |
 | `AWS_REGION` | `us-east-1` | AWS region |
 | `DYNAMODB_ENDPOINT` | — | DynamoDB Local URL; unset for AWS |
 | `COUNTERPART_DEV_BUSINESS` | — | Local no-token mode, only on `127.0.0.1` |
+| `COUNTERPART_ALLOW_REMOTE_RESET` | — | `1` lets `npm run seed -- --reset` delete and reseed the demo businesses in a remote table; the table and its tokens are kept |
 
 ## Tests
 
 ```bash
-npm test                                   # unit and integration
-npm run dynamo:up && npm run test:dynamo   # store contract against DynamoDB Local
+npm test               # unit and integration
 npm run typecheck
+npm run dynamo:up      # start DynamoDB Local
+npm run test:dynamo    # store contract against DynamoDB Local
 ```
+
+DynamoDB Local takes a few seconds to start; wait for it before running `npm run test:dynamo`.
 
 `MemoryStore` and `DynamoStore` run the same contract suite, including atomic writes and inclusive civil-date ranges. `test/golden/` holds spoken phrases paired with the tool each should trigger, for evaluating tool selection against a real model.
 
