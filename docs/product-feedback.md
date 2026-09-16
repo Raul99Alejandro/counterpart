@@ -12,7 +12,7 @@
 
 **What worked:** Standard Schema support (zod v4 objects), output schemas that skip validation on `isError`, tool annotations, and an in-memory transport that makes integration tests fast. Stateful Streamable HTTP with per-session servers fit a multi-tenant design with no workarounds.
 
-**What needs improvement:** Examples for custom request headers on the client and for `allowedHosts` on the server (see the friction log).
+**What needs improvement:** More discoverable examples for custom request headers on the client and for `allowedHosts` on the server — both exist only in the type declarations' JSDoc today, not the READMEs (see the friction log).
 
 ## MCP Apps (ext-apps 2.0)
 

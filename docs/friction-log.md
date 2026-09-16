@@ -42,11 +42,11 @@ Problems we hit while building Counterpart, in the order we hit them. Each entry
 - **Area:** MCP TypeScript SDK v2 client, custom `fetch`
 - **What happened:** To add an `Authorization` header we wrapped `fetch` and spread `init.headers`. The SDK passes a `Headers` instance, and spreading it yields `{}`, which dropped the SDK's own `Accept` header. The server answered 406.
 - **Impact:** An hour on a misleading status code.
-- **Suggestion:** Add a first-class option for extra request headers, or an example that uses `new Headers(init.headers)`.
+- **Suggestion:** Surface `StreamableHTTPClientTransportOptions.requestInit` (a first-class way to add headers without wrapping `fetch`) and the `new Headers(init?.headers)` pattern in the client README — today both live only in the type declarations' JSDoc (`@modelcontextprotocol/client/dist/index.d.mts`), not in `README.md`.
 
-## 7. The DNS rebinding warning has no example
+## 7. `allowedHosts` is undocumented outside the type declarations
 
 - **Area:** MCP TypeScript SDK v2 server, `createMcpExpressApp`
-- **What happened:** Binding to `0.0.0.0` logs "Server is binding to 0.0.0.0 without DNS rebinding protection. Consider using the allowedHosts option…", but we could not find an example of `allowedHosts` for a server behind a load balancer.
-- **Impact:** Unclear what "correct" looks like for a containerized deployment.
-- **Suggestion:** Document `allowedHosts` for the common load-balancer case.
+- **What happened:** Binding to `0.0.0.0` logs "Server is binding to 0.0.0.0 without DNS rebinding protection. Consider using the allowedHosts option to restrict allowed hosts, or use authentication to protect your server." The only `allowedHosts` example we found is a JSDoc `@example` in the type declarations (`@modelcontextprotocol/express/dist/index.d.mts`) — `createMcpExpressApp({ host: '0.0.0.0', allowedHosts: ['myapp.local', 'localhost'] })` — not in the package's README, and it uses fixed local hostnames rather than a hostname a load balancer assigns at deploy time.
+- **Impact:** We had to read the type declarations to find the option at all, then work out ourselves what to put in `allowedHosts` for a container behind a load balancer.
+- **Suggestion:** Document `allowedHosts` in the README, including the load-balancer case.
