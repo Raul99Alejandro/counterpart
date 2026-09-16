@@ -1,0 +1,65 @@
+import type { McpServer } from '@modelcontextprotocol/server';
+import type { Profile } from '../profiles/schema.js';
+import type { OrderRef } from '../domain/resolver.js';
+import type { Business } from '../domain/types.js';
+import type { Store } from '../store/store.js';
+import { registerSnapshot } from './snapshot.js';
+import { registerFind } from './find.js';
+import { registerStock } from './stock.js';
+import { registerSalesReport } from './sales-report.js';
+
+export interface ToolContext {
+  business: Business;
+  profile: Profile;
+  store: Store;
+  now: () => Date;
+  newId: (prefix: string) => string;
+}
+
+export type ToolResult = {
+  content: Array<{ type: 'text'; text: string }>;
+  structuredContent?: unknown;
+  isError?: boolean;
+};
+
+export function ok(text: string, structuredContent: unknown): ToolResult {
+  return { content: [{ type: 'text', text }], structuredContent };
+}
+
+/** Error de dominio: solo texto. El SDK no valida outputSchema cuando isError es true. */
+export function fail(text: string): ToolResult {
+  return { content: [{ type: 'text', text }], isError: true };
+}
+
+/** Une órdenes con su cliente y su activo. */
+export async function loadRefs(ctx: ToolContext): Promise<OrderRef[]> {
+  const [orders, customers, assets] = await Promise.all([
+    ctx.store.listOrders(ctx.business.id),
+    ctx.store.listCustomers(ctx.business.id),
+    ctx.store.listAssets(ctx.business.id)
+  ]);
+  const byCustomer = new Map(customers.map(c => [c.id, c]));
+  const byAsset = new Map(assets.map(a => [a.id, a]));
+
+  return orders.flatMap(order => {
+    const customer = byCustomer.get(order.customerId);
+    if (!customer) return [];
+    const asset = order.assetId ? byAsset.get(order.assetId) : undefined;
+    return [{ order, customer, asset }];
+  });
+}
+
+export function openOnly(ctx: ToolContext, refs: OrderRef[]): OrderRef[] {
+  return refs.filter(r => r.order.stage !== ctx.profile.closedStage);
+}
+
+export function stageLabel(profile: Profile, stageId: string): string {
+  return profile.stages.find(s => s.id === stageId)?.label ?? stageId;
+}
+
+export function registerTools(server: McpServer, ctx: ToolContext): void {
+  registerSnapshot(server, ctx);
+  registerFind(server, ctx);
+  registerStock(server, ctx);
+  registerSalesReport(server, ctx);
+}
