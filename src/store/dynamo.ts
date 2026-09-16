@@ -10,7 +10,8 @@ import { ConflictError, type Store } from './store.js';
 
 type Row = Record<string, unknown>;
 
-const bizKey = (bizId: string): string => `BIZ#${bizId}`;
+/** Partición de un negocio. `table.ts` la usa para borrar negocios completos. */
+export const bizKey = (bizId: string): string => `BIZ#${bizId}`;
 const TRANSACTION_LIMIT = 100;
 
 /** Cliente de DynamoDB. Con `endpoint` apunta a DynamoDB Local y usa credenciales de mentira. */

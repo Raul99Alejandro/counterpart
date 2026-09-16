@@ -21,6 +21,9 @@ const BAKERY: Business = {
   timezone: 'America/Chicago', taxRateBps: 825, nextOrderNumber: 12, version: 1
 };
 
+/** Los negocios que siembra el demo. El reset remoto borra y vuelve a sembrar solo estos. */
+export const DEMO_BUSINESS_IDS: readonly string[] = [SHOP.id, BAKERY.id];
+
 const VEHICLES: Array<[string, Record<string, string | number>, string]> = [
   ['Dana Lee', { year: 2019, make: 'Honda', model: 'Civic', plate: 'JHK 4821' }, 'estimate'],
   ['Mark Ortiz', { year: 2016, make: 'Toyota', model: 'Camry' }, 'approved'],
