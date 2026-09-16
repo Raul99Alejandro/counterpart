@@ -36,7 +36,20 @@ describe('frases', () => {
 
   it('avisa del backorder', () => {
     const line = { itemId: 'i1', name: 'Front brake pads', quantity: 2, unitPriceCents: 4500, taxable: true, backordered: 1 };
-    expect(say.lineAdded(profile, ref, line, 41250)).toContain('1 is backordered');
+    expect(say.lineAdded(profile, ref, line, 41250))
+      .toBe('Added 2 Front brake pads to work order 42, but only 1 was in stock, so 1 is backordered. The total is now $412.50.');
+  });
+
+  it('formatea la fecha en inglés hablado', () => {
+    expect(say.date('2026-09-19')).toBe('Saturday, September 19');
+  });
+
+  it('abre la orden con fecha de vencimiento hablada', () => {
+    const orderWithDue: Order = { ...order, dueOn: '2026-09-19' };
+    const refWithDue: OrderRef = { ...ref, order: orderWithDue };
+    const result = say.opened(profile, refWithDue);
+    expect(result).toContain("It's due Saturday, September 19.");
+    expect(result).not.toContain('2026-09-19');
   });
 
   it('enumera candidatas cuando hay ambigüedad', () => {

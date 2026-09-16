@@ -11,8 +11,19 @@ function list(parts: string[]): string {
   return `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`;
 }
 
+function date(dateIso: string): string {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'UTC'
+  });
+  return formatter.format(new Date(`${dateIso}T12:00:00Z`));
+}
+
 export const say = {
   list,
+  date,
 
   orderName(profile: Profile, number: number): string {
     return `${profile.nouns.order} ${number}`;
@@ -26,7 +37,7 @@ export const say = {
   },
 
   opened(profile: Profile, ref: OrderRef): string {
-    const due = ref.order.dueOn ? ` It's due ${ref.order.dueOn}.` : '';
+    const due = ref.order.dueOn ? ` It's due ${say.date(ref.order.dueOn)}.` : '';
     return `Opened ${say.orderPhrase(profile, ref)}.${due}`;
   },
 
@@ -35,11 +46,12 @@ export const say = {
   },
 
   lineAdded(profile: Profile, ref: OrderRef, line: OrderLine, totalCents: number): string {
-    const backorder = line.backordered > 0
-      ? ` Only ${line.quantity - line.backordered} in stock, so ${line.backordered} is backordered.`
-      : '';
+    if (line.backordered > 0) {
+      return `Added ${line.quantity} ${line.name} to ${say.orderName(profile, ref.order.number)}, but only ${line.quantity - line.backordered} was in stock, so ${line.backordered} is backordered. `
+        + `The total is now ${formatMoney(totalCents)}.`;
+    }
     return `Added ${line.quantity} ${line.name} to ${say.orderName(profile, ref.order.number)}. `
-      + `The total is now ${formatMoney(totalCents)}.${backorder}`;
+      + `The total is now ${formatMoney(totalCents)}.`;
   },
 
   closed(profile: Profile, ref: OrderRef, payment: Payment): string {
