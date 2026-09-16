@@ -9,6 +9,17 @@ const alsoCalled = (words: string[]): string => words.length === 0 ? '' : ` (als
 // Artículo correcto según si el sustantivo del perfil empieza con sonido vocálico
 const article = (word: string): string => /^[aeiou]/i.test(word) ? 'an' : 'a';
 
+/**
+ * Cómo pedirle al modelo la referencia hablada de una orden. Los ejemplos salen del perfil:
+ * un taller dice "the vehicle", una pastelería no tiene activo y nombra por cliente.
+ */
+const orderReference = (profile: Profile): string => {
+  const { order, customer } = profile.nouns;
+  const asset = profile.asset?.noun;
+  const examples = [`the ${customer}'s name`, ...(asset ? [`the ${asset}`] : [])];
+  return `How the user referred to the ${order}, such as ${examples.join(', ')} or "${order} 42".`;
+};
+
 export function toolSpecs(profile: Profile): Record<ToolKey, ToolSpec> {
   const { order, orders, item, items, customer } = profile.nouns;
   const orderAlias = alsoCalled(profile.synonyms.order);
@@ -30,7 +41,7 @@ export function toolSpecs(profile: Profile): Record<ToolKey, ToolSpec> {
     open: {
       name: profile.toolNames.open,
       title: `Open a ${order}`,
-      description: `Open a new ${order}${orderAlias} for ${article(customer)} ${customer}${asset ? ` and their ${asset}` : ''}. Use this when the user wants to start a new job or take a new order.`
+      description: `Open a new ${order}${orderAlias} for ${article(customer)} ${customer}${asset ? ` and their ${asset}` : ''}. Use this when the user wants to start or take a new ${order}.`
     },
     move: {
       name: profile.toolNames.move,
@@ -83,17 +94,18 @@ function fieldsShape(fields: FieldDef[]): MutableShape {
 const dueDescription = 'A day such as "today", "tomorrow", a weekday like "saturday", or a date like 2026-09-19.';
 
 export function openInput(profile: Profile): z.ZodObject<z.ZodRawShape> {
+  const { order, customer } = profile.nouns;
   const shape: MutableShape = {
-    customerName: z.string().min(1).describe('The customer\'s name, as the user said it.'),
-    customerPhone: z.string().optional().describe('The customer\'s phone number, if the user gives one.'),
-    description: z.string().optional().describe('What the job is, in the user\'s words.'),
+    customerName: z.string().min(1).describe(`The ${customer}'s name, as the user said it.`),
+    customerPhone: z.string().optional().describe(`The ${customer}'s phone number, if the user gives one.`),
+    description: z.string().optional().describe(`What the ${order} is for, in the user's words.`),
     ...fieldsShape(profile.orderFields)
   };
 
   // El objeto del activo solo existe si el perfil define uno
   if (profile.asset) {
     const assetShape = fieldsShape(profile.asset.fields);
-    shape.asset = z.object(assetShape).describe(`The ${profile.asset.noun} this job is for.`);
+    shape.asset = z.object(assetShape).describe(`The ${profile.asset.noun} this ${order} is for.`);
   }
   if (profile.due === 'required') shape.due = z.string().describe(dueDescription);
   if (profile.due === 'optional') shape.due = z.string().optional().describe(dueDescription);
@@ -108,25 +120,27 @@ function stageEnum(profile: Profile): z.ZodTypeAny {
 }
 
 export function findInput(profile: Profile): z.ZodObject<z.ZodRawShape> {
+  const { order, orders, customer } = profile.nouns;
   return z.object({
-    query: z.string().optional().describe('A customer name or anything the user used to name the job.'),
-    stage: stageEnum(profile).optional().describe('Only return jobs in this stage.'),
+    query: z.string().optional().describe(`A ${customer} name or anything the user used to name the ${order}.`),
+    stage: stageEnum(profile).optional().describe(`Only return ${orders} in this stage.`),
     due: z.string().optional().describe(dueDescription)
   });
 }
 
 export function moveInput(profile: Profile): z.ZodObject<z.ZodRawShape> {
   return z.object({
-    order: z.string().min(1).describe('How the user referred to the job, such as "the Civic" or "order 42".'),
+    order: z.string().min(1).describe(orderReference(profile)),
     stage: stageEnum(profile).describe('The stage to move it to.')
   });
 }
 
 export function addLineInput(profile: Profile): z.ZodObject<z.ZodRawShape> {
   return z.object({
-    order: z.string().min(1).describe('How the user referred to the job.'),
+    order: z.string().min(1).describe(orderReference(profile)),
     item: z.string().min(1).describe(`The ${profile.nouns.item} or service to add, by name.`),
-    quantity: z.number().positive().optional().describe('How many. Defaults to 1. For labor, the number of hours.')
+    quantity: z.number().positive().optional()
+      .describe('How many. Defaults to 1. For anything priced by the hour, the number of hours.')
   });
 }
 
@@ -138,8 +152,8 @@ export function itemQueryInput(profile: Profile): z.ZodObject<z.ZodRawShape> {
 
 export function closeOutInput(profile: Profile): z.ZodObject<z.ZodRawShape> {
   return z.object({
-    order: z.string().min(1).describe('How the user referred to the job.'),
-    paymentMethod: z.enum(['cash', 'card', 'check']).describe('How the customer paid.')
+    order: z.string().min(1).describe(orderReference(profile)),
+    paymentMethod: z.enum(['cash', 'card', 'check']).describe(`How the ${profile.nouns.customer} paid.`)
   });
 }
 

@@ -1,6 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
 import { findItem, lowStock } from '../domain/inventory.js';
+import type { CatalogItem } from '../domain/types.js';
 import { say } from '../speech/say.js';
 import { itemQueryInput, toolSpecs } from './specs.js';
 import { fail, guard, ok, type ToolContext } from './context.js';
@@ -42,10 +43,17 @@ export function registerStock(server: McpServer, ctx: ToolContext): void {
       const item = found.item;
       const text = item.stocked
         ? `${item.onHand} ${item.name} on hand.${item.onHand <= item.reorderPoint ? ' That is at or below the reorder point.' : ''}`
-        : `${item.name} is a service, so there is nothing to count.`;
+        : notCounted(item);
       return ok(text, { items: [view(item)] });
     })
   );
+}
+
+/** Por qué no hay nada que contar: depende del tipo de ítem, no del negocio. */
+function notCounted(item: CatalogItem): string {
+  if (item.kind === 'labor') return `${item.name} is a service, so there is nothing to count.`;
+  if (item.kind === 'product') return `${item.name} is made to order, so there is nothing to count.`;
+  return `${item.name} isn't stocked, so there is nothing to count.`;
 }
 
 function view(i: { id: string; name: string; unit: string; onHand: number; reorderPoint: number; stocked: boolean }) {

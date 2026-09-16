@@ -33,6 +33,12 @@ async function bakeryFixture(): Promise<Client> {
   const store = new MemoryStore();
   await store.putBusiness(bakery);
   await store.putCustomer('b2', { id: 'bc1', name: 'Grace Kim', nameNormalized: 'grace kim' });
+  const cake: CatalogItem = {
+    id: 'cake-10', name: '10-inch round cake', synonyms: [], kind: 'product', unit: 'cake',
+    priceCents: 6500, taxable: true, stocked: false, onHand: 0, reorderPoint: 0, reorderQty: 0,
+    consumes: {}, version: 1
+  };
+  await store.putItems('b2', [cake]);
   await store.putOrder('b2', {
     id: 'bo1', number: 12, customerId: 'bc1', stage: 'baking',
     fields: { flavor: 'chocolate', size: '10-inch' }, dueOn: '2026-09-19',
@@ -101,6 +107,16 @@ describe('tools de lectura', () => {
 
     const miss = await client.callTool({ name: 'find_work_orders', arguments: { query: 'the Accord' } });
     expect((miss.structuredContent as { total: number }).total).toBe(0);
+  });
+
+  it('no llama servicio a un producto que se hace por encargo', async () => {
+    const bakeryClient = await bakeryFixture();
+    const r = await bakeryClient.callTool({ name: 'check_ingredients', arguments: { item: '10-inch round cake' } });
+    const spoken = (r.content[0] as { text: string }).text;
+    expect(r.isError).toBeFalsy();
+    expect(spoken).not.toContain('service');
+    expect(spoken).toContain('made to order');
+    await bakeryClient.close();
   });
 
   it('busca por un campo de la orden en un perfil sin activo', async () => {

@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import * as z from 'zod/v4';
 import { loadProfile } from '../../src/profiles/load.js';
-import { findInput, openInput, toolSpecs } from '../../src/tools/specs.js';
+import {
+  addLineInput, closeOutInput, findInput, moveInput, openInput, toolSpecs
+} from '../../src/tools/specs.js';
 
 const shop = loadProfile('auto-repair');
 const bakery = loadProfile('bakery');
@@ -38,6 +41,30 @@ describe('generación de tools', () => {
     expect(findInput(shop).safeParse({ stage: 'waiting_on_parts' }).success).toBe(true);
     expect(findInput(shop).safeParse({ stage: 'baking' }).success).toBe(false);
     expect(findInput(shop).safeParse({}).success).toBe(true);
+  });
+
+  it('las descripciones de los parámetros no llevan vocabulario del taller a otro perfil', () => {
+    const described = (schema: ReturnType<typeof moveInput>, key: string): string => {
+      const json = z.toJSONSchema(schema) as { properties?: Record<string, { description?: string }> };
+      return json.properties?.[key]?.description ?? '';
+    };
+
+    const order = described(moveInput(bakery), 'order');
+    expect(order).not.toContain('Civic');
+    expect(order.toLowerCase()).not.toContain('job');
+    expect(order).toContain('cake order');
+
+    const shopOrder = described(moveInput(shop), 'order');
+    expect(shopOrder).toContain('work order');
+    expect(shopOrder).toContain('vehicle'); // el activo del perfil sirve de ejemplo
+
+    expect(described(findInput(bakery), 'stage').toLowerCase()).not.toContain('job');
+    expect(described(findInput(bakery), 'query').toLowerCase()).not.toContain('job');
+    expect(described(openInput(bakery), 'description').toLowerCase()).not.toContain('job');
+    expect(described(closeOutInput(bakery), 'order').toLowerCase()).not.toContain('job');
+    expect(described(addLineInput(bakery), 'order').toLowerCase()).not.toContain('job');
+    expect(described(openInput(shop), 'asset').toLowerCase()).not.toContain('job');
+    expect(toolSpecs(bakery).open.description.toLowerCase()).not.toContain('job');
   });
 
   it('usa el artículo correcto según el sustantivo del perfil', () => {
