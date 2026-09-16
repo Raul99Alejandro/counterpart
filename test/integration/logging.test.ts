@@ -144,6 +144,33 @@ describe('logs estructurados', () => {
     }
   });
 
+  it('un JSON mal formado es error del cliente: 400 con su línea http, no INTERNAL', async () => {
+    const cap = captureLogs();
+    try {
+      const r = await fetch(`${base}/mcp`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          accept: 'application/json, text/event-stream',
+          authorization: `Bearer ${DEMO_TOKENS.shop}`
+        },
+        body: '{"jsonrpc": "2.0", "id": 1,'
+      });
+      expect(r.status).toBe(400);
+      expect(await r.json()).toEqual({ error: 'bad request' });
+      await settle();
+
+      const lines = cap.lines();
+      expect(lines.find(l => l.msg === 'internal')).toBeUndefined();
+      expect(lines.filter(l => l.msg === 'http')).toEqual([
+        expect.objectContaining({ level: 'info', method: 'POST', path: '/mcp', status: 400 })
+      ]);
+      expect(JSON.stringify(lines)).not.toContain(DEMO_TOKENS.shop);
+    } finally {
+      cap.restore();
+    }
+  });
+
   it('una petición que el cliente abandona también deja su línea http', async () => {
     // Sesión a mano, sin el cliente del SDK: así el único stream SSE (GET) es el de esta prueba.
     const headers = {

@@ -95,22 +95,40 @@ export function createApp(deps: { store: Store; devBusinessId?: string; host: st
   // Errores fuera de las tools (p. ej. el store caído al buscar el token): una línea JSON en vez
   // del stack de Express en stderr. Nunca se registra la petición: lleva el token.
   app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
-    log({
-      level: 'error', msg: 'internal', code: 'INTERNAL',
-      requestId: currentRequest()?.requestId ?? randomUUID(),
-      error: err instanceof Error ? `${err.name}: ${err.message}` : String(err),
-      stack: err instanceof Error ? err.stack : undefined
-    });
-    if (!res.headersSent) {
-      res.status(500).json({ error: 'internal' });
+    const context = currentRequest();
+    const clientStatus = clientErrorStatus(err);
+    if (clientStatus !== undefined) {
+      // Error del cliente (p. ej. JSON mal formado en express.json()): no es INTERNAL. Ocurre antes
+      // de /mcp, sin contexto de petición, así que su línea http se escribe aquí.
+      if (!context) {
+        log({ level: 'info', msg: 'http', requestId: randomUUID(), method: req.method, path: req.path, status: clientStatus });
+      }
+    } else {
+      log({
+        level: 'error', msg: 'internal', code: 'INTERNAL',
+        requestId: context?.requestId ?? randomUUID(),
+        error: err instanceof Error ? `${err.name}: ${err.message}` : String(err),
+        stack: err instanceof Error ? err.stack : undefined
+      });
+    }
+
+    if (res.headersSent) {
+      // La respuesta ya empezó y no se puede corregir: se corta la conexión, como hace Express.
+      req.socket.destroy();
       return;
     }
-    // La respuesta ya empezó y no se puede corregir: se corta la conexión, como hace Express.
-    req.socket.destroy();
+    if (clientStatus !== undefined) res.status(clientStatus).json({ error: 'bad request' });
+    else res.status(500).json({ error: 'internal' });
   });
 
   app.locals.sessions = sessions;
   return app;
+}
+
+/** El estado 4xx que traen los errores de cliente de Express (body-parser, http-errors); si no, undefined. */
+function clientErrorStatus(err: unknown): number | undefined {
+  const status = typeof err === 'object' && err !== null ? (err as { status?: unknown }).status : undefined;
+  return typeof status === 'number' && status >= 400 && status < 500 ? status : undefined;
 }
 
 async function resolveBusiness(deps: { store: Store; devBusinessId?: string }, req: Request): Promise<Business | null> {
