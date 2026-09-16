@@ -18,7 +18,8 @@
     "token": "tsx infra/create-token.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "build:ui": "cross-env UI_NAME=snapshot vite build --config ui/vite.config.ts && cross-env UI_NAME=sales-report vite build --config ui/vite.config.ts",
-    "smoke": "tsx infra/smoke.ts"
+    "smoke": "tsx infra/smoke.ts",
+    "predev": "npm run build:ui"
   },
   "keywords": [],
   "author": "",
