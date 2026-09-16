@@ -2,6 +2,9 @@
 services:
   dynamodb:
     image: amazon/dynamodb-local
+    # -sharedDb: una sola base para cualquier credencial y región (la siembra y el servidor ven
+    # las mismas tablas). -inMemory: nada persiste; al reiniciar el contenedor hay que resembrar.
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
     ports:
       - "8000:8000"
 
