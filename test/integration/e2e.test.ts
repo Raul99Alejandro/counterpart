@@ -33,6 +33,10 @@ describe('flujo completo', () => {
   it('taller: abrir, cobrar partida, avanzar, cerrar y verlo en el reporte', async () => {
     const client = await connect('shop');
 
+    // Línea base: la semilla ya deja pagos de "hoy", así que hay que medir el delta, no solo que sea > 0.
+    const before = await client.callTool({ name: 'sales_report', arguments: { period: 'today' } });
+    const baseline = before.structuredContent as { count: number; totalCents: number };
+
     const opened = await client.callTool({
       name: 'open_work_order',
       arguments: { customerName: 'Sam Reyes', asset: { year: 2020, make: 'Ford', model: 'F-150' }, description: 'oil change' }
@@ -53,17 +57,23 @@ describe('flujo completo', () => {
       name: 'close_out_work_order', arguments: { order: 'the F-150', paymentMethod: 'card' }
     });
     expect(text(closed)).toContain('They paid');
+    const closedData = closed.structuredContent as { amountCents: number; alreadyClosed: boolean };
+    expect(closedData.alreadyClosed).toBe(false);
 
     const report = await client.callTool({ name: 'sales_report', arguments: { period: 'today' } });
     const data = report.structuredContent as { count: number; totalCents: number };
-    expect(data.count).toBeGreaterThanOrEqual(1);
-    expect(data.totalCents).toBeGreaterThan(0);
+    expect(data.count).toBe(baseline.count + 1);
+    expect(data.totalCents).toBe(baseline.totalCents + closedData.amountCents);
 
     await client.close();
   });
 
   it('pastelería: tomar pedido con fecha y encontrarlo por día', async () => {
     const client = await connect('bakery');
+
+    // Línea base: la semilla ya deja pedidos para el sábado, así que hay que medir el delta.
+    const before = await client.callTool({ name: 'find_cake_orders', arguments: { due: 'saturday' } });
+    const baselineTotal = (before.structuredContent as { total: number }).total;
 
     const taken = await client.callTool({
       name: 'take_cake_order',
@@ -74,7 +84,7 @@ describe('flujo completo', () => {
 
     const found = await client.callTool({ name: 'find_cake_orders', arguments: { due: 'saturday' } });
     const data = found.structuredContent as { total: number };
-    expect(data.total).toBeGreaterThanOrEqual(1);
+    expect(data.total).toBe(baselineTotal + 1);
 
     await client.close();
   });
