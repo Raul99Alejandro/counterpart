@@ -57,6 +57,7 @@ describe('reportes', () => {
     expect(r.count).toBe(2);
     expect(r.averageTicketCents).toBe(7500);
     expect(r.daily).toEqual([{ date: '2026-09-15', cents: 10000 }, { date: '2026-09-16', cents: 5000 }]);
-    expect(r.topItems).toEqual([{ name: 'Oil filter', quantity: 4, cents: 3600 }]);
+    // Dos pagos de la misma orden no deben duplicar sus líneas en el agregado de artículos.
+    expect(r.topItems).toEqual([{ name: 'Oil filter', quantity: 2, cents: 1800 }]);
   });
 });

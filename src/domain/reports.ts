@@ -65,8 +65,9 @@ export function buildSalesReport(input: {
 
   const byItem = new Map<string, { name: string; quantity: number; cents: number }>();
   const ordersById = new Map(orders.map(o => [o.id, o]));
-  for (const p of current) {
-    for (const line of ordersById.get(p.orderId)?.lines ?? []) {
+  const paidOrderIds = new Set(current.map(p => p.orderId));
+  for (const orderId of paidOrderIds) {
+    for (const line of ordersById.get(orderId)?.lines ?? []) {
       const entry = byItem.get(line.itemId) ?? { name: line.name, quantity: 0, cents: 0 };
       entry.quantity += line.quantity;
       entry.cents += Math.round(line.quantity * line.unitPriceCents);
