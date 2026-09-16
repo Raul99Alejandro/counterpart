@@ -13,7 +13,10 @@
     "start": "node dist/src/index.js",
     "dynamo:up": "docker run -d --rm --name counterpart-dynamo -p 8000:8000 amazon/dynamodb-local",
     "dynamo:down": "docker stop counterpart-dynamo",
-    "test:dynamo": "cross-env DYNAMODB_ENDPOINT=http://localhost:8000 vitest run test/integration/dynamo-store.test.ts"
+    "test:dynamo": "cross-env DYNAMODB_ENDPOINT=http://localhost:8000 vitest run test/integration/dynamo-store.test.ts",
+    "seed": "tsx seed/cli.ts",
+    "token": "tsx infra/create-token.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "keywords": [],
   "author": "",

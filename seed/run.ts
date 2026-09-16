@@ -43,14 +43,17 @@ const CAKES: Array<[string, Record<string, string>, string, string]> = [
 ];
 
 /** Siembra los dos negocios del demo. Determinista: la misma corrida produce los mismos datos. */
-export async function seedAll(store: Store, now: Date = new Date()): Promise<void> {
-  await seedShop(store, now);
-  await seedBakery(store, now);
+export async function seedAll(
+  store: Store, now: Date = new Date(), opts: { demoTokens?: boolean } = {}
+): Promise<void> {
+  const demoTokens = opts.demoTokens ?? true;
+  await seedShop(store, now, demoTokens);
+  await seedBakery(store, now, demoTokens);
 }
 
-async function seedShop(store: Store, now: Date): Promise<void> {
+async function seedShop(store: Store, now: Date, demoTokens: boolean): Promise<void> {
   await store.putBusiness(SHOP);
-  await store.putToken(hashToken(DEMO_TOKENS.shop), SHOP.id);
+  if (demoTokens) await store.putToken(hashToken(DEMO_TOKENS.shop), SHOP.id);
   await store.putItems(SHOP.id, SHOP_ITEMS);
 
   const profile = loadProfile('auto-repair');
@@ -83,9 +86,9 @@ async function seedShop(store: Store, now: Date): Promise<void> {
   await seedPayments(store, SHOP, profile, SHOP_ITEMS, now, 1234);
 }
 
-async function seedBakery(store: Store, now: Date): Promise<void> {
+async function seedBakery(store: Store, now: Date, demoTokens: boolean): Promise<void> {
   await store.putBusiness(BAKERY);
-  await store.putToken(hashToken(DEMO_TOKENS.bakery), BAKERY.id);
+  if (demoTokens) await store.putToken(hashToken(DEMO_TOKENS.bakery), BAKERY.id);
   await store.putItems(BAKERY.id, BAKERY_ITEMS);
 
   const profile = loadProfile('bakery');
