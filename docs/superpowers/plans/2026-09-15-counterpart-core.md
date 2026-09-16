@@ -1723,8 +1723,16 @@ export class MemoryStore implements Store {
   }
 
   async commitOrderWithItems(bizId: string, order: Order, items: CatalogItem[]): Promise<void> {
-    await this.putItems(bizId, items);
-    await this.putOrder(bizId, order);
+    // Atómico: valida todas las versiones antes de escribir nada.
+    const t = this.tenant(bizId);
+    const storedOrder = t.orders.get(order.id);
+    if (storedOrder && storedOrder.version !== order.version) throw new ConflictError(`order ${order.id}`);
+    for (const item of items) {
+      const current = t.items.get(item.id);
+      if (current && current.version !== item.version) throw new ConflictError(`item ${item.id}`);
+    }
+    for (const item of items) t.items.set(item.id, copy({ ...item, version: item.version + 1 }));
+    t.orders.set(order.id, copy({ ...order, version: order.version + 1 }));
   }
 
   async commitClose(bizId: string, order: Order, payment: Payment): Promise<void> {
