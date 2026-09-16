@@ -2,6 +2,23 @@
 
 **Estado:** Plan A completo en la rama `feat/core` — 92 pruebas, chequeo de tipos estricto limpio. Revisado tarea por tarea y con una revisión final de la rama entera; su ola de arreglos ya está aplicada y verificada.
 
+## Estado tras el Plan B1 (2026-09-16)
+
+Resuelto en la rama `feat/local-delivery`:
+
+- **§1:** `DynamoStore` y `MemoryStore` pasan la misma suite de contrato, atomicidad incluida. Los cobros llevan `paidOn`, la fecha civil del negocio, y `listPayments` compara esa fecha (ya no los primeros 10 caracteres de `paidAt`).
+- **§2:** la siembra contra AWS no instala los tokens de demo, y `npm run token` emite tokens reales guardando solo su hash.
+- **§3:** logs JSON a stdout, una línea por petición y otra por tool, correlacionadas por `requestId`; `Sessions.drop()` registra las fallas de `close()`; la línea `INTERNAL` va a stdout.
+- **§4:** vencimientos de la pastelería fijados por día de la semana; semilla y cierres usan la fecha del negocio.
+- **§5:** concordancia de número, `notFound` en singular, dos oraciones en resumen y reporte, ids reservados en los perfiles, campos del activo genéricos en vez de `plate`, filtro de `.ts` en `copy-assets`, `npm run seed -- --reset`, `toy.ts` fuera de la imagen, y plurales en -s/-es en las referencias habladas.
+
+Sigue abierto:
+
+- **§2:** `allowedHosts` con el hostname del balanceador; tokens reales en Secrets Manager; tope de sesiones por token.
+- **§3:** envío de los logs a CloudWatch.
+- **§4:** `this_week` contra `last_week` a mitad de semana; interoperabilidad con `basic-host`, incluido ver las dos UIs de MCP Apps en un host real.
+- **§5:** solapamiento de disparadores entre resumen y reporte (medirlo con `test/golden/`, que se corre en orden, en una sola sesión y con semilla fresca); umbrales duplicados entre `findItem` y `resolveOrder`; guardas de cantidad; "closest matches" con puntaje 0; boilerplate de `package.json`; y todos los "detalles con consecuencias acotadas".
+
 Este documento existe porque el espacio de trabajo de ejecución (`.superpowers/sdd/`) está ignorado por git y se borra al cerrar el plan. Aquí queda lo que sí debe sobrevivir.
 
 ---
