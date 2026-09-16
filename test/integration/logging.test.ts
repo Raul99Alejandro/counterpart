@@ -105,4 +105,82 @@ describe('logs estructurados', () => {
       await client.close();
     }
   });
+
+  it('un error fuera de las tools responde 500 y queda en una línea INTERNAL, sin el token', async () => {
+    // DynamoDB caído: la búsqueda del token lanza antes de llegar a cualquier tool.
+    class DownStore extends MemoryStore {
+      override async getBusinessByTokenHash(): Promise<never> { throw new Error('store caído'); }
+    }
+    const broken = createApp({ store: new DownStore(), host: '127.0.0.1' }).listen(0, '127.0.0.1');
+    await new Promise<void>(resolve => broken.once('listening', () => resolve()));
+    const address = broken.address();
+    const url = `http://127.0.0.1:${typeof address === 'object' && address ? address.port : 0}/mcp`;
+
+    const cap = captureLogs();
+    try {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          accept: 'application/json, text/event-stream',
+          authorization: `Bearer ${DEMO_TOKENS.shop}`
+        },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} })
+      });
+      expect(r.status).toBe(500);
+      expect(await r.json()).toEqual({ error: 'internal' });
+      await settle();
+
+      const lines = cap.lines();
+      const internal = lines.find(l => l.msg === 'internal');
+      expect(internal).toMatchObject({ level: 'error', code: 'INTERNAL', error: 'Error: store caído' });
+      expect(typeof internal!.stack).toBe('string');
+      // Correlacionada con la línea http de la misma petición.
+      expect(lines.find(l => l.msg === 'http')).toMatchObject({ status: 500, requestId: internal!.requestId });
+      expect(JSON.stringify(lines)).not.toContain(DEMO_TOKENS.shop);
+    } finally {
+      cap.restore();
+      broken.close();
+    }
+  });
+
+  it('una petición que el cliente abandona también deja su línea http', async () => {
+    // Sesión a mano, sin el cliente del SDK: así el único stream SSE (GET) es el de esta prueba.
+    const headers = {
+      'content-type': 'application/json',
+      accept: 'application/json, text/event-stream',
+      authorization: `Bearer ${DEMO_TOKENS.shop}`
+    };
+    const init = await fetch(`${base}/mcp`, {
+      method: 'POST', headers,
+      body: JSON.stringify({
+        jsonrpc: '2.0', id: 1, method: 'initialize',
+        params: { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'test', version: '0' } }
+      })
+    });
+    await init.text();
+    const sessionId = init.headers.get('mcp-session-id')!;
+    expect(sessionId).toBeTruthy();
+
+    const controller = new AbortController();
+    const cap = captureLogs();
+    try {
+      // El servidor nunca termina el stream SSE: solo lo corta el cliente.
+      const stream = await fetch(`${base}/mcp`, {
+        method: 'GET',
+        headers: { ...headers, accept: 'text/event-stream', 'mcp-session-id': sessionId },
+        signal: controller.signal
+      });
+      expect(stream.status).toBe(200);
+      controller.abort();
+      await settle();
+
+      const get = cap.lines().find(l => l.msg === 'http' && l.method === 'GET');
+      expect(get).toMatchObject({ businessId: 'shop', sessionId, status: 200 });
+    } finally {
+      cap.restore();
+      const closed = await fetch(`${base}/mcp`, { method: 'DELETE', headers: { ...headers, 'mcp-session-id': sessionId } });
+      await closed.body?.cancel();
+    }
+  });
 });

@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { createMcpExpressApp } from '@modelcontextprotocol/express';
 import { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node';
 import { McpServer } from '@modelcontextprotocol/server';
-import type { Express, Request, Response } from 'express';
+import type { Express, NextFunction, Request, Response } from 'express';
 import { loadProfile } from '../profiles/load.js';
 import { registerTools, type ToolContext } from '../tools/context.js';
 import type { Store } from '../store/store.js';
@@ -10,7 +10,7 @@ import type { Business } from '../domain/types.js';
 import { bearerFrom, businessFor } from './auth.js';
 import { Sessions } from './sessions.js';
 import { log } from '../log.js';
-import { withRequest, type RequestContext } from './request-context.js';
+import { currentRequest, withRequest, type RequestContext } from './request-context.js';
 
 const IDLE_MS = 30 * 60 * 1000;
 
@@ -29,11 +29,13 @@ export function createApp(deps: { store: Store; devBusinessId?: string; host: st
     res.status(200).type('text/plain').send('ok');
   });
 
-  app.all('/mcp', (req: Request, res: Response) => {
+  app.all('/mcp', (req: Request, res: Response, next: NextFunction) => {
     const context: RequestContext = { requestId: randomUUID() };
     const started = performance.now();
 
-    res.on('finish', () => {
+    // 'close' y no 'finish': se emite una vez siempre, también si el cliente corta la petición
+    // (un stream SSE abandonado nunca llega a 'finish').
+    res.on('close', () => {
       const assigned = res.getHeader('mcp-session-id');
       log({
         level: 'info', msg: 'http', requestId: context.requestId,
@@ -44,7 +46,7 @@ export function createApp(deps: { store: Store; devBusinessId?: string; host: st
       });
     });
 
-    return withRequest(context, async () => {
+    const handle = async (): Promise<void> => {
       const business = await resolveBusiness(deps, req);
       if (!business) {
         res.status(401).json({ error: 'unauthorized' });
@@ -83,7 +85,28 @@ export function createApp(deps: { store: Store; devBusinessId?: string; host: st
 
       await server.connect(transport);
       await transport.handleRequest(req, res, req.body);
+    };
+
+    // El catch se engancha dentro del contexto de la petición: así el middleware de errores
+    // registra la misma requestId que la línea http.
+    return withRequest(context, () => handle().catch(next));
+  });
+
+  // Errores fuera de las tools (p. ej. el store caído al buscar el token): una línea JSON en vez
+  // del stack de Express en stderr. Nunca se registra la petición: lleva el token.
+  app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
+    log({
+      level: 'error', msg: 'internal', code: 'INTERNAL',
+      requestId: currentRequest()?.requestId ?? randomUUID(),
+      error: err instanceof Error ? `${err.name}: ${err.message}` : String(err),
+      stack: err instanceof Error ? err.stack : undefined
     });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'internal' });
+      return;
+    }
+    // La respuesta ya empezó y no se puede corregir: se corta la conexión, como hace Express.
+    req.socket.destroy();
   });
 
   app.locals.sessions = sessions;
