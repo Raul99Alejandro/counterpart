@@ -1,0 +1,20 @@
+# Entorno local completo: Counterpart contra DynamoDB Local.
+services:
+  dynamodb:
+    image: amazon/dynamodb-local
+    ports:
+      - "8000:8000"
+
+  counterpart:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      COUNTERPART_STORE: dynamo
+      DYNAMODB_ENDPOINT: http://dynamodb:8000
+      DYNAMODB_TABLE: counterpart
+      AWS_REGION: us-east-1
+    depends_on:
+      - dynamodb
+    # Si arranca antes que DynamoDB Local, crear la tabla falla: se reintenta.
+    restart: on-failure

@@ -9,7 +9,7 @@
   "scripts": {
     "test": "vitest run",
     "dev": "tsx watch src/index.ts",
-    "build": "tsc -p tsconfig.json && npm run build:ui && node infra/copy-assets.mjs",
+    "build": "tsc -p tsconfig.build.json && npm run build:ui && node infra/copy-assets.mjs",
     "start": "node dist/src/index.js",
     "dynamo:up": "docker run -d --rm --name counterpart-dynamo -p 8000:8000 amazon/dynamodb-local",
     "dynamo:down": "docker stop counterpart-dynamo",
@@ -17,7 +17,8 @@
     "seed": "tsx seed/cli.ts",
     "token": "tsx infra/create-token.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "build:ui": "cross-env UI_NAME=snapshot vite build --config ui/vite.config.ts && cross-env UI_NAME=sales-report vite build --config ui/vite.config.ts"
+    "build:ui": "cross-env UI_NAME=snapshot vite build --config ui/vite.config.ts && cross-env UI_NAME=sales-report vite build --config ui/vite.config.ts",
+    "smoke": "tsx infra/smoke.ts"
   },
   "keywords": [],
   "author": "",
