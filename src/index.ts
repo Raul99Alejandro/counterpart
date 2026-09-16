@@ -1,14 +1,15 @@
 import { createApp } from './http/app.js';
 import { MemoryStore } from './store/memory.js';
 import type { Sessions } from './http/sessions.js';
+import { seedAll } from '../seed/run.js';
 
 const port = Number(process.env.PORT ?? 3000);
 const host = process.env.HOST ?? '0.0.0.0';
 const devBusinessId = process.env.COUNTERPART_DEV_BUSINESS;
 
 // El Plan B cambia MemoryStore por DynamoStore según una variable de entorno.
-// La Task 14 agrega el seeding (seedAll) de negocios y tokens de demo.
 const store = new MemoryStore();
+await seedAll(store);
 
 const app = createApp({ store, host, devBusinessId });
 const httpServer = app.listen(port, host, () => {
