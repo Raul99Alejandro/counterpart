@@ -39,4 +39,10 @@ describe('generación de tools', () => {
     expect(findInput(shop).safeParse({ stage: 'baking' }).success).toBe(false);
     expect(findInput(shop).safeParse({}).success).toBe(true);
   });
+
+  it('usa el artículo correcto según el sustantivo del perfil', () => {
+    expect(toolSpecs(bakery).addLine.description).toContain('an ingredient');
+    expect(toolSpecs(bakery).addLine.description).not.toContain('a ingredient');
+    expect(toolSpecs(shop).addLine.description).toContain('a part');
+  });
 });

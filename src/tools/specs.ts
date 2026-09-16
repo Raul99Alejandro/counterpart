@@ -6,6 +6,9 @@ export interface ToolSpec { name: string; title: string; description: string }
 // Frase auxiliar para inyectar sinónimos del perfil en las descripciones
 const alsoCalled = (words: string[]): string => words.length === 0 ? '' : ` (also called ${words.join(', ')})`;
 
+// Artículo correcto según si el sustantivo del perfil empieza con sonido vocálico
+const article = (word: string): string => /^[aeiou]/i.test(word) ? 'an' : 'a';
+
 export function toolSpecs(profile: Profile): Record<ToolKey, ToolSpec> {
   const { order, orders, item, items, customer } = profile.nouns;
   const orderAlias = alsoCalled(profile.synonyms.order);
@@ -27,22 +30,22 @@ export function toolSpecs(profile: Profile): Record<ToolKey, ToolSpec> {
     open: {
       name: profile.toolNames.open,
       title: `Open a ${order}`,
-      description: `Open a new ${order}${orderAlias} for a ${customer}${asset ? ` and their ${asset}` : ''}. Use this when the user wants to start a new job or take a new order.`
+      description: `Open a new ${order}${orderAlias} for ${article(customer)} ${customer}${asset ? ` and their ${asset}` : ''}. Use this when the user wants to start a new job or take a new order.`
     },
     move: {
       name: profile.toolNames.move,
       title: `Change ${order} stage`,
-      description: `Move a ${order} to another stage (${stages}). Use this when the user says work has started, is waiting, or is ready. To finish and charge a ${order}, use the close-out tool instead.`
+      description: `Move ${article(order)} ${order} to another stage (${stages}). Use this when the user says work has started, is waiting, or is ready. To finish and charge ${article(order)} ${order}, use the close-out tool instead.`
     },
     addLine: {
       name: profile.toolNames.addLine,
       title: `Add to a ${order}`,
-      description: `Add a ${item}${itemAlias} or a service to an existing ${order} and get the new total. Use this when the user says to add, put on, or charge something to a ${order}.`
+      description: `Add ${article(item)} ${item}${itemAlias} or a service to an existing ${order} and get the new total. Use this when the user says to add, put on, or charge something to ${article(order)} ${order}.`
     },
     stock: {
       name: profile.toolNames.stock,
       title: `Check ${items}`,
-      description: `Check how many of a ${item}${itemAlias} are on hand, or list everything running low when no ${item} is named. Use this when the user asks if something is in stock or what is low.`
+      description: `Check how many of ${article(item)} ${item}${itemAlias} are on hand, or list everything running low when no ${item} is named. Use this when the user asks if something is in stock or what is low.`
     },
     reorder: {
       name: profile.toolNames.reorder,
