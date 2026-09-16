@@ -10,7 +10,7 @@ export function normalize(text: string, extraStopwords: string[] = []): string[]
   const extra = new Set(extraStopwords.map(w => w.toLowerCase()));
   return text
     .toLowerCase()
-    .replace(/['']s\b/g, '')
+    .replace(/['’]s\b/g, '')
     .replace(/[^a-z0-9\s-]/g, ' ')
     .split(/\s+/)
     .filter(t => t.length > 0 && !STOPWORDS.has(t) && !extra.has(t));

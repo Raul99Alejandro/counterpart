@@ -25,6 +25,11 @@ describe('referencias habladas', () => {
     expect(normalize("Mrs. Johnson's work order", ['work', 'order'])).toEqual(['johnson']);
   });
 
+  it('trata el apóstrofo tipográfico del posesivo igual que el recto', () => {
+    expect(normalize('Dana’s Civic')).toEqual(normalize("Dana's Civic"));
+    expect(normalize('Dana’s Civic')).toEqual(['dana', 'civic']);
+  });
+
   it('puntúa por tokens compartidos con tolerancia a un error de dedo', () => {
     expect(tokenScore('civic', '2019 Honda Civic')).toBe(1);
     expect(tokenScore('camery', '2016 Toyota Camry')).toBe(1);
