@@ -30,9 +30,11 @@ export function registerCloseOut(server: McpServer, ctx: ToolContext): void {
 
       const today = businessToday(ctx.business.timezone, ctx.now());
       const refs = await loadRefs(ctx);
-      // Candidatas: abiertas, más las cerradas hoy, para que repetir el cierre sea idempotente.
+      // Candidatas: abiertas, más las cerradas hoy en la fecha del negocio, para que repetir el cierre sea idempotente.
+      const closedToday = (closedAt: string | undefined): boolean =>
+        closedAt !== undefined && businessToday(ctx.business.timezone, new Date(closedAt)) === today;
       const candidates = refs.filter(r =>
-        r.order.stage !== ctx.profile.closedStage || (r.order.closedAt ?? '').slice(0, 10) === today);
+        r.order.stage !== ctx.profile.closedStage || closedToday(r.order.closedAt));
 
       const found = resolveOrder(orderQuery, candidates, ctx.profile);
       if (found.kind === 'none') {
@@ -49,7 +51,7 @@ export function registerCloseOut(server: McpServer, ctx: ToolContext): void {
         });
       }
 
-      const result = closeOut(order, paymentMethod, ctx.profile, ctx.now(), ctx.newId('pay'));
+      const result = closeOut(order, paymentMethod, ctx.profile, ctx.now(), ctx.newId('pay'), today);
       if (!result.ok) {
         return fail(`${say.orderName(ctx.profile, order.number)} is still ${stageLabel(ctx.profile, order.stage)}. `
           + `Move it to ${stageLabel(ctx.profile, ctx.profile.closeFrom[0]!)} first.`);

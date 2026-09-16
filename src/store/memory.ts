@@ -105,10 +105,7 @@ export class MemoryStore implements Store {
   }
 
   async listPayments(bizId: string, from: string, to: string): Promise<Payment[]> {
-    return copy(this.tenant(bizId).payments.filter(p => {
-      const date = p.paidAt.slice(0, 10);
-      return date >= from && date <= to;
-    }));
+    return copy(this.tenant(bizId).payments.filter(p => p.paidOn >= from && p.paidOn <= to));
   }
 
   async listOpenPurchaseOrders(bizId: string): Promise<PurchaseOrder[]> {

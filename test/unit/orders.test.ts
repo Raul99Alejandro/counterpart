@@ -48,19 +48,19 @@ describe('órdenes', () => {
 
   it('cierra desde ready_for_pickup y genera el cobro', () => {
     const ready = { ...orderWithLines(), stage: 'ready_for_pickup' };
-    const r = closeOut(ready, 'card', profile, NOW, 'p1');
+    const r = closeOut(ready, 'card', profile, NOW, 'p1', '2026-09-15');
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.order.stage).toBe('picked_up');
       expect(r.order.closedAt).toBe(NOW.toISOString());
       expect(r.payment).toEqual({
-        id: 'p1', orderId: 'o1', amountCents: 27743, method: 'card', paidAt: NOW.toISOString()
+        id: 'p1', orderId: 'o1', amountCents: 27743, method: 'card', paidAt: NOW.toISOString(), paidOn: '2026-09-15'
       });
     }
   });
 
   it('no cierra desde una etapa que no está en closeFrom', () => {
-    const r = closeOut({ ...orderWithLines(), stage: 'in_bay' }, 'cash', profile, NOW, 'p1');
+    const r = closeOut({ ...orderWithLines(), stage: 'in_bay' }, 'cash', profile, NOW, 'p1', '2026-09-15');
     expect(r).toEqual({ ok: false, code: 'CANNOT_CLOSE' });
   });
 });

@@ -47,8 +47,12 @@ export function moveStage(order: Order, stage: string, profile: Profile, now: Da
   };
 }
 
+/**
+ * `paidOn` es la fecha civil del cobro en la zona del negocio. La calcula quien llama,
+ * porque el dominio no conoce zonas horarias.
+ */
 export function closeOut(
-  order: Order, method: Payment['method'], profile: Profile, now: Date, paymentId: string
+  order: Order, method: Payment['method'], profile: Profile, now: Date, paymentId: string, paidOn: string
 ): { ok: true; order: Order; payment: Payment } | { ok: false; code: 'CANNOT_CLOSE' } {
   if (!profile.closeFrom.includes(order.stage)) return { ok: false, code: 'CANNOT_CLOSE' };
   const at = now.toISOString();
@@ -58,6 +62,6 @@ export function closeOut(
       ...order, stage: profile.closedStage, closedAt: at,
       stageHistory: [...order.stageHistory, { stage: profile.closedStage, at }]
     },
-    payment: { id: paymentId, orderId: order.id, amountCents: order.totalCents, method, paidAt: at }
+    payment: { id: paymentId, orderId: order.id, amountCents: order.totalCents, method, paidAt: at, paidOn }
   };
 }

@@ -1,6 +1,7 @@
 import { hashToken } from '../src/http/auth.js';
 import { loadProfile } from '../src/profiles/load.js';
 import { spokenLabel } from '../src/domain/assets.js';
+import { businessToday, shiftDays } from '../src/domain/dates.js';
 import { newOrder, recalcTotals } from '../src/domain/orders.js';
 import type { Business, CatalogItem, Customer, Order, OrderLine, Payment } from '../src/domain/types.js';
 import type { Profile } from '../src/profiles/schema.js';
@@ -128,14 +129,18 @@ async function seedPayments(
   await store.putCustomer(biz.id, walkIn);
   const menu = sellable(catalog);
 
+  const today = businessToday(biz.timezone, now);
+
   for (let dayOffset = 29; dayOffset >= 0; dayOffset--) {
-    const date = new Date(now.getTime() - dayOffset * DAY_MS);
-    const weekday = date.getUTCDay();
+    // Fecha civil del negocio; el día de la semana sale de esa fecha, no del reloj UTC.
+    const civil = shiftDays(today, -dayOffset);
+    const weekday = new Date(`${civil}T12:00:00Z`).getUTCDay();
     if (weekday === 0) continue; // cerrado los domingos
 
     const sales = weekday === 5 || weekday === 6 ? 4 + Math.floor(random() * 3) : 2 + Math.floor(random() * 3);
     for (let i = 0; i < sales; i++) {
-      const paidAt = `${date.toISOString().slice(0, 10)}T${String(14 + (i % 6)).padStart(2, '0')}:05:00.000Z`;
+      // 14:05Z–19:05Z cae entre las 8 y las 14 h en Chicago: siempre dentro del mismo día civil.
+      const paidAt = `${civil}T${String(14 + (i % 6)).padStart(2, '0')}:05:00.000Z`;
       const lines = pickItems(menu, 2 + Math.floor(random() * 2), random)
         .map(item => line(item, 1 + Math.floor(random() * 2)));
 
@@ -149,7 +154,7 @@ async function seedPayments(
 
       const payment: Payment = {
         id: `${biz.id}-pay-${dayOffset}-${i}`, orderId: order.id,
-        amountCents: order.totalCents, method: i % 2 === 0 ? 'card' : 'cash', paidAt
+        amountCents: order.totalCents, method: i % 2 === 0 ? 'card' : 'cash', paidAt, paidOn: civil
       };
       await store.commitClose(biz.id, order, payment);
     }

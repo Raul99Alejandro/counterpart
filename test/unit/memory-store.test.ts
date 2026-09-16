@@ -53,9 +53,19 @@ describe('MemoryStore', () => {
   it('filtra cobros por rango de fechas inclusivo', async () => {
     const store = newStore();
     await store.commitClose('b1', { ...order, version: 1 },
-      { id: 'p1', orderId: 'o1', amountCents: 1000, method: 'cash', paidAt: '2026-09-15T18:00:00.000Z' });
+      { id: 'p1', orderId: 'o1', amountCents: 1000, method: 'cash', paidAt: '2026-09-15T18:00:00.000Z', paidOn: '2026-09-15' });
     expect(await store.listPayments('b1', '2026-09-15', '2026-09-15')).toHaveLength(1);
     expect(await store.listPayments('b1', '2026-09-16', '2026-09-20')).toHaveLength(0);
+  });
+
+  it('filtra cobros por fecha civil, no por el día UTC del instante', async () => {
+    const store = newStore();
+    await store.commitClose('b1', { ...order, version: 1 }, {
+      id: 'p9', orderId: 'o1', amountCents: 500, method: 'card',
+      paidAt: '2026-09-16T01:30:00.000Z', paidOn: '2026-09-15'
+    });
+    expect(await store.listPayments('b1', '2026-09-15', '2026-09-15')).toHaveLength(1);
+    expect(await store.listPayments('b1', '2026-09-16', '2026-09-16')).toHaveLength(0);
   });
 
   it('commitOrderWithItems es atómico: rechaza si hay conflicto sin escribir nada', async () => {

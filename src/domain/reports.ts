@@ -19,7 +19,7 @@ export interface SalesReport {
   topItems: Array<{ name: string; quantity: number; cents: number }>;
 }
 
-const day = (p: Payment): string => p.paidAt.slice(0, 10);
+const day = (p: Payment): string => p.paidOn;
 
 /** Etiqueta hablable de una orden: el activo si lo hay, si no el cliente. */
 export function refLabel(ref: OrderRef): string {

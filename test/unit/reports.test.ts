@@ -17,7 +17,7 @@ function ref(o: Order): OrderRef {
            asset: { id: 'a1', customerId: 'c1', fields: {}, spokenLabel: '2019 Honda Civic' } };
 }
 function pay(id: string, orderId: string, cents: number, date: string): Payment {
-  return { id, orderId, amountCents: cents, method: 'card', paidAt: `${date}T18:00:00.000Z` };
+  return { id, orderId, amountCents: cents, method: 'card', paidAt: `${date}T18:00:00.000Z`, paidOn: date };
 }
 const item: CatalogItem = {
   id: 'i1', name: 'Oil filter', synonyms: [], kind: 'part', unit: 'each', priceCents: 900,
