@@ -4,6 +4,7 @@ import { businessToday } from '../domain/dates.js';
 import { closeOut } from '../domain/orders.js';
 import { resolveOrder } from '../domain/resolver.js';
 import { say } from '../speech/say.js';
+import { ConflictError } from '../store/store.js';
 import { closeOutInput, toolSpecs } from './specs.js';
 import { fail, loadRefs, ok, stageLabel, type ToolContext } from './context.js';
 import type { Payment } from '../domain/types.js';
@@ -54,7 +55,12 @@ export function registerCloseOut(server: McpServer, ctx: ToolContext): void {
           + `Move it to ${stageLabel(ctx.profile, ctx.profile.closeFrom[0]!)} first.`);
       }
 
-      await ctx.store.commitClose(ctx.business.id, result.order, result.payment);
+      try {
+        await ctx.store.commitClose(ctx.business.id, result.order, result.payment);
+      } catch (err) {
+        if (err instanceof ConflictError) return fail(say.conflict(ctx.profile, result.order.number));
+        throw err;
+      }
 
       return ok(say.closed(ctx.profile, { ...found.ref, order: result.order }, result.payment), {
         orderId: result.order.id, number: result.order.number,

@@ -5,6 +5,7 @@ import { resolveDue } from '../domain/dates.js';
 import { newOrder } from '../domain/orders.js';
 import type { OrderRef } from '../domain/resolver.js';
 import { say } from '../speech/say.js';
+import { ConflictError } from '../store/store.js';
 import { openInput, toolSpecs } from './specs.js';
 import { fail, loadRefs, ok, type ToolContext } from './context.js';
 
@@ -48,7 +49,12 @@ export function registerOpen(server: McpServer, ctx: ToolContext): void {
       if (!customer) {
         customer = { id: ctx.newId('cust'), name: customerName, nameNormalized: normalizeName(customerName) };
         if (typeof args.customerPhone === 'string') customer.phone = args.customerPhone;
-        await ctx.store.putCustomer(ctx.business.id, customer);
+        try {
+          await ctx.store.putCustomer(ctx.business.id, customer);
+        } catch (err) {
+          if (err instanceof ConflictError) return fail(say.conflict(ctx.profile));
+          throw err;
+        }
       }
 
       let assetId: string | undefined;
@@ -59,7 +65,12 @@ export function registerOpen(server: McpServer, ctx: ToolContext): void {
           assetId = existing.id;
         } else {
           assetId = ctx.newId('asset');
-          await ctx.store.putAsset(ctx.business.id, { id: assetId, customerId: customer.id, fields: assetFields, spokenLabel: label });
+          try {
+            await ctx.store.putAsset(ctx.business.id, { id: assetId, customerId: customer.id, fields: assetFields, spokenLabel: label });
+          } catch (err) {
+            if (err instanceof ConflictError) return fail(say.conflict(ctx.profile));
+            throw err;
+          }
         }
       }
 
@@ -76,7 +87,12 @@ export function registerOpen(server: McpServer, ctx: ToolContext): void {
         description: typeof args.description === 'string' ? args.description : undefined,
         stage: ctx.profile.stages[0]!.id, now
       });
-      await ctx.store.putOrder(ctx.business.id, order);
+      try {
+        await ctx.store.putOrder(ctx.business.id, order);
+      } catch (err) {
+        if (err instanceof ConflictError) return fail(say.conflict(ctx.profile, order.number));
+        throw err;
+      }
 
       const ref: OrderRef = {
         order, customer,

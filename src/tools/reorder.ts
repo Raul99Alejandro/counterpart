@@ -2,6 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
 import { findItem, planReorder } from '../domain/inventory.js';
 import { say } from '../speech/say.js';
+import { ConflictError } from '../store/store.js';
 import { itemQueryInput, toolSpecs } from './specs.js';
 import { fail, ok, type ToolContext } from './context.js';
 import type { PurchaseOrder } from '../domain/types.js';
@@ -45,7 +46,14 @@ export function registerReorder(server: McpServer, ctx: ToolContext): void {
         id: ctx.newId('po'), supplierId: po.supplierId, lines: po.lines,
         status: 'open', createdAt: ctx.now().toISOString()
       }));
-      if (purchaseOrders.length > 0) await ctx.store.putPurchaseOrders(ctx.business.id, purchaseOrders);
+      if (purchaseOrders.length > 0) {
+        try {
+          await ctx.store.putPurchaseOrders(ctx.business.id, purchaseOrders);
+        } catch (err) {
+          if (err instanceof ConflictError) return fail(say.conflict(ctx.profile));
+          throw err;
+        }
+      }
 
       const ordered = plan.purchaseOrders.flatMap(po => po.lines.map(l => ({
         itemId: l.itemId, name: byId.get(l.itemId)?.name ?? l.itemId, qty: l.qty

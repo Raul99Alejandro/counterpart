@@ -3,6 +3,7 @@ import * as z from 'zod/v4';
 import { moveStage } from '../domain/orders.js';
 import { resolveOrder } from '../domain/resolver.js';
 import { say } from '../speech/say.js';
+import { ConflictError } from '../store/store.js';
 import { moveInput, toolSpecs } from './specs.js';
 import { fail, loadRefs, ok, openOnly, stageLabel, type ToolContext } from './context.js';
 
@@ -39,7 +40,12 @@ export function registerMove(server: McpServer, ctx: ToolContext): void {
         return fail(`I don't know the stage "${stage}".`);
       }
 
-      await ctx.store.putOrder(ctx.business.id, moved.order);
+      try {
+        await ctx.store.putOrder(ctx.business.id, moved.order);
+      } catch (err) {
+        if (err instanceof ConflictError) return fail(say.conflict(ctx.profile, moved.order.number));
+        throw err;
+      }
       const label = stageLabel(ctx.profile, stage);
       const ref = { ...found.ref, order: moved.order };
       return ok(say.moved(ctx.profile, ref, label), {

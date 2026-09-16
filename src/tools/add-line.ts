@@ -4,6 +4,7 @@ import { addLineToOrder, findItem } from '../domain/inventory.js';
 import { recalcTotals } from '../domain/orders.js';
 import { resolveOrder } from '../domain/resolver.js';
 import { say } from '../speech/say.js';
+import { ConflictError } from '../store/store.js';
 import { addLineInput, toolSpecs } from './specs.js';
 import { fail, loadRefs, ok, openOnly, type ToolContext } from './context.js';
 
@@ -39,7 +40,12 @@ export function registerAddLine(server: McpServer, ctx: ToolContext): void {
         ctx.business.taxRateBps
       );
 
-      await ctx.store.commitOrderWithItems(ctx.business.id, updated, itemUpdates);
+      try {
+        await ctx.store.commitOrderWithItems(ctx.business.id, updated, itemUpdates);
+      } catch (err) {
+        if (err instanceof ConflictError) return fail(say.conflict(ctx.profile, updated.number));
+        throw err;
+      }
 
       return ok(say.lineAdded(ctx.profile, found.ref, line, updated.totalCents), {
         orderId: updated.id, number: updated.number, itemName: line.name,

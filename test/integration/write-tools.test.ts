@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
 import { McpServer } from '@modelcontextprotocol/server';
 import { MemoryStore } from '../../src/store/memory.js';
+import { ConflictError } from '../../src/store/store.js';
 import { loadProfile } from '../../src/profiles/load.js';
 import { registerTools, type ToolContext } from '../../src/tools/context.js';
 import type { Business, CatalogItem, Order } from '../../src/domain/types.js';
@@ -14,9 +15,8 @@ const business: Business = {
 
 let idCounter = 0;
 
-async function fixture(): Promise<{ client: Client; store: MemoryStore }> {
+async function fixture(store: MemoryStore = new MemoryStore()): Promise<{ client: Client; store: MemoryStore }> {
   idCounter = 0;
-  const store = new MemoryStore();
   await store.putBusiness(business);
   await store.putCustomer('b1', { id: 'c1', name: 'Dana Lee', nameNormalized: 'dana lee' });
   await store.putAsset('b1', { id: 'a1', customerId: 'c1', fields: { year: 2019, make: 'Honda', model: 'Civic' }, spokenLabel: '2019 Honda Civic' });
@@ -119,5 +119,20 @@ describe('tools de escritura', () => {
     const second = await client.callTool({ name: 'reorder_parts', arguments: {} });
     expect(text(second)).toContain('already on order');
     expect(await store.listOpenPurchaseOrders('b1')).toHaveLength(1);
+  });
+
+  it('convierte un ConflictError de la store en el mensaje hablado, no en el texto interno', async () => {
+    class ConflictingStore extends MemoryStore {
+      override async commitOrderWithItems(): Promise<void> {
+        throw new ConflictError('order o1');
+      }
+    }
+    const { client } = await fixture(new ConflictingStore());
+    const r = await client.callTool({
+      name: 'add_parts_or_labor', arguments: { order: 'the Civic', item: 'brake pads', quantity: 2 }
+    });
+    expect(r.isError).toBe(true);
+    expect(text(r)).toContain('Please try again');
+    expect(text(r)).not.toContain('conflicto');
   });
 });

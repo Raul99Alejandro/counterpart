@@ -77,5 +77,11 @@ export const say = {
     if (suggestions.length === 0) return `I don't have "${query}" in the ${profile.nouns.items} list.`;
     return `I don't have "${query}" in the ${profile.nouns.items} list. `
       + `Closest matches are ${list(suggestions.map(s => s.name))}.`;
+  },
+
+  // Choque de versión al escribir: otra llamada modificó el mismo registro primero.
+  conflict(profile: Profile, orderNumber?: number): string {
+    const what = orderNumber !== undefined ? say.orderName(profile, orderNumber) : `the ${profile.nouns.items} list`;
+    return `Someone else just updated ${what}. Please try again.`;
   }
 };
