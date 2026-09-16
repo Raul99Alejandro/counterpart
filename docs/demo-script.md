@@ -4,9 +4,10 @@ Las frases habladas van en inglés, tal como se dicen. Todas están en `test/gol
 
 ## Antes de grabar
 
-- [ ] Resembrar la tabla justo antes. El comando exacto contra AWS lo define el Plan B2: borrar la tabla remota exige `COUNTERPART_ALLOW_REMOTE_RESET=1` y deja a los negocios sin tokens, así que después hay que emitir tokens nuevos con `npm run token` y actualizar el secreto del bridge. Con la semilla fresca, la ventana de dos minutos de pedidos repetidos no afecta nada.
+- [ ] Resembrar justo antes. Contra AWS, `npm run seed -- --reset` con `COUNTERPART_ALLOW_REMOTE_RESET=1` borra y vuelve a sembrar solo los negocios del demo; la tabla y los tokens ya emitidos quedan. El comando exacto, con sus credenciales, lo define el Plan B2. Con la semilla fresca, la ventana de dos minutos de pedidos repetidos no afecta nada.
 - [ ] Los tres pasteles del sábado salen sin importar el día en que siembres, porque sus vencimientos están fijados por día de la semana.
 - [ ] Los reportes usan la fecha del negocio (Chicago). Grabar a cualquier hora ya no mueve los cobros de día.
+- [ ] "How did we do this week compared to last week?" compara la semana en curso (incompleta) contra la anterior completa: a mitad de semana va a decir "down". Grabarla al final de la semana o ajustar la frase.
 - [ ] Probar cada frase una vez contra el bridge antes de grabar.
 
 ## Guion
