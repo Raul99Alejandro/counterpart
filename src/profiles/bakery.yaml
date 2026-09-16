@@ -1,0 +1,29 @@
+id: bakery
+nouns: { order: cake order, orders: cake orders, item: ingredient, items: ingredients, customer: customer }
+synonyms:
+  order: [order, cake, ticket]
+  item: [ingredient, supply]
+toolNames:
+  snapshot: get_bakery_snapshot
+  find: find_cake_orders
+  open: take_cake_order
+  move: move_cake_order_stage
+  addLine: add_to_cake_order
+  stock: check_ingredients
+  reorder: reorder_ingredients
+  closeOut: close_out_cake_order
+  salesReport: sales_report
+stages:
+  - { id: ordered, label: ordered }
+  - { id: baking, label: baking }
+  - { id: decorating, label: decorating }
+  - { id: ready, label: ready }
+  - { id: picked_up, label: picked up }
+closedStage: picked_up
+closeFrom: [ready]
+asset: null
+orderFields:
+  - { id: flavor, type: string, required: true }
+  - { id: size, type: string, required: true }
+  - { id: inscription, type: string, required: false }
+due: required

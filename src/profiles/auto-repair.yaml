@@ -1,0 +1,34 @@
+id: auto-repair
+nouns: { order: work order, orders: work orders, item: part, items: parts, customer: customer }
+synonyms:
+  order: [repair order, RO, ticket, job]
+  item: [part, fluid, supply]
+toolNames:
+  snapshot: get_shop_snapshot
+  find: find_work_orders
+  open: open_work_order
+  move: move_work_order_stage
+  addLine: add_parts_or_labor
+  stock: check_parts_stock
+  reorder: reorder_parts
+  closeOut: close_out_work_order
+  salesReport: sales_report
+stages:
+  - { id: estimate, label: estimate }
+  - { id: approved, label: approved }
+  - { id: in_bay, label: in the bay }
+  - { id: waiting_on_parts, label: waiting on parts }
+  - { id: ready_for_pickup, label: ready for pickup }
+  - { id: picked_up, label: picked up }
+closedStage: picked_up
+closeFrom: [ready_for_pickup]
+asset:
+  noun: vehicle
+  fields:
+    - { id: year, type: integer, required: true }
+    - { id: make, type: string, required: true }
+    - { id: model, type: string, required: true }
+    - { id: plate, type: string, required: false }
+  spokenAs: "{year} {make} {model}"
+orderFields: []
+due: optional
