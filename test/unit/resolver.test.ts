@@ -31,6 +31,13 @@ describe('referencias habladas', () => {
     expect(tokenScore('accord', '2019 Honda Civic')).toBe(0);
   });
 
+  it('trata una palabra y su plural como la misma', () => {
+    expect(tokenScore('boxes', '8-inch cake box')).toBe(1);
+    expect(tokenScore('box', 'cake boxes')).toBe(1);
+    expect(tokenScore('pad', 'Front brake pads')).toBe(1);
+    expect(tokenScore('bus', 'boxes')).toBe(0);
+  });
+
   it('resuelve por número de orden', () => {
     const r = resolveOrder('order 44', [civic, camryA, camryB], profile);
     expect(r).toEqual({ kind: 'one', ref: camryA });

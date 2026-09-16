@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { addLineToOrder, findItem, lowStock, planReorder } from '../../src/domain/inventory.js';
 import type { CatalogItem, Order } from '../../src/domain/types.js';
+import { BAKERY_ITEMS, SHOP_ITEMS } from '../../seed/data.js';
 
 function item(over: Partial<CatalogItem> & { id: string; name: string }): CatalogItem {
   return {
@@ -49,6 +50,16 @@ describe('inventario', () => {
 
   it('lista lo que está en o por debajo del punto de reorden', () => {
     expect(lowStock([pads, filter, oil, oilChange]).map(i => i.id)).toEqual(['i1', 'i2']);
+  });
+
+  it('encuentra ítems por plural en catálogos reales', () => {
+    expect(findItem('10-inch cake boxes', BAKERY_ITEMS)).toEqual({ kind: 'one', item: BAKERY_ITEMS.find(i => i.id === 'box-10')! });
+    const r = findItem('cake boxes', BAKERY_ITEMS);
+    expect(r.kind).toBe('ambiguous');
+    if (r.kind === 'ambiguous') {
+      expect(r.candidates.map(i => i.id).sort()).toEqual(['box-10', 'box-8']);
+    }
+    expect(findItem('brake rotors', SHOP_ITEMS)).toEqual({ kind: 'one', item: SHOP_ITEMS.find(i => i.id === 'rotor')! });
   });
 
   it('agrupa el reorden por proveedor y suma los backorders', () => {

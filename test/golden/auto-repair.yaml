@@ -1,3 +1,6 @@
+# Frases de oro: cada una con la tool y los argumentos que debería elegir el modelo.
+# Se corren en orden, en una sola sesión, contra una semilla recién hecha:
+# algunas dependen de las anteriores (por ejemplo, "Sam's truck" es la orden que abre la frase de Sam Reyes).
 profile: auto-repair
 phrases:
   - say: "How's the shop looking today?"
@@ -18,13 +21,13 @@ phrases:
   - say: "Pull up Dana Lee's job"
     tool: find_work_orders
     args: { query: "Dana Lee" }
-  - say: "Open a work order for Dana Lee's 2019 Honda Civic, front brakes"
+  - say: "Open a work order for Jordan Diaz's 2019 Honda Accord, front brakes"
     tool: open_work_order
-    args: { customerName: "Dana Lee", asset: { year: 2019, make: "Honda", model: "Civic" }, description: "front brakes" }
+    args: { customerName: "Jordan Diaz", asset: { year: 2019, make: "Honda", model: "Accord" }, description: "front brakes" }
   - say: "Start a new RO for Sam Reyes, 2020 Ford F-150, oil change"
     tool: open_work_order
     args: { customerName: "Sam Reyes", asset: { year: 2020, make: "Ford", model: "F-150" }, description: "oil change" }
-  - say: "Move the Civic to in the bay"
+  - say: "Move the Civic into the bay"
     tool: move_work_order_stage
     args: { order: "the Civic", stage: in_bay }
   - say: "The Outback is waiting on parts"

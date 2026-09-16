@@ -30,8 +30,14 @@ function withinOneEdit(a: string, b: string): boolean {
   return edits + (a.length - i) + (b.length - j) <= 1;
 }
 
+/** Una palabra y su plural en -s o -es cuentan como la misma ("box" y "boxes"). */
+function samePlural(a: string, b: string): boolean {
+  return a === `${b}s` || b === `${a}s` || a === `${b}es` || b === `${a}es`;
+}
+
 function matches(queryToken: string, target: string[]): boolean {
-  return target.some(t => t === queryToken || (queryToken.length >= 5 && withinOneEdit(queryToken, t)));
+  return target.some(t =>
+    t === queryToken || samePlural(queryToken, t) || (queryToken.length >= 5 && withinOneEdit(queryToken, t)));
 }
 
 /** Fracción de tokens de la consulta que aparecen en el texto. 0 si la consulta queda vacía. */

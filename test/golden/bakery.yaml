@@ -1,3 +1,6 @@
+# Frases de oro: cada una con la tool y los argumentos que debería elegir el modelo.
+# Se corren en orden, en una sola sesión, contra una semilla recién hecha:
+# algunas dependen del estado que dejan las anteriores.
 profile: bakery
 phrases:
   - say: "How's the bakery doing today?"
@@ -54,9 +57,9 @@ phrases:
   - say: "Reorder whatever's low"
     tool: reorder_ingredients
     args: {}
-  - say: "Order more cake boxes"
+  - say: "Order more 10-inch cake boxes"
     tool: reorder_ingredients
-    args: { item: "cake boxes" }
+    args: { item: "10-inch cake boxes" }
   - say: "Ada picked up her lemon cake and paid cash"
     tool: close_out_cake_order
     args: { order: "Ada's lemon cake", paymentMethod: cash }
@@ -66,3 +69,6 @@ phrases:
   - say: "How were sales this month?"
     tool: sales_report
     args: { period: this_month }
+  - say: "What did we sell yesterday?"
+    tool: sales_report
+    args: { period: yesterday }
