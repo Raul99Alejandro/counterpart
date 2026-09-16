@@ -142,5 +142,35 @@ export function runStoreContract(name: string, makeStore: () => Promise<Store>):
       await store.putPurchaseOrders('b1', [po('po1', 'open'), po('po2', 'received')]);
       expect((await store.listOpenPurchaseOrders('b1')).map(p => p.id)).toEqual(['po1']);
     });
+
+    it('aísla a cada negocio: cada lista y cada token ven solo lo suyo', async () => {
+      const store = await ready();
+      await store.putBusiness({ ...biz, id: 'b2', name: 'Sweet Crumb Bakery', profileId: 'bakery' });
+      await store.putToken('hash-xyz', 'b2');
+
+      // Mismo tipo de registro en los dos negocios, con ids distintos y cobros del mismo día.
+      for (const b of ['b1', 'b2']) {
+        await store.putCustomer(b, { id: `${b}-c`, name: 'Dana Lee', nameNormalized: 'dana lee' });
+        await store.putAsset(b, { id: `${b}-a`, customerId: `${b}-c`, fields: {}, spokenLabel: '2019 Honda Civic' });
+        await store.putItems(b, [{ ...item, id: `${b}-i` }]);
+        await store.putOrder(b, { ...order, id: `${b}-open` });
+        await store.commitClose(b, { ...order, id: `${b}-closed` }, { ...payment(`${b}-p`, '2026-09-15'), orderId: `${b}-closed` });
+        await store.putPurchaseOrders(b, [{
+          id: `${b}-po`, supplierId: 's1', lines: [{ itemId: `${b}-i`, qty: 5 }], status: 'open', createdAt: '2026-09-15T15:00:00.000Z'
+        }]);
+      }
+
+      for (const b of ['b1', 'b2']) {
+        expect((await store.listCustomers(b)).map(c => c.id)).toEqual([`${b}-c`]);
+        expect((await store.listAssets(b)).map(a => a.id)).toEqual([`${b}-a`]);
+        expect((await store.listItems(b)).map(i => i.id)).toEqual([`${b}-i`]);
+        expect((await store.listOrders(b)).map(o => o.id).sort()).toEqual([`${b}-closed`, `${b}-open`]);
+        expect((await store.listPayments(b, '2026-09-15', '2026-09-15')).map(p => p.id)).toEqual([`${b}-p`]);
+        expect((await store.listOpenPurchaseOrders(b)).map(p => p.id)).toEqual([`${b}-po`]);
+      }
+      expect(await store.getOrder('b1', 'b2-open')).toBeNull();
+      expect((await store.getBusinessByTokenHash('hash-abc'))?.id).toBe('b1');
+      expect((await store.getBusinessByTokenHash('hash-xyz'))?.id).toBe('b2');
+    });
   });
 }
