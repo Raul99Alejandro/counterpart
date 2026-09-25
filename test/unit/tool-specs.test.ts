@@ -90,6 +90,18 @@ describe('generación de tools', () => {
       expect(d).toContain('phone number');
     });
 
+    it('abrir una orden nombra lo obligatorio del perfil y pide omitir lo demás', () => {
+      const d = toolSpecs(bakery).open.description;
+      expect(d).toContain("Needed: the customer's name, flavor, size and the due date.");
+      expect(d).toContain('Leave anything else out instead of asking for it');
+      expect(toolSpecs(shop).open.description).toContain("Needed: the customer's name and the vehicle.");
+    });
+
+    it('la referencia a una orden acepta el nombre del cliente sin pedir el número', () => {
+      const json = z.toJSONSchema(addLineInput(bakery)) as { properties?: Record<string, { description?: string }> };
+      expect(json.properties?.order?.description).toContain('never ask for the cake order number');
+    });
+
     it('el resumen del día cubre "what is on the board today"', () => {
       expect(toolSpecs(bakery).snapshot.description).toContain("what's on the board");
     });

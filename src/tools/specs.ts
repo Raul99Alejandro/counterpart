@@ -17,8 +17,20 @@ const orderReference = (profile: Profile): string => {
   const { order, customer } = profile.nouns;
   const asset = profile.asset?.noun;
   const examples = [`the ${customer}'s name`, ...(asset ? [`the ${asset}`] : [])];
-  return `How the user referred to the ${order}, such as ${examples.join(', ')} or "${order} 42".`;
+  return `How the user referred to the ${order}, such as ${examples.join(', ')} or "${order} 42". `
+    + `Pass it as the user said it; never ask for the ${order} number.`;
 };
+
+/** Lo que abrir una orden necesita sí o sí, dicho como lista hablada ("a, b and c"). */
+function neededToOpen(profile: Profile): string {
+  const needed = [
+    `the ${profile.nouns.customer}'s name`,
+    ...(profile.asset ? [`the ${profile.asset.noun}`] : []),
+    ...profile.orderFields.filter(f => f.required).map(f => f.id),
+    ...(profile.due === 'required' ? ['the due date'] : [])
+  ];
+  return needed.length === 1 ? needed[0]! : `${needed.slice(0, -1).join(', ')} and ${needed[needed.length - 1]}`;
+}
 
 export function toolSpecs(profile: Profile): Record<ToolKey, ToolSpec> {
   const { order, orders, item, items, customer } = profile.nouns;
@@ -41,7 +53,7 @@ export function toolSpecs(profile: Profile): Record<ToolKey, ToolSpec> {
     open: {
       name: profile.toolNames.open,
       title: `Open a ${order}`,
-      description: `Open a new ${order}${orderAlias} for ${article(customer)} ${customer}${asset ? ` and their ${asset}` : ''}. Use this when the user wants to start or take a new ${order}. Fill in every detail the user already gave; do not ask for optional details such as a phone number.`
+      description: `Open a new ${order}${orderAlias} for ${article(customer)} ${customer}${asset ? ` and their ${asset}` : ''}. Use this when the user wants to start or take a new ${order}. Fill in every detail the user already gave; do not ask for optional details such as a phone number. Needed: ${neededToOpen(profile)}. Leave anything else out instead of asking for it.`
     },
     move: {
       name: profile.toolNames.move,
