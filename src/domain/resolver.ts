@@ -5,13 +5,16 @@ export interface OrderRef { order: Order; customer: Customer; asset?: Asset }
 
 const STOPWORDS = new Set(['the', 'a', 'an', 'mr', 'mrs', 'ms', 'number', 'no', 'for', 'to', 'of']);
 
-/** Minúsculas, sin puntuación ni posesivos, sin palabras vacías. */
+/**
+ * Minúsculas, sin puntuación ni posesivos, sin palabras vacías. El guion separa palabras: Alexa
+ * transcribe "CX-5" como "CX 5", y las dos formas tienen que dar los mismos tokens.
+ */
 export function normalize(text: string, extraStopwords: string[] = []): string[] {
   const extra = new Set(extraStopwords.map(w => w.toLowerCase()));
   return text
     .toLowerCase()
     .replace(/['’]s\b/g, '')
-    .replace(/[^a-z0-9\s-]/g, ' ')
+    .replace(/[^a-z0-9\s]/g, ' ')
     .split(/\s+/)
     .filter(t => t.length > 0 && !STOPWORDS.has(t) && !extra.has(t));
 }
