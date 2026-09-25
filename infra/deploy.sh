@@ -65,9 +65,10 @@ sed -e "s/__ACCOUNT__/$ACCOUNT/g" -e "s/__REGION__/$AWS_REGION/g" "$HERE/iam/tas
 aws iam put-role-policy --role-name "$APP-task" --policy-name "$APP-task" --policy-document "file://$POLICY_FILE"
 rm -f "$POLICY_FILE"
 ensure_role "$APP-infrastructure" ecs-trust.json
+# El CLI aplica --query página por página: sale un "None" por cada página sin coincidencia.
 INFRA_POLICY="$(aws iam list-policies --scope AWS \
-  --query "Policies[?contains(PolicyName, 'ExpressGateway')].Arn | [0]" --output text)"
-if [ -z "$INFRA_POLICY" ] || [ "$INFRA_POLICY" = "None" ]; then
+  --query "Policies[?contains(PolicyName, 'ExpressGateway')].Arn" --output text | tr '\t' '\n' | grep '^arn:' | head -1 || true)"
+if [ -z "$INFRA_POLICY" ]; then
   echo "No encontré la política administrada de Express Mode (nombre con 'ExpressGateway')." >&2; exit 1
 fi
 aws iam attach-role-policy --role-name "$APP-infrastructure" --policy-arn "$INFRA_POLICY"
