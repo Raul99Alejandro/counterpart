@@ -104,5 +104,5 @@ Problems we hit while building Counterpart, in the order we hit them. Each entry
 
 - **Area:** `alexa-skill-mcp-bridge` agent
 - **What happened:** After we redeployed Counterpart, every tool call from the Skill failed: our new task answered 404 for the old session id, which MCP defines as "start a new session", but the agent kept the session for the life of its AgentCore microVM, which Alexa reuses per user for up to 8 hours.
-- **Impact:** Every spoken request answered "Sorry, I still can't…". Fixed in our fork: one reconnect and retry on 404. An already running microVM keeps the old code until it has been idle for 20 minutes.
-- **Suggestion:** Handle 404 as the MCP spec says, and document how to recycle AgentCore sessions after a deploy.
+- **Impact:** Every spoken request answered "Sorry, I still can't…". Fixed in our fork: one reconnect and retry on 404. Deploying the fix was not enough on its own: after the endpoint moved to the new runtime version, AgentCore kept routing brand-new sessions to warm containers of the two previous versions (started hours earlier, before the update), so the old code kept answering until those containers reached their 8-hour lifetime. Runtime versions cannot be deleted to force it.
+- **Suggestion:** Handle 404 as the MCP spec says. For AgentCore, drain containers of older versions once the endpoint's live version changes, or document how to do it.
