@@ -78,3 +78,31 @@ Problems we hit while building Counterpart, in the order we hit them. Each entry
 - **What happened:** The CDK stack name `AlexaMcpBridgeStack` is fixed in `infra/bin/app.ts`, `scripts/lib.ts` and `packages/cli/src/remote.ts`, and the invocation name lives in the tracked `bridge.config.ts`. A second deploy for our second business would update the first one.
 - **Impact:** One Alexa Skill per business, the way each business would install its own Alexa+ add-on, needed a fork that reads both names from `.env`.
 - **Suggestion:** Read the stack name and the invocation name from `.env`, like the MCP URL.
+
+## 12. An Express Mode rollback left traffic on an empty target group
+
+- **Area:** Amazon ECS Express Mode
+- **What happened:** The first update after creating the service failed with "productionListenerRule … should have exactly one target group serving traffic but found 2" and rolled back. The rollback left the listener rule weighted 950/50, with 95% of traffic on a target group that had no tasks. The public URL answered 503 most of the time, and every later update failed with the same error.
+- **Impact:** About an hour. We found it only by reading the listener rule's weights, and fixed it with `aws elbv2 modify-rule` (999/0 toward the healthy target group). A redeploy from scratch later did not reproduce it.
+- **Suggestion:** Restore the weights on rollback, and name the listener rule and its weights in the service event.
+
+## 13. The bridge's scripts could not start `npx` or `ask` on Windows
+
+- **Area:** `alexa-skill-mcp-bridge`
+- **What happened:** `npm run deploy` exited 1 with no message right after its model check, and `npm run doctor` said "ask not found" with ask-cli installed. Both spawn `npx` and `ask`, which on Windows are `.cmd` shims that `spawnSync` cannot start without a shell (`ENOENT`).
+- **Impact:** A silent failure; we traced it with a one-line `spawnSync('npx')` check. Fixed in our fork by spawning through a shell on Windows.
+- **Suggestion:** Run the scripts on a Windows CI runner.
+
+## 14. Alexa transcribes "CX-5" as "CX 5"
+
+- **Area:** Alexa speech recognition, and our own resolver
+- **What happened:** "Close out the CX-5" reached our server as "the CX 5", and our resolver, which kept hyphenated words as one token, found no order.
+- **Impact:** A demo phrase that passed every text test failed by voice. Fixed by splitting hyphens on both sides.
+- **Suggestion:** None for Amazon; for anyone building a voice MCP server, test with what the speech recognizer actually sends.
+
+## 15. The bridge kept a dead MCP session after our server redeployed
+
+- **Area:** `alexa-skill-mcp-bridge` agent
+- **What happened:** After we redeployed Counterpart, every tool call from the Skill failed: our new task answered 404 for the old session id, which MCP defines as "start a new session", but the agent kept the session for the life of its AgentCore microVM, which Alexa reuses per user for up to 8 hours.
+- **Impact:** Every spoken request answered "Sorry, I still can't…". Fixed in our fork: one reconnect and retry on 404. An already running microVM keeps the old code until it has been idle for 20 minutes.
+- **Suggestion:** Handle 404 as the MCP spec says, and document how to recycle AgentCore sessions after a deploy.
