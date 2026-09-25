@@ -39,17 +39,38 @@ aws ecr delete-repository --repository-name "$APP" --force >/dev/null 2>&1 || tr
 step "Grupo de logs"
 aws logs delete-log-group --log-group-name "$LOG_GROUP" 2>/dev/null || true
 
-step "Roles de IAM"
-for role in "$APP-execution" "$APP-task" "$APP-infrastructure"; do
-  aws iam get-role --role-name "$role" >/dev/null 2>&1 || continue
-  for p in $(aws iam list-attached-role-policies --role-name "$role" --query 'AttachedPolicies[].PolicyArn' --output text); do
-    aws iam detach-role-policy --role-name "$role" --policy-arn "$p"
+delete_role() {
+  aws iam get-role --role-name "$1" >/dev/null 2>&1 || return 0
+  for p in $(aws iam list-attached-role-policies --role-name "$1" --query 'AttachedPolicies[].PolicyArn' --output text); do
+    aws iam detach-role-policy --role-name "$1" --policy-arn "$p"
   done
-  for p in $(aws iam list-role-policies --role-name "$role" --query 'PolicyNames[]' --output text); do
-    aws iam delete-role-policy --role-name "$role" --policy-name "$p"
+  for p in $(aws iam list-role-policies --role-name "$1" --query 'PolicyNames[]' --output text); do
+    aws iam delete-role-policy --role-name "$1" --policy-name "$p"
   done
-  aws iam delete-role --role-name "$role"
+  aws iam delete-role --role-name "$1"
+}
+
+step "Roles de IAM de la tarea"
+delete_role "$APP-execution"
+delete_role "$APP-task"
+
+# Express Mode usa el rol de infraestructura para borrar su balanceador y sus target groups, y lo hace
+# después de que el servicio queda inactivo. Borrar el rol antes podría dejar el balanceador huérfano,
+# cobrando y sin rol que lo borre: se espera hasta 10 minutos a que desaparezcan.
+step "Esperando a que Express Mode borre el balanceador"
+for _ in $(seq 1 20); do
+  LEFT_LB="$(aws elbv2 describe-load-balancers --query "LoadBalancers[?starts_with(LoadBalancerName, 'ecs-express-gateway')].LoadBalancerName | [0]" --output text)"
+  LEFT_TG="$(aws elbv2 describe-target-groups --query "TargetGroups[?starts_with(TargetGroupName, 'ecs-gateway')].TargetGroupName | [0]" --output text)"
+  if { [ -z "$LEFT_LB" ] || [ "$LEFT_LB" = "None" ]; } && { [ -z "$LEFT_TG" ] || [ "$LEFT_TG" = "None" ]; }; then break; fi
+  sleep 30
 done
+
+step "Rol de infraestructura de Express Mode"
+if { [ -z "$LEFT_LB" ] || [ "$LEFT_LB" = "None" ]; } && { [ -z "$LEFT_TG" ] || [ "$LEFT_TG" = "None" ]; }; then
+  delete_role "$APP-infrastructure"
+else
+  echo "  Se conserva $APP-infrastructure: el balanceador o sus target groups siguen ahí. Repite el teardown en unos minutos."
+fi
 
 if [ "$KEEP" != 1 ]; then
   step "Secretos counterpart/*"
