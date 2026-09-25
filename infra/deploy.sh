@@ -99,6 +99,17 @@ container_json() { # hosts permitidos
 JSON
 }
 
+# El waiter del CLI se rinde a los 10 minutos, y un despliegue de Express Mode (canario más tiempo de
+# observación) puede tardar más. Hasta 3 esperas seguidas antes de darlo por fallido.
+wait_stable() {
+  for _ in 1 2 3; do
+    if aws ecs wait services-stable --cluster "$CLUSTER" --services "$APP" 2>/dev/null; then return 0; fi
+    echo "  El servicio sigue desplegando; espero otros 10 minutos."
+  done
+  echo "El servicio no quedó estable en 30 minutos. Revisa: aws ecs describe-services --cluster $CLUSTER --services $APP" >&2
+  return 1
+}
+
 service_arn() {
   aws ecs describe-services --cluster "$CLUSTER" --services "$APP" \
     --query "services[?status=='ACTIVE'].serviceArn | [0]" --output text 2>/dev/null || true
@@ -120,7 +131,7 @@ if [ -z "$ARN" ] || [ "$ARN" = "None" ]; then
     --scaling-target minTaskCount=1,maxTaskCount=1 \
     --primary-container "$(container_json bootstrap)" \
     --query service.serviceArn --output text)"
-  aws ecs wait services-stable --cluster "$CLUSTER" --services "$APP"
+  wait_stable
 fi
 
 HOST="$(endpoint_host "$ARN")"
@@ -132,7 +143,7 @@ update_service() {
     --health-check-path /ping --cpu 256 --memory 512 --cpu-architecture X86_64 \
     --scaling-target minTaskCount=1,maxTaskCount=1 \
     --primary-container "$(container_json "$HOST")" >/dev/null
-  aws ecs wait services-stable --cluster "$CLUSTER" --services "$APP"
+  wait_stable
 }
 
 mcp_status() {
