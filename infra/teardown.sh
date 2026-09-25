@@ -7,6 +7,8 @@ set -euo pipefail
 : "${AWS_PROFILE:?Define AWS_PROFILE y abre sesión con aws sso login}"
 export AWS_REGION="${AWS_REGION:-us-east-1}"
 export AWS_PAGER=""
+# Git Bash convertiría /ecs/counterpart en una ruta de Windows.
+export MSYS_NO_PATHCONV=1
 
 APP=counterpart
 TABLE=counterpart

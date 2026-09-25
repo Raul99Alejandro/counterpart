@@ -6,13 +6,17 @@ set -euo pipefail
 : "${AWS_PROFILE:?Define AWS_PROFILE (por ejemplo, counterpart) y abre sesión con aws sso login}"
 export AWS_REGION="${AWS_REGION:-us-east-1}"
 export AWS_PAGER=""
+# Git Bash convierte los argumentos que parecen rutas (/ecs/counterpart) en rutas de Windows. Se apaga,
+# y las rutas locales van en formato D:/..., que entienden bash, aws, docker y git por igual.
+export MSYS_NO_PATHCONV=1
+native() { if command -v cygpath >/dev/null 2>&1; then cygpath -m "$1"; else printf '%s' "$1"; fi; }
 
 APP=counterpart
 TABLE=counterpart
 LOG_GROUP=/ecs/counterpart
 CLUSTER=default
-HERE="$(cd "$(dirname "$0")" && pwd)"
-ROOT="$(cd "$HERE/.." && pwd)"
+HERE="$(native "$(cd "$(dirname "$0")" && pwd)")"
+ROOT="$(native "$(cd "$HERE/.." && pwd)")"
 
 ACCOUNT="$(aws sts get-caller-identity --query Account --output text)"
 REGISTRY="$ACCOUNT.dkr.ecr.$AWS_REGION.amazonaws.com"
@@ -56,7 +60,7 @@ ensure_role "$APP-execution" ecs-tasks-trust.json
 aws iam attach-role-policy --role-name "$APP-execution" \
   --policy-arn arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
 ensure_role "$APP-task" ecs-tasks-trust.json
-POLICY_FILE="$(mktemp)"
+POLICY_FILE="$(native "$(mktemp)")"
 sed -e "s/__ACCOUNT__/$ACCOUNT/g" -e "s/__REGION__/$AWS_REGION/g" "$HERE/iam/task-policy.json" > "$POLICY_FILE"
 aws iam put-role-policy --role-name "$APP-task" --policy-name "$APP-task" --policy-document "file://$POLICY_FILE"
 rm -f "$POLICY_FILE"
