@@ -1,35 +1,33 @@
-import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
+import { GetSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
+import { runSmoke } from './smoke-checks.js';
 
-// Uso: npm run smoke -- <url del /mcp> <token>
-// Se conecta como lo haría un cliente real: lista tools, llama al resumen y lee su UI.
-const [url, token] = process.argv.slice(2);
-if (!url || !token) {
-  console.error('Uso: npm run smoke -- <url del /mcp> <token>');
+// Uso:
+//   npm run smoke -- <url del /mcp> --secret counterpart/shop/token [--other-secret counterpart/bakery/token]
+//   SMOKE_TOKEN=... [SMOKE_OTHER_TOKEN=...] npm run smoke -- <url del /mcp>     (local)
+// Los tokens nunca van como argumento: se verían en la lista de procesos y en el historial.
+const args = process.argv.slice(2);
+const flag = (name: string) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : undefined; };
+const flagValues = new Set([flag('--secret'), flag('--other-secret')]);
+const url = args.find(a => !a.startsWith('--') && !flagValues.has(a));
+if (!url) {
+  console.error('Uso: npm run smoke -- <url del /mcp> [--secret <nombre>] [--other-secret <nombre>]');
   process.exit(1);
 }
 
-const transport = new StreamableHTTPClientTransport(new URL(url), {
-  fetch: (input: string | URL | Request, init?: RequestInit) => {
-    const headers = new Headers(init?.headers);
-    headers.set('authorization', `Bearer ${token}`);
-    return fetch(input, { ...init, headers });
-  }
-});
-const client = new Client({ name: 'counterpart-smoke', version: '0.1.0' });
-await client.connect(transport);
+const secrets = new SecretsManagerClient({ region: process.env.AWS_REGION ?? 'us-east-1' });
+const read = async (name: string | undefined, fallback: string | undefined): Promise<string | undefined> => {
+  if (!name) return fallback;
+  const out = await secrets.send(new GetSecretValueCommand({ SecretId: name }));
+  return out.SecretString;
+};
 
-const { tools } = await client.listTools();
-console.log(`tools (${tools.length}): ${tools.map(t => t.name).join(', ')}`);
+const token = await read(flag('--secret'), process.env.SMOKE_TOKEN);
+const otherToken = await read(flag('--other-secret'), process.env.SMOKE_OTHER_TOKEN);
+if (!token) {
+  console.error('Falta el token: --secret <nombre> o SMOKE_TOKEN.');
+  process.exit(1);
+}
 
-const snapshot = tools.find(t => t.name.endsWith('_snapshot'));
-if (!snapshot) throw new Error('el servidor no expone una tool de resumen');
-
-const result = await client.callTool({ name: snapshot.name, arguments: {} });
-console.log(`${snapshot.name}: ${(result.content as Array<{ text?: string }>)[0]?.text ?? '(sin texto)'}`);
-
-const uri = (snapshot._meta as { ui?: { resourceUri?: string } } | undefined)?.ui?.resourceUri;
-if (!uri) throw new Error(`${snapshot.name} no declara su UI`);
-const page = await client.readResource({ uri });
-console.log(`ui ${uri}: ${(page.contents[0] as { text?: string }).text?.length ?? 0} bytes`);
-
-await client.close();
+const results = await runSmoke({ url, token, otherToken });
+for (const r of results) console.log(`${r.ok ? 'ok  ' : 'FAIL'} ${r.name}: ${r.detail}`);
+process.exit(results.every(r => r.ok) ? 0 : 1);
