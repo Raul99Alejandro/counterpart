@@ -68,5 +68,18 @@ describe('runner de frases de oro', () => {
     expect(report.results.map(r => [r.got, r.pass])).toEqual([
       ['find_work_orders', true], ['get_shop_snapshot', false], [null, false]
     ]);
+    // Sin tool, el informe guarda lo que respondió el modelo, para diagnosticar.
+    expect(report.results[2]!.reply).toBe('I am not sure.');
+  });
+
+  it('compara los argumentos ya canonizados: "the Civic" y "work order 41" son la misma orden', async () => {
+    const { model } = scripted([{ name: 'move_work_order_stage', input: { order: 'work order 41', stage: 'in_bay' } }]);
+    const canonicalize = async (args: Record<string, unknown>) =>
+      ({ ...args, ...(args.order === 'the Civic' || args.order === 'work order 41' ? { order: 'order #civic' } : {}) });
+    const report = await runGolden({
+      client, model, canonicalize,
+      phrases: [{ say: 'Move the Civic into the bay', tool: 'move_work_order_stage', args: { order: 'the Civic', stage: 'in_bay' } }]
+    });
+    expect(report.results[0]!.pass).toBe(true);
   });
 });

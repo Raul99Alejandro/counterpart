@@ -31,7 +31,7 @@ export function toolSpecs(profile: Profile): Record<ToolKey, ToolSpec> {
     snapshot: {
       name: profile.toolNames.snapshot,
       title: 'Business snapshot',
-      description: `Get today's summary: money taken in today, how many ${orders} are in each stage, what is due today, and which ${items} are running low. Use this when the user asks how the day or the business is going.`
+      description: `Get today's summary: money taken in today, how many ${orders} are in each stage, what is due today, and which ${items} are running low. Use this when the user asks how the day or the business is going, for a rundown, or what's on the board today.`
     },
     find: {
       name: profile.toolNames.find,
@@ -41,7 +41,7 @@ export function toolSpecs(profile: Profile): Record<ToolKey, ToolSpec> {
     open: {
       name: profile.toolNames.open,
       title: `Open a ${order}`,
-      description: `Open a new ${order}${orderAlias} for ${article(customer)} ${customer}${asset ? ` and their ${asset}` : ''}. Use this when the user wants to start or take a new ${order}.`
+      description: `Open a new ${order}${orderAlias} for ${article(customer)} ${customer}${asset ? ` and their ${asset}` : ''}. Use this when the user wants to start or take a new ${order}. Fill in every detail the user already gave; do not ask for optional details such as a phone number.`
     },
     move: {
       name: profile.toolNames.move,
@@ -77,9 +77,11 @@ export function toolSpecs(profile: Profile): Record<ToolKey, ToolSpec> {
 }
 
 // Convierte una definición de campo del perfil en el schema zod correspondiente
-function fieldSchema(field: FieldDef): z.ZodTypeAny {
+// Cada campo dice qué es: sin descripción, Nova 2 Lite pedía un sabor que la frase ya traía.
+function fieldSchema(field: FieldDef, owner: string): z.ZodTypeAny {
   const base = field.type === 'integer' ? z.number().int() : z.string().min(1);
-  return field.required ? base : base.optional();
+  const described = base.describe(`The ${field.id} of the ${owner}, as the user said it.`);
+  return field.required ? described : described.optional();
 }
 
 // Shape mutable: z.ZodRawShape es de solo lectura en esta versión de zod,
@@ -87,8 +89,8 @@ function fieldSchema(field: FieldDef): z.ZodTypeAny {
 type MutableShape = Record<string, z.ZodTypeAny>;
 
 // Arma el shape de un z.object a partir de una lista de campos del perfil
-function fieldsShape(fields: FieldDef[]): MutableShape {
-  return Object.fromEntries(fields.map(f => [f.id, fieldSchema(f)]));
+function fieldsShape(fields: FieldDef[], owner: string): MutableShape {
+  return Object.fromEntries(fields.map(f => [f.id, fieldSchema(f, owner)]));
 }
 
 const dueDescription = 'A day such as "today", "tomorrow", a weekday like "saturday", or a date like 2026-09-19.';
@@ -99,12 +101,12 @@ export function openInput(profile: Profile): z.ZodObject<z.ZodRawShape> {
     customerName: z.string().min(1).describe(`The ${customer}'s name, as the user said it.`),
     customerPhone: z.string().optional().describe(`The ${customer}'s phone number, if the user gives one.`),
     description: z.string().optional().describe(`What the ${order} is for, in the user's words.`),
-    ...fieldsShape(profile.orderFields)
+    ...fieldsShape(profile.orderFields, order)
   };
 
   // El objeto del activo solo existe si el perfil define uno
   if (profile.asset) {
-    const assetShape = fieldsShape(profile.asset.fields);
+    const assetShape = fieldsShape(profile.asset.fields, profile.asset.noun);
     shape.asset = z.object(assetShape).describe(`The ${profile.asset.noun} this ${order} is for.`);
   }
   if (profile.due === 'required') shape.due = z.string().describe(dueDescription);

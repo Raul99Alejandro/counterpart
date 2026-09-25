@@ -72,4 +72,26 @@ describe('generación de tools', () => {
     expect(toolSpecs(bakery).addLine.description).not.toContain('a ingredient');
     expect(toolSpecs(shop).addLine.description).toContain('a part');
   });
+
+  describe('lo que pidieron las frases de oro contra Nova 2 Lite', () => {
+    const described = (schema: ReturnType<typeof openInput>, key: string): string => {
+      const json = z.toJSONSchema(schema) as { properties?: Record<string, { description?: string }> };
+      return json.properties?.[key]?.description ?? '';
+    };
+
+    it('los campos propios de la orden dicen qué son', () => {
+      expect(described(openInput(bakery), 'flavor')).toContain('flavor');
+      expect(described(openInput(bakery), 'size')).toContain('cake order');
+    });
+
+    it('abrir una orden pide usar lo que el usuario ya dijo y no preguntar lo opcional', () => {
+      const d = toolSpecs(bakery).open.description;
+      expect(d).toContain('Fill in every detail the user already gave');
+      expect(d).toContain('phone number');
+    });
+
+    it('el resumen del día cubre "what is on the board today"', () => {
+      expect(toolSpecs(bakery).snapshot.description).toContain("what's on the board");
+    });
+  });
 });

@@ -20,6 +20,12 @@ describe('comparador de argumentos de las frases de oro', () => {
     expect(argsMatch({ description: 'front brakes' }, { description: 'rear brakes' })).toBe(false);
   });
 
+  it('trata singular y plural como la misma palabra', () => {
+    expect(argsMatch({ item: 'brake rotors' }, { item: 'Brake rotor' })).toBe(true);
+    expect(argsMatch({ item: 'glass' }, { item: 'glass' })).toBe(true);
+    expect(argsMatch({ item: '10-inch cake boxes' }, { item: '10-inch cake box' })).toBe(true);
+  });
+
   it('compara números aunque lleguen como texto', () => {
     expect(argsMatch({ quantity: 2 }, { quantity: '2' })).toBe(true);
     expect(argsMatch({ quantity: 2 }, { quantity: 3 })).toBe(false);

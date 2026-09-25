@@ -9,7 +9,7 @@ export interface GoldenPhrase { say: string; tool: string; args: Record<string, 
 export interface GoldenReport {
   passed: number;
   total: number;
-  results: Array<{ say: string; expected: string; got: string | null; gotArgs: unknown; pass: boolean }>;
+  results: Array<{ say: string; expected: string; got: string | null; gotArgs: unknown; pass: boolean; reply?: string }>;
 }
 
 const SYSTEM: SystemContentBlock[] = [{
@@ -32,7 +32,13 @@ async function toolConfig(client: Client): Promise<ToolConfiguration> {
  * Corre las frases en orden sobre una sola conversación y una sola sesión MCP, como las diría el
  * usuario (spec base §11.4). Cuenta la PRIMERA tool que elige el modelo en cada frase.
  */
-export async function runGolden(opts: { client: Client; model: ConverseFn; phrases: GoldenPhrase[] }): Promise<GoldenReport> {
+/** Lleva argumentos a una forma comparable; p. ej. "the Civic" y "work order 41" a la misma orden. */
+export type Canonicalize = (args: Record<string, unknown>) => Promise<Record<string, unknown>>;
+
+export async function runGolden(opts: {
+  client: Client; model: ConverseFn; phrases: GoldenPhrase[]; canonicalize?: Canonicalize;
+}): Promise<GoldenReport> {
+  const canon: Canonicalize = opts.canonicalize ?? (async args => args);
   const config = await toolConfig(opts.client);
   const messages: Message[] = [];
   const results: GoldenReport['results'] = [];
@@ -40,11 +46,13 @@ export async function runGolden(opts: { client: Client; model: ConverseFn; phras
   for (const phrase of opts.phrases) {
     messages.push({ role: 'user', content: [{ text: phrase.say }] });
     let first: { name: string; input: unknown } | null = null;
+    let reply: string | undefined;
 
     for (let step = 0; step < MAX_STEPS; step += 1) {
-      const reply = await opts.model({ system: SYSTEM, messages, toolConfig: config });
-      messages.push(reply);
-      const uses = (reply.content ?? []).flatMap(block => ('toolUse' in block && block.toolUse ? [block.toolUse] : []));
+      const answer = await opts.model({ system: SYSTEM, messages, toolConfig: config });
+      messages.push(answer);
+      reply = (answer.content ?? []).flatMap(block => ('text' in block && block.text ? [block.text] : [])).join(' ') || reply;
+      const uses = (answer.content ?? []).flatMap(block => ('toolUse' in block && block.toolUse ? [block.toolUse] : []));
       if (uses.length === 0) break;
       first ??= { name: uses[0]!.name!, input: uses[0]!.input };
 
@@ -62,8 +70,10 @@ export async function runGolden(opts: { client: Client; model: ConverseFn; phras
     // frase empiece con un mensaje de usuario válido.
     if (messages[messages.length - 1]?.role === 'user') messages.push({ role: 'assistant', content: [{ text: 'OK.' }] });
 
-    const pass = first !== null && first.name === phrase.tool && argsMatch(phrase.args, first.input);
-    results.push({ say: phrase.say, expected: phrase.tool, got: first?.name ?? null, gotArgs: first?.input, pass });
+    // Se canoniza al terminar la frase: las órdenes que la frase cerró o creó ya existen en el store.
+    const pass = first !== null && first.name === phrase.tool
+      && argsMatch(await canon(phrase.args), await canon((first.input ?? {}) as Record<string, unknown>));
+    results.push({ say: phrase.say, expected: phrase.tool, got: first?.name ?? null, gotArgs: first?.input, pass, reply });
   }
 
   return { passed: results.filter(r => r.pass).length, total: results.length, results };

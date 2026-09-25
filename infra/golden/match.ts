@@ -3,7 +3,14 @@ const ARTICLES = new Set(['the', 'a', 'an']);
 function words(value: string): string[] {
   const tokens = value.toLowerCase().replace(/[^\p{L}\p{N}\s-]/gu, ' ').split(/\s+/).filter(Boolean);
   while (tokens.length > 0 && ARTICLES.has(tokens[0]!)) tokens.shift();
-  return tokens;
+  // Singular y plural cuentan igual ("brake rotors" = "brake rotor"); "glass" no pierde su s.
+  return tokens.map(singular);
+}
+
+function singular(word: string): string {
+  if (/(x|ch|sh|ss)es$/.test(word)) return word.slice(0, -2); // boxes → box
+  if (word.length > 3 && word.endsWith('s') && !word.endsWith('ss')) return word.slice(0, -1);
+  return word;
 }
 
 /**
