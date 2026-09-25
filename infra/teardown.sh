@@ -70,6 +70,9 @@ report "servicio" "$(aws ecs describe-services --cluster "$CLUSTER" --services "
 report "ECR" "$(aws ecr describe-repositories --query "repositories[?repositoryName=='$APP'].repositoryName | [0]" --output text)"
 report "logs" "$(aws logs describe-log-groups --log-group-name-prefix "$LOG_GROUP" --query 'logGroups[0].logGroupName' --output text)"
 report "roles" "$(aws iam list-roles --query "Roles[?starts_with(RoleName, '$APP-')].RoleName | [0]" --output text)"
+# Lo que más cobra: Express Mode borra su balanceador al borrar el último servicio que lo usa.
+report "balanceador" "$(aws elbv2 describe-load-balancers --query "LoadBalancers[?starts_with(LoadBalancerName, 'ecs-express-gateway')].LoadBalancerName | [0]" --output text)"
+report "target groups" "$(aws elbv2 describe-target-groups --query "TargetGroups[?starts_with(TargetGroupName, 'ecs-gateway')].TargetGroupName | [0]" --output text)"
 if [ "$KEEP" != 1 ]; then
   report "secretos" "$(aws secretsmanager list-secrets --filters Key=name,Values=counterpart/ --query 'SecretList[0].Name' --output text)"
   report "tabla" "$(aws dynamodb list-tables --query "TableNames[?@=='$TABLE'] | [0]" --output text)"
