@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { createMcpExpressApp } from '@modelcontextprotocol/express';
+import { createMcpExpressApp, hostHeaderValidation } from '@modelcontextprotocol/express';
 import { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node';
 import { McpServer } from '@modelcontextprotocol/server';
 import type { Express, NextFunction, Request, Response } from 'express';
@@ -11,11 +11,14 @@ import { bearerFrom, businessFor } from './auth.js';
 import { Sessions } from './sessions.js';
 import { log } from '../log.js';
 import { currentRequest, withRequest, type RequestContext } from './request-context.js';
+import type { HostPolicy } from './hosts.js';
 
 const IDLE_MS = 30 * 60 * 1000;
 
 /** Servidor con sesiones por negocio: una McpServer/transport por sesión, atadas al negocio del token. */
-export function createApp(deps: { store: Store; devBusinessId?: string; host: string }): Express {
+export function createApp(deps: {
+  store: Store; devBusinessId?: string; host: string; hosts?: HostPolicy; maxSessionsPerBusiness?: number;
+}): Express {
   if (deps.devBusinessId && deps.host !== '127.0.0.1') {
     throw new Error('COUNTERPART_DEV_BUSINESS solo se permite escuchando en 127.0.0.1');
   }
@@ -28,6 +31,13 @@ export function createApp(deps: { store: Store; devBusinessId?: string; host: st
   app.get('/ping', (_req: Request, res: Response) => {
     res.status(200).type('text/plain').send('ok');
   });
+
+  // Solo /mcp: el health check de /ping llega con la IP de la tarea como Host.
+  const hosts = deps.hosts ?? { kind: 'any' };
+  if (hosts.kind === 'list') app.use('/mcp', hostHeaderValidation(hosts.hosts));
+  if (hosts.kind === 'closed') {
+    app.use('/mcp', (_req: Request, res: Response) => { res.status(503).json({ error: 'not configured' }); });
+  }
 
   app.all('/mcp', (req: Request, res: Response, next: NextFunction) => {
     const context: RequestContext = { requestId: randomUUID() };

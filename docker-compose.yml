@@ -17,6 +17,7 @@ services:
       DYNAMODB_ENDPOINT: http://dynamodb:8000
       DYNAMODB_TABLE: counterpart
       AWS_REGION: us-east-1
+      COUNTERPART_ALLOWED_HOSTS: localhost,127.0.0.1
     depends_on:
       - dynamodb
     # Si arranca antes que DynamoDB Local, crear la tabla falla: se reintenta.

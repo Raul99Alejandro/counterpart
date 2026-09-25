@@ -1,4 +1,5 @@
 import { createApp } from './http/app.js';
+import { hostPolicy } from './http/hosts.js';
 import type { Sessions } from './http/sessions.js';
 import { log } from './log.js';
 import { openStore, storeConfig } from './store/from-env.js';
@@ -20,9 +21,10 @@ if (cfg.kind === 'memory') {
   await ensureTable(client, cfg.table);
 }
 
-const app = createApp({ store, host, devBusinessId });
+const hosts = hostPolicy(process.env);
+const app = createApp({ store, host, devBusinessId, hosts });
 const httpServer = app.listen(port, host, () => {
-  log({ level: 'info', msg: 'listening', port, host, store: cfg.kind });
+  log({ level: 'info', msg: 'listening', port, host, store: cfg.kind, hosts: hosts.kind });
 });
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
