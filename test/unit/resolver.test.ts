@@ -48,6 +48,18 @@ describe('referencias habladas', () => {
     expect(r).toEqual({ kind: 'one', ref: camryA });
   });
 
+  it('un número dentro de un modelo no toma el atajo por número de orden ("CX-5" no es la orden 5)', () => {
+    const orderFive = ref(5, 'Sam Reyes', '2020 Ford F-150');
+    const cx5 = ref(47, 'Nina Patel', '2020 Mazda CX-5');
+    expect(resolveOrder('the CX-5', [orderFive, cx5], profile)).toEqual({ kind: 'one', ref: cx5 });
+    const order150 = ref(150, 'Tom Becker', '2017 Chevrolet Malibu');
+    expect(resolveOrder('the F-150', [order150, orderFive], profile)).toEqual({ kind: 'one', ref: orderFive });
+  });
+
+  it('con más palabras que el número, usa el número si el texto no resuelve', () => {
+    expect(resolveOrder('the one 44', [civic, camryA, camryB], profile)).toEqual({ kind: 'one', ref: camryA });
+  });
+
   it('resuelve por modelo del vehículo', () => {
     const r = resolveOrder('the Civic', [civic, camryA, camryB], profile);
     expect(r).toEqual({ kind: 'one', ref: civic });

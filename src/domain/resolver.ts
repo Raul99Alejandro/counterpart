@@ -82,18 +82,18 @@ export function resolveOrder(query: string, candidates: OrderRef[], profile: Pro
   const tokens = normalizeQuery(query, profile);
   if (tokens.length === 0) return { kind: 'none' };
 
+  // El atajo por número solo cuando el número es toda la referencia ("order 44"): dentro de un
+  // modelo ("CX-5", "F-150") el número es parte del nombre, y la orden 5 no es la CX-5.
   const asNumber = tokens.find(t => /^\d+$/.test(t));
-  if (asNumber) {
-    const hit = candidates.find(c => c.order.number === Number(asNumber));
-    if (hit) return { kind: 'one', ref: hit };
-  }
+  const byNumber = asNumber ? candidates.find(c => c.order.number === Number(asNumber)) : undefined;
+  if (byNumber && tokens.length === 1) return { kind: 'one', ref: byNumber };
 
   const scored = candidates
     .map(ref => ({ ref, score: scoreOrder(tokens, ref) }))
     .sort((a, b) => b.score - a.score);
 
   const best = scored[0];
-  if (!best || best.score < MATCH_THRESHOLD) return { kind: 'none' };
+  if (!best || best.score < MATCH_THRESHOLD) return byNumber ? { kind: 'one', ref: byNumber } : { kind: 'none' };
 
   const tied = scored.filter(s => best.score - s.score <= 0.15);
   if (tied.length > 1) return { kind: 'ambiguous', refs: tied.slice(0, 5).map(s => s.ref) };
