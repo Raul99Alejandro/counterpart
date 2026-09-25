@@ -23,6 +23,13 @@ export class Sessions {
     this.entries.set(sessionId, entry);
   }
 
+  /** Sesiones abiertas del negocio: el tope por token se compara contra esto. */
+  countFor(businessId: string): number {
+    let n = 0;
+    for (const entry of this.entries.values()) if (entry.businessId === businessId) n += 1;
+    return n;
+  }
+
   drop(sessionId: string): void {
     const entry = this.entries.get(sessionId);
     if (!entry) return;

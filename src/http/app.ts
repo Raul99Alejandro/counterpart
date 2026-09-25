@@ -15,6 +15,9 @@ import type { HostPolicy } from './hosts.js';
 
 const IDLE_MS = 30 * 60 * 1000;
 
+/** Sesiones abiertas por negocio (spec B2 §4.4). La siguiente recibe 429. */
+export const MAX_SESSIONS_PER_BUSINESS = 10;
+
 /** Servidor con sesiones por negocio: una McpServer/transport por sesión, atadas al negocio del token. */
 export function createApp(deps: {
   store: Store; devBusinessId?: string; host: string; hosts?: HostPolicy; maxSessionsPerBusiness?: number;
@@ -24,6 +27,7 @@ export function createApp(deps: {
   }
 
   const app = createMcpExpressApp({ host: deps.host });
+  const maxSessions = deps.maxSessionsPerBusiness ?? MAX_SESSIONS_PER_BUSINESS;
   const sessions = new Sessions();
   const sweeper = setInterval(() => sessions.sweep(Date.now(), IDLE_MS), 60_000);
   sweeper.unref();
@@ -77,6 +81,12 @@ export function createApp(deps: {
         }
         sessions.touch(sessionId, Date.now());
         await entry.transport.handleRequest(req, res, req.body);
+        return;
+      }
+
+      if (sessions.countFor(business.id) >= maxSessions) {
+        log({ level: 'warn', msg: 'session_limit', requestId: context.requestId, businessId: business.id, limit: maxSessions });
+        res.status(429).json({ error: 'too many sessions' });
         return;
       }
 

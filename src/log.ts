@@ -1,4 +1,4 @@
-export interface LogEvent { level: 'info' | 'error'; msg: string; [key: string]: unknown }
+export interface LogEvent { level: 'info' | 'warn' | 'error'; msg: string; [key: string]: unknown }
 
 type Sink = (line: string) => void;
 
