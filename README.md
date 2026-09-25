@@ -80,6 +80,43 @@ To issue a real token for a business, stored only as a SHA-256 hash:
 npx cross-env COUNTERPART_STORE=dynamo DYNAMODB_ENDPOINT=http://localhost:8000 npm run token -- shop
 ```
 
+## Deploy to AWS
+
+Everything runs in `us-east-1`. You need the AWS CLI v2 with a signed-in profile, Docker, and Git Bash on Windows.
+
+```bash
+export AWS_PROFILE=<your profile> AWS_REGION=us-east-1
+npm run deploy                     # ECR, DynamoDB, logs, IAM, ECS Express Mode; prints https://<host>/mcp
+npx cross-env COUNTERPART_STORE=dynamo COUNTERPART_ALLOW_REMOTE_RESET=1 npm run seed -- --reset
+npx cross-env COUNTERPART_STORE=dynamo npm run token -- shop --secret     # token → Secrets Manager
+npx cross-env COUNTERPART_STORE=dynamo npm run token -- bakery --secret
+npm run smoke -- https://<host>/mcp --secret counterpart/shop/token --other-secret counterpart/bakery/token
+```
+
+The first deploy starts the service with `/mcp` closed (`COUNTERPART_ALLOWED_HOSTS=bootstrap`), reads the public hostname Express Mode assigns, and redeploys with only that hostname allowed. `/ping` answers any Host, because the load balancer's health check calls it by the task's IP.
+
+**Tear it down** when you are done. The load balancer bills by the hour even with no traffic:
+
+```bash
+npm run teardown -- --yes          # add --keep-data to keep the table and the tokens
+```
+
+## Connect the Alexa bridge
+
+The Alexa+ MCP Toolkit is not public, so the voice demo uses [alexa-skill-mcp-bridge](https://github.com/KayLerch/alexa-skill-mcp-bridge): an Alexa Skill plus an agent on Amazon Bedrock AgentCore (Nova 2 Lite) that plays the Alexa+ orchestrator. We run one bridge per business, the way each business would install its own Alexa+ add-on. Our [fork](https://github.com/Raul99Alejandro/alexa-skill-mcp-bridge/tree/counterpart) adds two `.env` settings for that: `BRIDGE_STACK_NAME` and `BRIDGE_INVOCATION_NAME`.
+
+`.env` for the auto shop (one clone per business):
+
+```bash
+BRIDGE_MCP_URL=https://<host>/mcp
+BRIDGE_MCP_AUTH_TYPE=bearer
+BRIDGE_MCP_SECRET_NAME=counterpart/shop/token
+BRIDGE_INVOCATION_NAME=oak street auto
+BRIDGE_STACK_NAME=CounterpartShopBridge
+```
+
+Then `npm run generate && npm run deploy && npm run skill:deploy && npm run deploy`, and open the skill's Test tab in the Alexa developer console. The bakery uses `counterpart/bakery/token`, `sweet crumb bakery` and `CounterpartBakeryBridge`.
+
 ## Configuration
 
 | Variable | Default | Meaning |
@@ -92,6 +129,7 @@ npx cross-env COUNTERPART_STORE=dynamo DYNAMODB_ENDPOINT=http://localhost:8000 n
 | `DYNAMODB_ENDPOINT` | — | DynamoDB Local URL; unset for AWS |
 | `COUNTERPART_DEV_BUSINESS` | — | Local no-token mode, only on `127.0.0.1` |
 | `COUNTERPART_ALLOW_REMOTE_RESET` | — | `1` lets `npm run seed -- --reset` delete and reseed the demo businesses in a remote table; the table and its tokens are kept |
+| `COUNTERPART_ALLOWED_HOSTS` | — | Comma-separated hostnames `/mcp` accepts. Required when `NODE_ENV=production`; `bootstrap` keeps `/mcp` closed until the hostname is known |
 
 ## Tests
 

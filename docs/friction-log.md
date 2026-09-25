@@ -50,3 +50,31 @@ Problems we hit while building Counterpart, in the order we hit them. Each entry
 - **What happened:** Binding to `0.0.0.0` logs "Server is binding to 0.0.0.0 without DNS rebinding protection. Consider using the allowedHosts option to restrict allowed hosts, or use authentication to protect your server." The only `allowedHosts` example we found is a JSDoc `@example` in the type declarations (`@modelcontextprotocol/express/dist/index.d.mts`) — `createMcpExpressApp({ host: '0.0.0.0', allowedHosts: ['myapp.local', 'localhost'] })` — not in the package's README, and it uses fixed local hostnames rather than a hostname a load balancer assigns at deploy time.
 - **Impact:** We had to read the type declarations to find the option at all, then work out ourselves what to put in `allowedHosts` for a container behind a load balancer.
 - **Suggestion:** Document `allowedHosts` in the README, including the load-balancer case.
+
+## 8. The AWS Free plan excludes AgentCore and hackathon credits
+
+- **Area:** AWS account plans
+- **What happened:** A new account starts on the Free plan. The AWS Free Tier page marks Amazon Bedrock AgentCore as "Paid plan exclusive", and the plan documentation says Free plan accounts "are not eligible for other promotional credits". The Alexa bridge runs its agent on AgentCore, and the hackathon's $150 arrive as a promotional code.
+- **Impact:** Both the voice demo and the hackathon credits depend on upgrading to the Paid plan, which the hackathon resources page doesn't mention.
+- **Suggestion:** Say on the hackathon resources page that participants need the Paid plan to redeem the credits and to use AgentCore.
+
+## 9. Nova 2 Lite only answers through an inference profile
+
+- **Area:** Amazon Bedrock, Converse API
+- **What happened:** `converse --model-id amazon.nova-2-lite-v1:0` fails with `ValidationException: Invocation of model ID amazon.nova-2-lite-v1:0 with on-demand throughput isn't supported`. The model ID appears in the us-east-1 catalog as is; only the cross-region profiles `us.amazon.nova-2-lite-v1:0` and `global.amazon.nova-2-lite-v1:0` work.
+- **Impact:** Small, but the error names the fix only indirectly, and the catalog ID is the obvious thing to try first.
+- **Suggestion:** Show the inference profile ID next to the model ID in the model catalog, and name the profile to use in the error message.
+
+## 10. `allowedHosts` also guards the health check
+
+- **Area:** MCP TypeScript SDK v2 server, `createMcpExpressApp`
+- **What happened:** `createMcpExpressApp({ allowedHosts })` mounts Host validation on the whole Express app. A load balancer's health check calls `/ping` with the task's private IP as `Host`, gets 403, and the task never turns healthy.
+- **Impact:** Using the option the way entry 7 suggests would have taken the service down on its first deploy. We mount `hostHeaderValidation` on `/mcp` only instead.
+- **Suggestion:** Scope the validation to the MCP route, or document that non-MCP routes behind a load balancer need to be excluded.
+
+## 11. The Alexa bridge deploys one Skill per account
+
+- **Area:** `alexa-skill-mcp-bridge`
+- **What happened:** The CDK stack name `AlexaMcpBridgeStack` is fixed in `infra/bin/app.ts`, `scripts/lib.ts` and `packages/cli/src/remote.ts`, and the invocation name lives in the tracked `bridge.config.ts`. A second deploy for our second business would update the first one.
+- **Impact:** One Alexa Skill per business, the way each business would install its own Alexa+ add-on, needed a fork that reads both names from `.env`.
+- **Suggestion:** Read the stack name and the invocation name from `.env`, like the MCP URL.
