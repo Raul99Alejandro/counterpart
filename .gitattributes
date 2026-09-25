@@ -1,0 +1,2 @@
+# Los scripts de bash fallan con fin de línea CRLF, también en Git Bash.
+*.sh text eol=lf
