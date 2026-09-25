@@ -10,7 +10,9 @@ Resultados de los spikes del spec B2 §4.2. Sin datos de la cuenta: ni número, 
   1. Git Bash convierte `/ecs/counterpart` en una ruta de Windows → `MSYS_NO_PATHCONV=1` y rutas locales `D:/...`.
   2. `aws iam list-policies` aplica `--query` página por página y devuelve un `None` por página → se toma la primera línea `arn:`.
   3. **La primera actualización tras crear el servicio falló** con *"productionListenerRule should have exactly one target group serving traffic but found 2"* y se revirtió. El rollback dejó la regla del balanceador en **950/50** entre dos target groups, con el 95% hacia uno **sin tareas**: la URL respondía 503 casi siempre y toda actualización posterior fallaba igual. Se reparó a mano con `aws elbv2 modify-rule`, con pesos 999/0 hacia el target group sano; después la actualización pasó. El script ahora comprueba que `/mcp` responda 401 y reintenta, pero **eso no repara una regla atorada**.
-- Pendiente: probar `teardown.sh` y un segundo despliegue desde cero, para ver si el tropiezo 3 se repite.
+- **Apagado probado:** `npm run teardown -- --yes --keep-data` borró servicio, balanceador, target groups, ECR, logs y roles, y su verificación salió limpia. El redespliegue desde cero funcionó y el humo volvió a pasar 6/6.
+- En el redespliegue, la primera actualización **no** se atoró: el tropiezo 3 no es sistemático. **El hostname cambia en cada despliegue desde cero**, así que después de un teardown sin `--keep-data` (o de uno con él) hay que actualizar `BRIDGE_MCP_URL` en los bridges.
+- Un despliegue de Express Mode (canario más observación) puede tardar más de los 10 minutos del waiter `services-stable` del CLI; el script espera hasta 30.
 
 ## S2 — Dos despliegues del bridge en una cuenta
 Revisado sobre `KayLerch/alexa-skill-mcp-bridge` en `ca2c2ef`, sin desplegar nada.
