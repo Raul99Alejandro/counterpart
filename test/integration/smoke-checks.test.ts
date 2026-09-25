@@ -33,3 +33,21 @@ describe('humo', () => {
     expect(results.find(r => r.name === 'versión 2025-11-25')?.ok).toBe(false);
   });
 });
+
+describe('humo sin fugas de sesiones', () => {
+  it('cierra sus sesiones: corre varias veces seguidas bajo un tope de 2 sesiones', async () => {
+    const store = new MemoryStore();
+    await seedAll(store);
+    const capped = createApp({ store, host: '127.0.0.1', maxSessionsPerBusiness: 2 }).listen(0, '127.0.0.1');
+    await new Promise<void>(resolve => capped.once('listening', () => resolve()));
+    const cappedUrl = `http://127.0.0.1:${(capped.address() as AddressInfo).port}/mcp`;
+    try {
+      for (let run = 0; run < 3; run += 1) {
+        const results = await runSmoke({ url: cappedUrl, token: DEMO_TOKENS.shop, otherToken: DEMO_TOKENS.bakery });
+        expect(results.filter(r => !r.ok)).toEqual([]);
+      }
+    } finally {
+      capped.close();
+    }
+  });
+});

@@ -50,6 +50,12 @@ export async function runSmoke(opts: { url: string; token: string; otherToken?: 
     const res = await withToken(opts.token)(opts.url, { method: 'POST', headers: HEADERS, body: JSON.stringify(INIT) });
     if (res.status !== 200) fail(`status ${res.status}`);
     const version = (await rpcResult(res))?.protocolVersion;
+    // Cerrar la sesión que abrió este initialize: cuenta contra el tope de sesiones del negocio.
+    const sessionId = res.headers.get('mcp-session-id');
+    if (sessionId) {
+      const closed = await withToken(opts.token)(opts.url, { method: 'DELETE', headers: { ...HEADERS, 'mcp-session-id': sessionId } });
+      await closed.body?.cancel();
+    }
     return version === '2025-11-25' ? String(version) : fail(`negoció ${String(version)}`);
   });
 
@@ -85,6 +91,10 @@ export async function runSmoke(opts: { url: string; token: string; otherToken?: 
     });
   }
 
-  if (connected) await client.close();
+  // close() solo corta en local; terminateSession() manda el DELETE que libera el cupo en el servidor.
+  if (connected) {
+    await transport.terminateSession().catch(() => undefined);
+    await client.close();
+  }
   return results;
 }
