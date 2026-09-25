@@ -3,7 +3,14 @@
 Resultados de los spikes del spec B2 §4.2. Sin datos de la cuenta: ni número, ni ARNs, ni URLs.
 
 ## S1 — Counterpart en ECS Express Mode
-Pendiente: se corre en la Task 6 del plan de la Etapa 1.
+- **Funciona.** `npm run deploy` crea ECR, la tabla, los logs, tres roles y el servicio. El humo remoto pasa 6/6 (ping, 401 sin token, `2025-11-25`, nueve tools, resumen hablable, sesión ajena → 404).
+- **Stream SSE:** un `GET /mcp` sin tráfico sigue vivo a los 90 s a través del balanceador. No hace falta keep-alive para la Etapa 1.
+- **Endpoint:** Express Mode asigna un hostname `<id>.ecs.us-east-1.on.aws` al crear el servicio, y la regla del balanceador filtra por ese hostname. La política de infraestructura se llama `AmazonECSInfrastructureRoleforExpressGatewayServices`.
+- **Tres tropiezos, ya resueltos en `infra/deploy.sh`:**
+  1. Git Bash convierte `/ecs/counterpart` en una ruta de Windows → `MSYS_NO_PATHCONV=1` y rutas locales `D:/...`.
+  2. `aws iam list-policies` aplica `--query` página por página y devuelve un `None` por página → se toma la primera línea `arn:`.
+  3. **La primera actualización tras crear el servicio falló** con *"productionListenerRule should have exactly one target group serving traffic but found 2"* y se revirtió. El rollback dejó la regla del balanceador en **950/50** entre dos target groups, con el 95% hacia uno **sin tareas**: la URL respondía 503 casi siempre y toda actualización posterior fallaba igual. Se reparó a mano con `aws elbv2 modify-rule`, con pesos 999/0 hacia el target group sano; después la actualización pasó. El script ahora comprueba que `/mcp` responda 401 y reintenta, pero **eso no repara una regla atorada**.
+- Pendiente: probar `teardown.sh` y un segundo despliegue desde cero, para ver si el tropiezo 3 se repite.
 
 ## S2 — Dos despliegues del bridge en una cuenta
 Revisado sobre `KayLerch/alexa-skill-mcp-bridge` en `ca2c2ef`, sin desplegar nada.
