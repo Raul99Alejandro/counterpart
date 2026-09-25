@@ -126,13 +126,37 @@ fi
 HOST="$(endpoint_host "$ARN")"
 if [ -z "$HOST" ] || [ "$HOST" = "None" ]; then echo "El servicio no reporta endpoint público todavía." >&2; exit 1; fi
 
+update_service() {
+  aws ecs update-express-gateway-service --service-arn "$ARN" \
+    --execution-role-arn "$EXECUTION_ARN" --task-role-arn "$TASK_ARN" \
+    --health-check-path /ping --cpu 256 --memory 512 --cpu-architecture X86_64 \
+    --scaling-target minTaskCount=1,maxTaskCount=1 \
+    --primary-container "$(container_json "$HOST")" >/dev/null
+  aws ecs wait services-stable --cluster "$CLUSTER" --services "$APP"
+}
+
+mcp_status() {
+  curl -s -o /dev/null -w '%{http_code}' -X POST "https://$HOST/mcp" -H 'content-type: application/json' -d '{}' || true
+}
+
 step "ECS Express Mode: imagen $TAG con Host permitido $HOST"
-aws ecs update-express-gateway-service --service-arn "$ARN" \
-  --execution-role-arn "$EXECUTION_ARN" --task-role-arn "$TASK_ARN" \
-  --health-check-path /ping --cpu 256 --memory 512 --cpu-architecture X86_64 \
-  --scaling-target minTaskCount=1,maxTaskCount=1 \
-  --primary-container "$(container_json "$HOST")" >/dev/null
-aws ecs wait services-stable --cluster "$CLUSTER" --services "$APP"
+update_service
+
+# Express Mode puede revertir una actualización que llega mientras su despliegue anterior sigue
+# moviendo tráfico ("found 2 target groups which are serving traffic"), y el servicio queda estable
+# con la revisión vieja. La prueba real: /mcp debe pedir token (401), no seguir cerrado (503).
+step "Verificación: /mcp pide token"
+for attempt in 1 2 3; do
+  CODE="$(mcp_status)"
+  if [ "$CODE" = 401 ]; then break; fi
+  echo "  /mcp respondió $CODE; reintento la actualización en 60 s ($attempt/3)."
+  sleep 60
+  update_service
+done
+if [ "$(mcp_status)" != 401 ]; then
+  echo "/mcp no quedó abierto con el hostname permitido. Revisa los eventos: aws ecs describe-services --cluster $CLUSTER --services $APP" >&2
+  exit 1
+fi
 
 step "Listo"
 echo "https://$HOST/mcp"
