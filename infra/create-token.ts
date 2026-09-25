@@ -1,11 +1,14 @@
-import { randomBytes } from 'node:crypto';
-import { hashToken } from '../src/http/auth.js';
+import { SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
 import { openStore, storeConfig } from '../src/store/from-env.js';
+import { issueToken, secretsManagerWriter } from './token.js';
 
-// Uso: npm run token -- <businessId>   (con COUNTERPART_STORE=dynamo)
-const bizId = process.argv[2];
+// Uso: npm run token -- <businessId> [--secret]   (con COUNTERPART_STORE=dynamo)
+// Sin --secret imprime el token en stdout. Con --secret lo guarda en Secrets Manager y no lo imprime.
+const args = process.argv.slice(2);
+const bizId = args.find(a => !a.startsWith('--'));
+const toSecret = args.includes('--secret');
 if (!bizId) {
-  console.error('Uso: npm run token -- <businessId>');
+  console.error('Uso: npm run token -- <businessId> [--secret]');
   process.exit(1);
 }
 
@@ -16,13 +19,18 @@ if (cfg.kind !== 'dynamo') {
 }
 
 const { store } = openStore(cfg);
-if (!(await store.getBusiness(bizId))) {
-  console.error(`No existe el negocio "${bizId}" en la tabla "${cfg.table}".`);
+const putSecret = toSecret ? secretsManagerWriter(new SecretsManagerClient({ region: cfg.region })) : undefined;
+
+try {
+  const { token, secretName } = await issueToken({ store, putSecret }, bizId);
+  if (secretName) {
+    console.error(`Token emitido para "${bizId}" y guardado en el secreto "${secretName}". En la tabla solo queda su hash.`);
+  } else {
+    // El token va solo a stdout, para poder redirigirlo; el aviso va a stderr.
+    console.log(token);
+    console.error(`Token emitido para "${bizId}". Guárdalo ahora: en la tabla solo queda su hash.`);
+  }
+} catch (err) {
+  console.error(err instanceof Error ? err.message : String(err));
   process.exit(1);
 }
-
-const token = randomBytes(32).toString('base64url');
-await store.putToken(hashToken(token), bizId);
-// El token va solo a stdout, para poder redirigirlo; el aviso va a stderr.
-console.log(token);
-console.error(`Token emitido para "${bizId}". Guárdalo ahora: en la tabla solo queda su hash.`);

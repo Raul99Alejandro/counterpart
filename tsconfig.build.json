@@ -1,5 +1,5 @@
 {
   "extends": "./tsconfig.json",
   "include": ["src", "seed", "infra"],
-  "exclude": ["src/toy.ts", "infra/smoke.ts"]
+  "exclude": ["src/toy.ts", "infra/**/*.ts"]
 }
