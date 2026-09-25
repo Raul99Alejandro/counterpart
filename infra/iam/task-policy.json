@@ -1,0 +1,23 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "Table",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:DeleteItem",
+        "dynamodb:Query", "dynamodb:BatchWriteItem", "dynamodb:TransactWriteItems", "dynamodb:DescribeTable"
+      ],
+      "Resource": "arn:aws:dynamodb:__REGION__:__ACCOUNT__:table/counterpart"
+    },
+    {
+      "Sid": "NovaForTheSetupAssistant",
+      "Effect": "Allow",
+      "Action": ["bedrock:InvokeModel", "bedrock:Converse"],
+      "Resource": [
+        "arn:aws:bedrock:__REGION__:__ACCOUNT__:inference-profile/us.amazon.nova-2-lite-v1:0",
+        "arn:aws:bedrock:*::foundation-model/amazon.nova-2-lite-v1:0"
+      ]
+    }
+  ]
+}

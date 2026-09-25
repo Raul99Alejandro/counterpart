@@ -19,6 +19,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "build:ui": "cross-env UI_NAME=snapshot vite build --config ui/vite.config.ts && cross-env UI_NAME=sales-report vite build --config ui/vite.config.ts",
     "smoke": "tsx infra/smoke.ts",
+    "deploy": "bash infra/deploy.sh",
+    "teardown": "bash infra/teardown.sh",
     "predev": "npm run build:ui"
   },
   "keywords": [],
