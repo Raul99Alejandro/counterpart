@@ -10,6 +10,7 @@ Las frases habladas van en inglés, tal como se dicen. Todas están en `test/gol
 - [ ] "How did we do this week compared to last week?" compara la semana en curso (incompleta) contra la anterior completa: a mitad de semana va a decir "down". Grabarla al final de la semana o ajustar la frase.
 - [ ] Probar cada frase una vez contra el bridge antes de grabar.
 - [ ] Si se redesplegó Counterpart, dejar las Skills 20 minutos sin uso antes de grabar, o comprobar que el bridge ya reconecta (friction log §15).
+- [ ] Si hubo ensayos con errores, limpiar la memoria del agente antes de grabar (sus respuestas fallidas se rehidratan en contenedores viejos; friction log §16). Para cada memoria, con `MemoryId` tomado de `cdk-outputs.json` del bridge: `aws bedrock-agentcore list-actors`, luego `list-sessions` y `list-events` → `delete-event` por evento, y `list-memory-records` en `/users/<actor>/preferences` y `/users/<actor>/sessions/<sesión>` → `delete-memory-record`.
 - [ ] Abrir las dos Skills una vez antes de grabar: el primer turno tras un rato despierta AgentCore y puede decir "I'm still starting up".
 
 ## Guion

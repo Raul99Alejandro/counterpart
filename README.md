@@ -167,7 +167,11 @@ test/           unit, integration, contract and golden-phrase tests
 
 Done: the server, both profiles, the nine tools, token auth with per-business sessions, DynamoDB persistence, structured logs, the two MCP Apps UIs, the container image, and the tests.
 
-In progress: deployment to AWS (ECS Express Mode with DynamoDB) and a live voice demo on Alexa. The Alexa+ MCP Toolkit is not publicly available (`@alexa-ai/cli` is served from a private registry), so the voice demo uses an Alexa Skill bridge that emulates the Alexa+ orchestrator. See [docs/friction-log.md](docs/friction-log.md).
+Deployed on AWS: ECS Express Mode behind HTTPS, DynamoDB, Secrets Manager and CloudWatch Logs ([docs/aws-builder.md](docs/aws-builder.md)). The remote smoke test passes 6 of 6 checks.
+
+Voice: one Alexa Skill per business ("open oak street auto", "open sweet crumb bakery") through the bridge described above, tested in the Alexa developer console simulator. Every phrase of the demo script passes. The Alexa+ MCP Toolkit is not publicly available (`@alexa-ai/cli` is served from a private registry), so the bridge's agent on Bedrock AgentCore emulates the Alexa+ orchestrator. See [docs/friction-log.md](docs/friction-log.md).
+
+Tool choice, measured with the golden phrases in `test/golden/` against Amazon Nova 2 Lite (`npm run golden -- <profile>`): auto shop 22/22, bakery 23/23.
 
 ## License
 

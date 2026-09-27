@@ -26,7 +26,12 @@ Revisado sobre `KayLerch/alexa-skill-mcp-bridge` en `ca2c2ef`, sin desplegar nad
 - Decisión: el parche de la Task 8 lleva **tres** cambios: (1) nombre del stack desde `BRIDGE_STACK_NAME` en `infra/bin/app.ts`, `scripts/lib.ts` y `packages/cli/src/remote.ts`; (2) `BRIDGE_INVOCATION_NAME` como override de `skill.invocationName`; (3) `memoryName`, `runtimeName` y `gatewayName` derivados del nombre del stack cuando no es el de fábrica, para que dos despliegues no choquen.
 
 ## S3 — Frase libre con tools que cambian después del despliegue
-Pendiente: se corre en la Task 8.
+- **La catch-all funciona.** `npm run generate` crea `SpokenRequestIntent`, que pasa la frase completa al agente. Frases que no están en el modelo de voz ("move the civic into the bay", "close out the cx-5 they paid by card") llegaron al agente y este eligió la tool correcta: las 11 frases del guion pasan por voz en el simulador.
+- **La lista de tools se cachea por cliente MCP, no por turno.** `BridgeMcpClient` guarda `tools` al conectar y solo lo vacía al reconectar. El cliente vive lo que vive el contenedor de AgentCore, y **un contenedor atiende varias sesiones**. El bridge no escucha `notifications/tools/list_changed`.
+- **Decisión para la Etapa 2:** la activación de un negocio en blanco no puede contar con que el agente vea las nueve tools en la misma sesión. O el fork vacía la caché de tools al recibir `tools/list_changed` (cambio chico, con prueba), o la respuesta de activación pide volver a abrir la Skill **y** el servidor cierra la sesión MCP para forzar la reconexión (el 404 ya provoca reconectar y releer las tools). Se decide al escribir el plan de la Etapa 2.
+- **Hallazgos al probar:**
+  1. AgentCore siguió mandando sesiones nuevas a contenedores de versiones anteriores del runtime hasta cumplir su vida de 8 h (friction log §15).
+  2. La memoria del agente rehidrataba respuestas fallidas de sesiones anteriores, y Nova dejaba de llamar tools (friction log §16).
 
 ## S4 — Latencia de un borrador con Nova 2 Lite
 - 10 corridas de `infra/spikes/nova-latency.ts` (tool use forzado, esquema de perfil y catálogo reducido): **p50 1423 ms, p95 3300 ms**. La corrida más lenta fue la primera (en frío); las otras nueve quedaron entre 1.3 y 1.6 s. Las 10 devolvieron tool use.

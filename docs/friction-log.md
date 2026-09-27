@@ -106,3 +106,10 @@ Problems we hit while building Counterpart, in the order we hit them. Each entry
 - **What happened:** After we redeployed Counterpart, every tool call from the Skill failed: our new task answered 404 for the old session id, which MCP defines as "start a new session", but the agent kept the session for the life of its AgentCore microVM, which Alexa reuses per user for up to 8 hours.
 - **Impact:** Every spoken request answered "Sorry, I still can't…". Fixed in our fork: one reconnect and retry on 404. Deploying the fix was not enough on its own: after the endpoint moved to the new runtime version, AgentCore kept routing brand-new sessions to warm containers of the two previous versions (started hours earlier, before the update), so the old code kept answering until those containers reached their 8-hour lifetime. Runtime versions cannot be deleted to force it.
 - **Suggestion:** Handle 404 as the MCP spec says. For AgentCore, drain containers of older versions once the endpoint's live version changes, or document how to do it.
+
+## 16. Remembered failures made the model stop calling tools
+
+- **Area:** `alexa-skill-mcp-bridge` agent with Amazon Bedrock AgentCore Memory
+- **What happened:** By default the bridge rehydrates the user's recent turns from earlier sessions and extracts long-term "preferences". After a day of failed tests, every new session started with a history full of "Sorry, I couldn't…", and Nova 2 Lite answered "Sorry, I still can't…" without calling a single tool. Counterpart's logs showed no tool calls at all.
+- **Impact:** Half a day spent assuming the server or the deploy was still broken. Fixed by deleting the actor's memory events and records, and by turning off cross-session rehydration and long-term memory in our fork.
+- **Suggestion:** Don't rehydrate turns from other sessions by default for tool-backed skills whose answers come from live data, or at least drop tool-error turns from what gets rehydrated.
