@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { escapeHtml, money, salesChartSvg, salesReportHtml, snapshotHtml } from '../../ui/shared/render.js';
+import { escapeHtml, money, salesChartSvg, salesReportHtml, setupHtml, snapshotHtml } from '../../ui/shared/render.js';
 
 const emptySnapshot = { todayRevenueCents: 0, sameDayLastWeekCents: 0, byStage: [], dueToday: [], low: [] };
 
@@ -45,5 +45,24 @@ describe('render de las UIs', () => {
     });
     expect(html).not.toContain('%');
     expect(html).toContain('No items sold.');
+  });
+  it('muestra el borrador: etapas con la de cierre marcada, campos y catálogo', () => {
+    const html = setupHtml({
+      state: 'ready', businessName: 'Petal and Stem', message: 'Should I turn it on?',
+      nouns: { order: 'flower order', orders: 'flower orders', item: 'flower', items: 'flowers', customer: 'customer' },
+      stages: [{ label: 'ordered', closing: false }, { label: 'delivered', closing: true }],
+      orderFields: [{ label: 'card message', required: false }],
+      asset: null,
+      items: [{ name: 'Dozen roses bouquet', kind: 'product', priceCents: 6500, stocked: false, onHand: 0 }]
+    });
+    expect(html).toContain('Petal and Stem');
+    expect(html).toContain('<li class="closing">delivered</li>');
+    expect(html).toContain('card message (optional)');
+    expect(html).toContain('$65.00');
+  });
+
+  it('muestra el mensaje cuando el borrador no está listo', () => {
+    expect(setupHtml({ state: 'generating', businessName: '<b>x</b>', message: 'Still drafting.' }))
+      .toBe('<section><h2>&lt;b&gt;x&lt;/b&gt;</h2><p class="empty">Still drafting.</p></section>');
   });
 });

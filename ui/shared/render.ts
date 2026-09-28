@@ -94,3 +94,39 @@ export function salesReportHtml(r: SalesReportView): string {
     + `<section><h2>${escapeHtml(r.from)} – ${escapeHtml(r.to)}</h2>${salesChartSvg(r.daily)}</section>`
     + `<section><h2>Best sellers</h2>${top}</section>`;
 }
+
+export interface SetupView {
+  state: 'none' | 'generating' | 'failed' | 'ready';
+  businessName: string;
+  message: string;
+  nouns?: { order: string; orders: string; item: string; items: string; customer: string };
+  stages?: Array<{ label: string; closing: boolean }>;
+  orderFields?: Array<{ label: string; required: boolean }>;
+  asset?: { noun: string; fields: string[] } | null;
+  items?: Array<{ name: string; kind: string; priceCents: number; stocked: boolean; onHand: number }>;
+}
+
+export function setupHtml(v: SetupView): string {
+  if (v.state !== 'ready' || !v.nouns) {
+    return `<section><h2>${escapeHtml(v.businessName)}</h2><p class="empty">${escapeHtml(v.message)}</p></section>`;
+  }
+  const steps = (v.stages ?? []).map(s => `<li${s.closing ? ' class="closing"' : ''}>${escapeHtml(s.label)}</li>`).join('');
+  const fields = [
+    ...(v.asset ? [`${v.asset.noun}: ${v.asset.fields.join(', ')}`] : []),
+    ...(v.orderFields ?? []).map(f => `${f.label}${f.required ? '' : ' (optional)'}`)
+  ];
+  const fieldList = fields.length === 0
+    ? `<p class="empty">Just the ${escapeHtml(v.nouns.customer)}'s name.</p>`
+    : `<ul>${fields.map(f => `<li>${escapeHtml(f)}</li>`).join('')}</ul>`;
+  const rows = (v.items ?? []).map(i =>
+    `<tr><td>${escapeHtml(i.name)}</td><td>${escapeHtml(i.kind)}</td>`
+    + `<td class="num">${money(i.priceCents)}</td><td class="num">${i.stocked ? i.onHand : '—'}</td></tr>`).join('');
+
+  return `<section class="kpi"><div class="kpi-label">Setup draft</div>`
+    + `<div class="kpi-value">${escapeHtml(v.businessName)}</div>`
+    + `<p class="muted">Tracks ${escapeHtml(v.nouns.orders)} · catalog of ${escapeHtml(v.nouns.items)}</p></section>`
+    + `<section><h2>Steps</h2><ol class="steps">${steps}</ol></section>`
+    + `<section><h2>Each ${escapeHtml(v.nouns.order)} records</h2>${fieldList}</section>`
+    + `<section><h2>Catalog</h2><table><thead><tr><th>Name</th><th>Kind</th><th class="num">Price</th><th class="num">On hand</th></tr></thead>`
+    + `<tbody>${rows}</tbody></table></section>`;
+}

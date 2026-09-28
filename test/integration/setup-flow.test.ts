@@ -106,6 +106,14 @@ describe('asistente de configuración por MCP', () => {
     expect((await iso.callTool({ name: 'review_business_setup', arguments: {} })).structuredContent).toMatchObject({ state: 'ready' });
   });
 
+  it('la revisión lleva la UI del borrador', async () => {
+    const client = await connect('token-iso');
+    const tool = (await client.listTools()).tools.find(t => t.name === 'review_business_setup');
+    expect((tool?._meta as { ui?: { resourceUri?: string } } | undefined)?.ui?.resourceUri).toBe('ui://counterpart/setup.html');
+    const resource = await client.readResource({ uri: 'ui://counterpart/setup.html' });
+    expect((resource.contents[0] as { text: string }).text).toContain('Counterpart · Setup');
+  });
+
   it('descartar deja el negocio en blanco', async () => {
     const client = await connect('token-other');
     await client.callTool({ name: 'set_up_my_business', arguments: { description: 'I run a flower shop' } });

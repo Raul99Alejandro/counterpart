@@ -27,3 +27,12 @@ li { margin: 2px 0; }
 svg { width: 100%; height: auto; }
 svg rect { fill: var(--accent); }
 svg text { fill: var(--muted); font-size: 12px; }
+
+/* Borrador de configuración */
+.steps { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; padding: 0; margin: 0; counter-reset: step; }
+.steps li { counter-increment: step; padding: 4px 10px; border-radius: 999px; border: 1px solid currentColor; opacity: .85; }
+.steps li::before { content: counter(step) ". "; opacity: .6; }
+.steps li.closing { font-weight: 600; opacity: 1; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 4px 6px; border-bottom: 1px solid rgba(127, 127, 127, .25); }
+td.num, th.num { text-align: right; }

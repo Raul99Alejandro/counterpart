@@ -1,10 +1,12 @@
 import type { McpServer, RegisteredTool } from '@modelcontextprotocol/server';
+import { registerAppTool } from '@modelcontextprotocol/ext-apps/server';
 import * as z from 'zod/v4';
 import type { Business } from '../domain/types.js';
 import type { Profile } from '../profiles/schema.js';
 import { say } from '../speech/say.js';
 import { guard, ok } from '../tools/context.js';
 import { instrument } from '../tools/instrument.js';
+import { registerUiResources, UI } from '../tools/ui-assets.js';
 import type { ActivateResult, SetupService, StartResult } from './service.js';
 import { SETUP_TOOL_NAMES } from './validate.js';
 import { setupView, setupViewSchema } from './view.js';
@@ -71,14 +73,16 @@ export function registerSetupTools(server: McpServer, ctx: SetupToolContext): Re
     })
   );
 
-  const review = s.registerTool(
+  const review = registerAppTool(
+    s,
     REVIEW,
     {
       title: 'Review business setup',
       description: 'Tell the user what setup was drafted for their business and ask whether to turn it on. Use this when the user asks what you came up with, how the setup looks, or whether it is ready.',
       inputSchema: z.object({}),
       outputSchema: setupViewSchema,
-      annotations: { readOnlyHint: true, idempotentHint: true }
+      annotations: { readOnlyHint: true, idempotentHint: true },
+      _meta: { ui: { resourceUri: UI.setup } }
     },
     guard(async () => {
       const result = await ctx.setup.review(bizId);
@@ -107,5 +111,6 @@ export function registerSetupTools(server: McpServer, ctx: SetupToolContext): Re
     })
   );
 
+  registerUiResources(s, ['setup']);
   return [setUp, review, activate];
 }
