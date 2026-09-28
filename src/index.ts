@@ -1,9 +1,11 @@
+import { BedrockRuntimeClient } from '@aws-sdk/client-bedrock-runtime';
 import { createApp } from './http/app.js';
 import { hostPolicy } from './http/hosts.js';
 import type { Sessions } from './http/sessions.js';
 import { log } from './log.js';
 import { openStore, storeConfig } from './store/from-env.js';
 import { ensureTable } from './store/table.js';
+import { bedrockConverse, novaDraftGenerator } from './setup/generate.js';
 import { seedAll } from '../seed/run.js';
 
 const port = Number(process.env.PORT ?? 3000);
@@ -22,7 +24,10 @@ if (cfg.kind === 'memory') {
 }
 
 const hosts = hostPolicy(process.env);
-const app = createApp({ store, host, devBusinessId, hosts });
+// El asistente de configuración es lo único del servidor que llama a un modelo (spec B2 §3).
+const setupModel = process.env.COUNTERPART_SETUP_MODEL_ID ?? 'us.amazon.nova-2-lite-v1:0';
+const generate = novaDraftGenerator(bedrockConverse(new BedrockRuntimeClient({ region: cfg.region }), setupModel));
+const app = createApp({ store, host, devBusinessId, hosts, generate });
 const httpServer = app.listen(port, host, () => {
   log({ level: 'info', msg: 'listening', port, host, store: cfg.kind, hosts: hosts.kind });
 });

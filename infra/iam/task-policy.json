@@ -13,7 +13,7 @@
     {
       "Sid": "NovaForTheSetupAssistant",
       "Effect": "Allow",
-      "Action": ["bedrock:InvokeModel", "bedrock:Converse"],
+      "Action": ["bedrock:InvokeModel"],
       "Resource": [
         "arn:aws:bedrock:__REGION__:__ACCOUNT__:inference-profile/us.amazon.nova-2-lite-v1:0",
         "arn:aws:bedrock:*::foundation-model/amazon.nova-2-lite-v1:0"

@@ -117,6 +117,8 @@ BRIDGE_STACK_NAME=CounterpartShopBridge
 
 Then `npm run generate && npm run deploy && npm run skill:deploy && npm run deploy`, and open the skill's Test tab in the Alexa developer console. The bakery uses `counterpart/bakery/token`, `sweet crumb bakery` and `CounterpartBakeryBridge`.
 
+The third bridge talks to a **blank** business created with `npm run business:new -- florist "Petal and Stem" --secret`: `counterpart/florist/token`, `petal and stem` and `CounterpartFloristBridge`. Its skill starts with the three setup tools; after you say yes to the draft, open the skill again and it answers with the new business's nine tools.
+
 ## Configuration
 
 | Variable | Default | Meaning |
@@ -130,6 +132,7 @@ Then `npm run generate && npm run deploy && npm run skill:deploy && npm run depl
 | `COUNTERPART_DEV_BUSINESS` | — | Local no-token mode, only on `127.0.0.1` |
 | `COUNTERPART_ALLOW_REMOTE_RESET` | — | `1` lets `npm run seed -- --reset` delete and reseed the demo businesses in a remote table; the table and its tokens are kept |
 | `COUNTERPART_ALLOWED_HOSTS` | — | Comma-separated hostnames `/mcp` accepts. Required when `NODE_ENV=production`; `bootstrap` keeps `/mcp` closed until the hostname is known |
+| `COUNTERPART_SETUP_MODEL_ID` | `us.amazon.nova-2-lite-v1:0` | Bedrock model the setup assistant uses to draft a blank business's profile and catalog |
 
 ## Tests
 
