@@ -1,4 +1,6 @@
-export interface Business { id: string; name: string; profileId: string; timezone: string; taxRateBps: number; nextOrderNumber: number; version: number }
+export type BusinessStatus = 'blank' | 'active';
+/** `profileVersion` es la versión del PROFILE vigente; 0 mientras el negocio está en blanco (spec B2 §5.1). */
+export interface Business { id: string; name: string; status: BusinessStatus; profileVersion: number; timezone: string; taxRateBps: number; nextOrderNumber: number; version: number }
 export interface Customer { id: string; name: string; nameNormalized: string; phone?: string }
 export interface Asset { id: string; customerId: string; fields: Record<string, string | number>; spokenLabel: string }
 export interface CatalogItem { id: string; name: string; synonyms: string[]; kind: 'part' | 'labor' | 'product' | 'ingredient' | 'supply'; unit: string; priceCents: number; taxable: boolean; stocked: boolean; onHand: number; reorderPoint: number; reorderQty: number; supplierId?: string; consumes: Record<string, number>; version: number }

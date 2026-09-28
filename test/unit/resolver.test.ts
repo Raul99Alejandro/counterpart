@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { loadProfile } from '../../src/profiles/load.js';
+import { loadTemplate } from '../../src/profiles/load.js';
 import { normalize, resolveOrder, tokenScore, type OrderRef } from '../../src/domain/resolver.js';
 import type { Asset, Customer, Order } from '../../src/domain/types.js';
 
-const profile = loadProfile('auto-repair');
+const profile = loadTemplate('auto-repair');
 
 function ref(number: number, customerName: string, spokenLabel: string, plate?: string): OrderRef {
   const order: Order = {

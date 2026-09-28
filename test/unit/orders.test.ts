@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { loadProfile } from '../../src/profiles/load.js';
+import { loadTemplate } from '../../src/profiles/load.js';
 import { closeOut, moveStage, newOrder, recalcTotals } from '../../src/domain/orders.js';
 import type { Order } from '../../src/domain/types.js';
 
-const profile = loadProfile('auto-repair');
+const profile = loadTemplate('auto-repair');
 const NOW = new Date('2026-09-15T15:00:00Z');
 
 function orderWithLines(): Order {

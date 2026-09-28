@@ -6,7 +6,7 @@ import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/cli
 import { parse as parseYaml } from 'yaml';
 import { resolveOrder } from '../../src/domain/resolver.js';
 import { createApp } from '../../src/http/app.js';
-import { loadProfile } from '../../src/profiles/load.js';
+import { ProfileCache } from '../../src/profiles/cache.js';
 import { loadRefs } from '../../src/tools/context.js';
 import { MemoryStore } from '../../src/store/memory.js';
 import { DEMO_TOKENS, seedAll } from '../../seed/run.js';
@@ -36,7 +36,7 @@ const startedAt = new Date().toISOString();
 // Una referencia a una orden ("the Civic", "work order 41") se compara por la orden a la que la
 // resuelven las tools: órdenes abiertas y las que esta corrida cerró. Si no resuelve a una sola, queda el texto.
 const business = (await store.getBusiness(BUSINESS_BY_PROFILE[profile]!))!;
-const toolCtx = { business, profile: loadProfile(business.profileId), store, now: () => new Date(), newId: (p: string) => p };
+const toolCtx = { business, profile: await new ProfileCache(store).forBusiness(business), store, now: () => new Date(), newId: (p: string) => p };
 const canonicalize: Canonicalize = async args => {
   if (typeof args.order !== 'string') return args;
   const refs = (await loadRefs(toolCtx)).filter(r =>

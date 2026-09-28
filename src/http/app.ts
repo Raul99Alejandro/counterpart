@@ -3,7 +3,7 @@ import { createMcpExpressApp, hostHeaderValidation } from '@modelcontextprotocol
 import { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node';
 import { McpServer } from '@modelcontextprotocol/server';
 import type { Express, NextFunction, Request, Response } from 'express';
-import { loadProfile } from '../profiles/load.js';
+import { ProfileCache } from '../profiles/cache.js';
 import { registerTools, type ToolContext } from '../tools/context.js';
 import type { Store } from '../store/store.js';
 import type { Business } from '../domain/types.js';
@@ -29,6 +29,7 @@ export function createApp(deps: {
   const app = createMcpExpressApp({ host: deps.host });
   const maxSessions = deps.maxSessionsPerBusiness ?? MAX_SESSIONS_PER_BUSINESS;
   const sessions = new Sessions();
+  const profiles = new ProfileCache(deps.store);
   const sweeper = setInterval(() => sessions.sweep(Date.now(), IDLE_MS), 60_000);
   sweeper.unref();
 
@@ -92,7 +93,7 @@ export function createApp(deps: {
 
       const server = new McpServer({ name: 'counterpart', version: '0.1.0' });
       const ctx: ToolContext = {
-        business, profile: loadProfile(business.profileId), store: deps.store,
+        business, profile: await profiles.forBusiness(business), store: deps.store,
         now: () => new Date(), newId: prefix => `${prefix}-${randomUUID()}`
       };
       registerTools(server, ctx);

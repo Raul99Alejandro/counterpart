@@ -4,11 +4,12 @@ import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/cli
 import { createApp } from '../../src/http/app.js';
 import { hashToken } from '../../src/http/auth.js';
 import { MemoryStore } from '../../src/store/memory.js';
+import { templateRecord } from '../../src/profiles/load.js';
 import type { Business } from '../../src/domain/types.js';
 
 const TOKEN = 'token-de-prueba';
 const business: Business = {
-  id: 'b1', name: 'Oak Street Auto', profileId: 'auto-repair',
+  id: 'b1', name: 'Oak Street Auto', status: 'active', profileVersion: 1,
   timezone: 'America/Chicago', taxRateBps: 825, nextOrderNumber: 41, version: 1
 };
 
@@ -19,6 +20,7 @@ let store: MemoryStore;
 beforeAll(async () => {
   store = new MemoryStore();
   await store.putBusiness(business);
+  await store.putProfile(business.id, templateRecord('auto-repair'));
   await store.putToken(hashToken(TOKEN), 'b1');
 
   server = createApp({ store, host: '127.0.0.1' }).listen(0, '127.0.0.1');
@@ -68,11 +70,12 @@ describe('HTTP', () => {
 
   it('el token de otro negocio no abre la sesión, pero el propio sigue funcionando', async () => {
     const businessB: Business = {
-      id: 'b2', name: 'Maple Street Bakery', profileId: 'bakery',
+      id: 'b2', name: 'Maple Street Bakery', status: 'active', profileVersion: 1,
       timezone: 'America/Chicago', taxRateBps: 825, nextOrderNumber: 1, version: 1
     };
     const TOKEN_B = 'token-de-otro-negocio';
     await store.putBusiness(businessB);
+    await store.putProfile(businessB.id, templateRecord('bakery'));
     await store.putToken(hashToken(TOKEN_B), 'b2');
 
     // Abrir sesión como el negocio A (b1) y capturar el session id que asigna el servidor.

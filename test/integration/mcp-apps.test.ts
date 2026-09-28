@@ -3,8 +3,8 @@ import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
 import { McpServer } from '@modelcontextprotocol/server';
 import { RESOURCE_MIME_TYPE } from '@modelcontextprotocol/ext-apps/server';
 import { MemoryStore } from '../../src/store/memory.js';
-import { loadProfile } from '../../src/profiles/load.js';
-import { registerTools, type ToolContext } from '../../src/tools/context.js';
+import { registerTools } from '../../src/tools/context.js';
+import { toolContext } from '../helpers/context.js';
 import { UI } from '../../src/tools/ui-assets.js';
 import { seedAll } from '../../seed/run.js';
 
@@ -13,11 +13,8 @@ const NOW = new Date('2026-09-15T15:00:00Z');
 async function connect(bizId: 'shop' | 'bakery'): Promise<Client> {
   const store = new MemoryStore();
   await seedAll(store, NOW);
-  const business = (await store.getBusiness(bizId))!;
   let n = 0;
-  const ctx: ToolContext = {
-    business, profile: loadProfile(business.profileId), store, now: () => NOW, newId: p => `${p}-${++n}`
-  };
+  const ctx = await toolContext(store, bizId, { now: () => NOW, newId: p => `${p}-${++n}` });
   const server = new McpServer({ name: 'counterpart', version: '0.1.0' });
   registerTools(server, ctx);
   const [clientEnd, serverEnd] = InMemoryTransport.createLinkedPair();

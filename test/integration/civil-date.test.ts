@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
 import { McpServer } from '@modelcontextprotocol/server';
 import { MemoryStore } from '../../src/store/memory.js';
-import { loadProfile } from '../../src/profiles/load.js';
+import { loadTemplate } from '../../src/profiles/load.js';
 import { registerTools, type ToolContext } from '../../src/tools/context.js';
 import type { Business, Order } from '../../src/domain/types.js';
 
@@ -10,7 +10,7 @@ import type { Business, Order } from '../../src/domain/types.js';
 const EVENING = new Date('2026-09-16T01:30:00Z');
 
 const business: Business = {
-  id: 'b1', name: 'Oak Street Auto', profileId: 'auto-repair',
+  id: 'b1', name: 'Oak Street Auto', status: 'active', profileVersion: 1,
   timezone: 'America/Chicago', taxRateBps: 825, nextOrderNumber: 43, version: 1
 };
 
@@ -32,7 +32,7 @@ async function connect(): Promise<Client> {
 
   let n = 0;
   const ctx: ToolContext = {
-    business, profile: loadProfile('auto-repair'), store,
+    business, profile: loadTemplate('auto-repair'), store,
     now: () => EVENING, newId: p => `${p}-${++n}`
   };
   const server = new McpServer({ name: 'counterpart', version: '0.1.0' });
@@ -95,7 +95,7 @@ describe('rango de la semana del resumen', () => {
 
     const server = new McpServer({ name: 'counterpart', version: '0.1.0' });
     registerTools(server, {
-      business, profile: loadProfile('auto-repair'), store, now: () => lateSaturday, newId: p => `${p}-1`
+      business, profile: loadTemplate('auto-repair'), store, now: () => lateSaturday, newId: p => `${p}-1`
     });
     const [clientEnd, serverEnd] = InMemoryTransport.createLinkedPair();
     const client = new Client({ name: 'test', version: '1.0.0' });

@@ -2,18 +2,18 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
 import { McpServer } from '@modelcontextprotocol/server';
 import { MemoryStore } from '../../src/store/memory.js';
-import { loadProfile } from '../../src/profiles/load.js';
+import { loadTemplate } from '../../src/profiles/load.js';
 import { registerTools, type ToolContext } from '../../src/tools/context.js';
 import type { Business, CatalogItem, Order } from '../../src/domain/types.js';
 
 const NOW = new Date('2026-09-15T15:00:00Z'); // martes, 10:00 en Chicago
 
 const business: Business = {
-  id: 'b1', name: 'Oak Street Auto', profileId: 'auto-repair',
+  id: 'b1', name: 'Oak Street Auto', status: 'active', profileVersion: 1,
   timezone: 'America/Chicago', taxRateBps: 825, nextOrderNumber: 43, version: 1
 };
 const bakery: Business = {
-  id: 'b2', name: 'Sweet Crumb Bakery', profileId: 'bakery',
+  id: 'b2', name: 'Sweet Crumb Bakery', status: 'active', profileVersion: 1,
   timezone: 'America/Chicago', taxRateBps: 825, nextOrderNumber: 12, version: 1
 };
 
@@ -47,7 +47,7 @@ async function bakeryFixture(): Promise<Client> {
   });
 
   return connect({
-    business: bakery, profile: loadProfile('bakery'), store, now: () => NOW, newId: p => `${p}-test`
+    business: bakery, profile: loadTemplate('bakery'), store, now: () => NOW, newId: p => `${p}-test`
   });
 }
 
@@ -72,7 +72,7 @@ async function fixture(): Promise<{ client: Client; store: MemoryStore }> {
   await store.putItems('b1', [item]);
 
   const client = await connect({
-    business, profile: loadProfile('auto-repair'), store, now: () => NOW, newId: p => `${p}-test`
+    business, profile: loadTemplate('auto-repair'), store, now: () => NOW, newId: p => `${p}-test`
   });
   return { client, store };
 }

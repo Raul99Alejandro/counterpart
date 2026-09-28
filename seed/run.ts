@@ -1,5 +1,5 @@
 import { hashToken } from '../src/http/auth.js';
-import { loadProfile } from '../src/profiles/load.js';
+import { loadTemplate, templateRecord } from '../src/profiles/load.js';
 import { spokenLabel } from '../src/domain/assets.js';
 import { businessToday, resolveDue, shiftDays } from '../src/domain/dates.js';
 import { newOrder, recalcTotals } from '../src/domain/orders.js';
@@ -13,11 +13,11 @@ export const DEMO_TOKENS = { shop: 'demo-shop-token', bakery: 'demo-bakery-token
 const HOUR_MS = 3600 * 1000;
 
 const SHOP: Business = {
-  id: 'shop', name: 'Oak Street Auto', profileId: 'auto-repair',
+  id: 'shop', name: 'Oak Street Auto', status: 'active', profileVersion: 1,
   timezone: 'America/Chicago', taxRateBps: 825, nextOrderNumber: 41, version: 1
 };
 const BAKERY: Business = {
-  id: 'bakery', name: 'Sweet Crumb Bakery', profileId: 'bakery',
+  id: 'bakery', name: 'Sweet Crumb Bakery', status: 'active', profileVersion: 1,
   timezone: 'America/Chicago', taxRateBps: 825, nextOrderNumber: 12, version: 1
 };
 
@@ -56,10 +56,11 @@ export async function seedAll(
 
 async function seedShop(store: Store, now: Date, demoTokens: boolean): Promise<void> {
   await store.putBusiness(SHOP);
+  await store.putProfile(SHOP.id, templateRecord('auto-repair'));
   if (demoTokens) await store.putToken(hashToken(DEMO_TOKENS.shop), SHOP.id);
   await store.putItems(SHOP.id, SHOP_ITEMS);
 
-  const profile = loadProfile('auto-repair');
+  const profile = loadTemplate('auto-repair');
   const random = mulberry32(7331);
   const menu = sellable(SHOP_ITEMS);
   let n = 0;
@@ -91,10 +92,11 @@ async function seedShop(store: Store, now: Date, demoTokens: boolean): Promise<v
 
 async function seedBakery(store: Store, now: Date, demoTokens: boolean): Promise<void> {
   await store.putBusiness(BAKERY);
+  await store.putProfile(BAKERY.id, templateRecord('bakery'));
   if (demoTokens) await store.putToken(hashToken(DEMO_TOKENS.bakery), BAKERY.id);
   await store.putItems(BAKERY.id, BAKERY_ITEMS);
 
-  const profile = loadProfile('bakery');
+  const profile = loadTemplate('bakery');
   const random = mulberry32(9137);
   let n = 0;
 

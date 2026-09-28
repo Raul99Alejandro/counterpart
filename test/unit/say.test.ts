@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { loadProfile } from '../../src/profiles/load.js';
+import { loadTemplate } from '../../src/profiles/load.js';
 import { say } from '../../src/speech/say.js';
 import type { OrderRef } from '../../src/domain/resolver.js';
 import type { Order } from '../../src/domain/types.js';
 
-const profile = loadProfile('auto-repair');
-const bakery = loadProfile('bakery');
+const profile = loadTemplate('auto-repair');
+const bakery = loadTemplate('bakery');
 
 const order: Order = {
   id: 'o1', number: 42, customerId: 'c1', assetId: 'a1', stage: 'in_bay', fields: {}, lines: [],

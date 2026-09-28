@@ -4,11 +4,12 @@ import type { AddressInfo } from 'node:net';
 import { createApp } from '../../src/http/app.js';
 import { hashToken } from '../../src/http/auth.js';
 import { MemoryStore } from '../../src/store/memory.js';
+import { templateRecord } from '../../src/profiles/load.js';
 import type { Business } from '../../src/domain/types.js';
 
 const TOKEN = 'token-tope';
 const business: Business = {
-  id: 'b1', name: 'Oak Street Auto', profileId: 'auto-repair',
+  id: 'b1', name: 'Oak Street Auto', status: 'active', profileVersion: 1,
   timezone: 'America/Chicago', taxRateBps: 825, nextOrderNumber: 41, version: 1
 };
 
@@ -18,6 +19,7 @@ let base: string;
 beforeAll(async () => {
   const store = new MemoryStore();
   await store.putBusiness(business);
+  await store.putProfile(business.id, templateRecord('auto-repair'));
   await store.putToken(hashToken(TOKEN), 'b1');
   server = createApp({ store, host: '127.0.0.1', maxSessionsPerBusiness: 2 }).listen(0, '127.0.0.1');
   await new Promise<void>(resolve => server.once('listening', () => resolve()));

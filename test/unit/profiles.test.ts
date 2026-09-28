@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { loadProfile, parseProfile } from '../../src/profiles/load.js';
+import { loadTemplate, parseProfile } from '../../src/profiles/load.js';
 
 describe('perfiles', () => {
   it('carga el perfil del taller', () => {
-    const p = loadProfile('auto-repair');
+    const p = loadTemplate('auto-repair');
     expect(p.toolNames.open).toBe('open_work_order');
     expect(p.stages.map(s => s.id)).toContain('waiting_on_parts');
     expect(p.closedStage).toBe('picked_up');
@@ -12,7 +12,7 @@ describe('perfiles', () => {
   });
 
   it('carga el perfil de la pastelería', () => {
-    const p = loadProfile('bakery');
+    const p = loadTemplate('bakery');
     expect(p.toolNames.open).toBe('take_cake_order');
     expect(p.asset).toBeNull();
     expect(p.orderFields.map(f => f.id)).toEqual(['flavor', 'size', 'inscription']);

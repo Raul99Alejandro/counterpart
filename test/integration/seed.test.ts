@@ -3,6 +3,7 @@ import { MemoryStore } from '../../src/store/memory.js';
 import { resolveDue } from '../../src/domain/dates.js';
 import { hashToken } from '../../src/http/auth.js';
 import { DEMO_TOKENS, seedAll } from '../../seed/run.js';
+import { loadTemplate } from '../../src/profiles/load.js';
 
 const MOMENTS: Array<[string, Date]> = [
   ['martes', new Date('2026-09-15T15:00:00Z')],
@@ -34,5 +35,20 @@ describe('tokens de demo', () => {
     await seedAll(store, new Date('2026-09-15T15:00:00Z'), { demoTokens: false });
     expect(await store.getBusinessByTokenHash(hashToken(DEMO_TOKENS.shop))).toBeNull();
     expect(await store.getBusinessByTokenHash(hashToken(DEMO_TOKENS.bakery))).toBeNull();
+  });
+});
+
+describe('perfiles guardados por la siembra', () => {
+  it('siembra los negocios activos con el perfil copiado de su plantilla', async () => {
+    const store = new MemoryStore();
+    await seedAll(store, new Date('2026-09-15T15:00:00Z'));
+    for (const [bizId, template] of [['shop', 'auto-repair'], ['bakery', 'bakery']] as const) {
+      const business = (await store.getBusiness(bizId))!;
+      expect(business.status).toBe('active');
+      const record = (await store.getProfile(bizId))!;
+      expect(record.version).toBe(business.profileVersion);
+      expect(record.source).toBe(`template:${template}`);
+      expect(record.profile).toEqual(loadTemplate(template));
+    }
   });
 });

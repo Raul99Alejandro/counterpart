@@ -3,7 +3,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parse as parseYaml } from 'yaml';
 import * as z from 'zod/v4';
-import { loadProfile } from '../../src/profiles/load.js';
+import { loadTemplate } from '../../src/profiles/load.js';
 import type { Profile, ToolKey } from '../../src/profiles/schema.js';
 import {
   addLineInput, closeOutInput, findInput, itemQueryInput, moveInput, openInput, salesReportInput, toolSpecs
@@ -27,7 +27,7 @@ function inputFor(profile: Profile, key: ToolKey): z.ZodObject<z.ZodRawShape> {
 
 for (const file of ['auto-repair.yaml', 'bakery.yaml']) {
   const golden = parseYaml(fs.readFileSync(path.join(import.meta.dirname, '..', 'golden', file), 'utf8')) as Golden;
-  const profile = loadProfile(golden.profile);
+  const profile = loadTemplate(golden.profile);
   const keyByName = new Map(Object.entries(toolSpecs(profile)).map(([key, spec]) => [spec.name, key as ToolKey]));
 
   describe(`frases de oro: ${golden.profile}`, () => {

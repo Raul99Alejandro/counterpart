@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { loadProfile } from '../../src/profiles/load.js';
+import { loadTemplate } from '../../src/profiles/load.js';
 import { buildSalesReport, buildSnapshot } from '../../src/domain/reports.js';
 import type { CatalogItem, Order, Payment } from '../../src/domain/types.js';
 import type { OrderRef } from '../../src/domain/resolver.js';
 
-const profile = loadProfile('auto-repair');
+const profile = loadTemplate('auto-repair');
 
 function order(over: Partial<Order> & { id: string; number: number }): Order {
   return {

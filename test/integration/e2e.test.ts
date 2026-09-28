@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
 import { McpServer } from '@modelcontextprotocol/server';
-import { loadProfile } from '../../src/profiles/load.js';
 import { MemoryStore } from '../../src/store/memory.js';
-import { registerTools, type ToolContext } from '../../src/tools/context.js';
+import { registerTools } from '../../src/tools/context.js';
+import { toolContext } from '../helpers/context.js';
 import { seedAll } from '../../seed/run.js';
 
 const NOW = new Date('2026-09-15T15:00:00Z'); // martes
@@ -11,13 +11,9 @@ const NOW = new Date('2026-09-15T15:00:00Z'); // martes
 async function connect(bizId: string): Promise<{ client: Client; store: MemoryStore }> {
   const store = new MemoryStore();
   await seedAll(store, NOW);
-  const business = (await store.getBusiness(bizId))!;
   const server = new McpServer({ name: 'counterpart', version: '0.1.0' });
   let n = 0;
-  const ctx: ToolContext = {
-    business, profile: loadProfile(business.profileId), store,
-    now: () => NOW, newId: p => `${p}-${++n}`
-  };
+  const ctx = await toolContext(store, bizId, { now: () => NOW, newId: p => `${p}-${++n}` });
   registerTools(server, ctx);
 
   const [clientEnd, serverEnd] = InMemoryTransport.createLinkedPair();

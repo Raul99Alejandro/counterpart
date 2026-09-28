@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import * as z from 'zod/v4';
-import { loadProfile } from '../../src/profiles/load.js';
+import { loadTemplate } from '../../src/profiles/load.js';
 import {
   addLineInput, closeOutInput, findInput, moveInput, openInput, toolSpecs
 } from '../../src/tools/specs.js';
 
-const shop = loadProfile('auto-repair');
-const bakery = loadProfile('bakery');
+const shop = loadTemplate('auto-repair');
+const bakery = loadTemplate('bakery');
 
 describe('generación de tools', () => {
   it('toma los nombres del perfil', () => {

@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import { profileSchema, TOOL_KEYS, type Profile } from './schema.js';
+import type { ProfileRecord } from '../store/store.js';
 
 const DIR = path.join(import.meta.dirname, '.');
 
@@ -44,7 +45,17 @@ export function parseProfile(raw: unknown): Profile {
   return p;
 }
 
-export function loadProfile(id: string): Profile {
+/** Plantillas de perfil: los YAML de esta carpeta. El servidor ya no los lee al atender peticiones. */
+export function loadTemplate(id: string): Profile {
   const file = path.join(DIR, `${id}.yaml`);
   return parseProfile(parseYaml(fs.readFileSync(file, 'utf8')));
+}
+
+export function listTemplates(): string[] {
+  return fs.readdirSync(DIR).filter(f => f.endsWith('.yaml')).map(f => f.slice(0, -'.yaml'.length)).sort();
+}
+
+/** Registro PROFILE copiado de una plantilla, versión 1. */
+export function templateRecord(id: string): ProfileRecord {
+  return { profile: loadTemplate(id), source: `template:${id}`, version: 1 };
 }

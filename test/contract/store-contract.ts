@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { ConflictError, type Draft, type ProfileRecord, type Store } from '../../src/store/store.js';
 import type { Business, CatalogItem, Order, Payment, PurchaseOrder } from '../../src/domain/types.js';
-import { loadProfile } from '../../src/profiles/load.js';
+import { loadTemplate } from '../../src/profiles/load.js';
 
 const biz: Business = {
-  id: 'b1', name: 'Oak Street Auto', profileId: 'auto-repair',
+  id: 'b1', name: 'Oak Street Auto', status: 'active', profileVersion: 1,
   timezone: 'America/Chicago', taxRateBps: 825, nextOrderNumber: 41, version: 1
 };
 
@@ -24,7 +24,7 @@ const payment = (id: string, paidOn: string, paidAt = `${paidOn}T18:00:00.000Z`)
 });
 
 const profileRecord = (): ProfileRecord => ({
-  profile: loadProfile('auto-repair'), source: 'template:auto-repair', version: 1
+  profile: loadTemplate('auto-repair'), source: 'template:auto-repair', version: 1
 });
 
 const draft = (over: Partial<Draft> = {}): Draft => ({
@@ -155,7 +155,7 @@ export function runStoreContract(name: string, makeStore: () => Promise<Store>):
 
     it('aísla a cada negocio: cada lista y cada token ven solo lo suyo', async () => {
       const store = await ready();
-      await store.putBusiness({ ...biz, id: 'b2', name: 'Sweet Crumb Bakery', profileId: 'bakery' });
+      await store.putBusiness({ ...biz, id: 'b2', name: 'Sweet Crumb Bakery', status: 'active', profileVersion: 1 });
       await store.putToken('hash-xyz', 'b2');
 
       // Mismo tipo de registro en los dos negocios, con ids distintos y cobros del mismo día.
@@ -195,7 +195,7 @@ export function runStoreContract(name: string, makeStore: () => Promise<Store>):
       const store = await ready();
       expect(await store.getDraft('b1')).toBeNull();
       await store.putDraft('b1', draft());
-      const ready1 = draft({ state: 'ready', profile: loadProfile('bakery'), catalog: [item] });
+      const ready1 = draft({ state: 'ready', profile: loadTemplate('bakery'), catalog: [item] });
       await store.putDraft('b1', ready1);
       expect(await store.getDraft('b1')).toEqual(ready1);
       await store.deleteDraft('b1');

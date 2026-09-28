@@ -5,7 +5,7 @@ import { MemoryStore } from '../../src/store/memory.js';
 import type { Business } from '../../src/domain/types.js';
 
 const business: Business = {
-  id: 'shop', name: 'Oak Street Auto', profileId: 'auto-repair',
+  id: 'shop', name: 'Oak Street Auto', status: 'active', profileVersion: 1,
   timezone: 'America/Chicago', taxRateBps: 825, nextOrderNumber: 41, version: 1
 };
 

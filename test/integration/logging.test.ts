@@ -4,7 +4,7 @@ import { Client, InMemoryTransport, StreamableHTTPClientTransport } from '@model
 import { McpServer } from '@modelcontextprotocol/server';
 import { createApp } from '../../src/http/app.js';
 import { captureLogs } from '../../src/log.js';
-import { loadProfile } from '../../src/profiles/load.js';
+import { loadTemplate } from '../../src/profiles/load.js';
 import { MemoryStore } from '../../src/store/memory.js';
 import { registerTools, type ToolContext } from '../../src/tools/context.js';
 import { DEMO_TOKENS, seedAll } from '../../seed/run.js';
@@ -85,7 +85,7 @@ describe('logs estructurados', () => {
     await seedAll(store, NOW);
     const business = (await store.getBusiness('shop'))!;
     const ctx: ToolContext = {
-      business, profile: loadProfile('auto-repair'), store, now: () => NOW, newId: p => `${p}-1`
+      business, profile: loadTemplate('auto-repair'), store, now: () => NOW, newId: p => `${p}-1`
     };
     const mcp = new McpServer({ name: 'counterpart', version: '0.1.0' });
     registerTools(mcp, ctx);

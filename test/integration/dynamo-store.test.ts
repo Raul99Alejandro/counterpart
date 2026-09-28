@@ -32,7 +32,7 @@ describe.skipIf(!endpoint)('clearBusinesses contra DynamoDB Local', () => {
   const table = `counterpart-clear-${randomUUID()}`;
 
   const other: Business = {
-    id: 'other', name: 'Corner Garage', profileId: 'auto-repair',
+    id: 'other', name: 'Corner Garage', status: 'active', profileVersion: 1,
     timezone: 'America/Chicago', taxRateBps: 825, nextOrderNumber: 1, version: 1
   };
   const otherOrder: Order = {

@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
 import { McpServer } from '@modelcontextprotocol/server';
 import { MemoryStore } from '../../src/store/memory.js';
-import { loadProfile } from '../../src/profiles/load.js';
-import { registerTools, type ToolContext } from '../../src/tools/context.js';
+import { templateRecord } from '../../src/profiles/load.js';
+import { registerTools } from '../../src/tools/context.js';
+import { toolContext } from '../helpers/context.js';
 import { seedAll } from '../../seed/run.js';
 import type { Business, Order } from '../../src/domain/types.js';
 
@@ -12,11 +13,8 @@ const sentences = (t: string): number => t.trim().split(/(?<=[.!?])\s+/).length;
 const text = (r: { content: unknown[] }): string => (r.content[0] as { text: string }).text;
 
 async function connectTo(store: MemoryStore, bizId: string): Promise<Client> {
-  const business = (await store.getBusiness(bizId))!;
   let n = 0;
-  const ctx: ToolContext = {
-    business, profile: loadProfile(business.profileId), store, now: () => NOW, newId: p => `${p}-${++n}`
-  };
+  const ctx = await toolContext(store, bizId, { now: () => NOW, newId: p => `${p}-${++n}` });
   const server = new McpServer({ name: 'counterpart', version: '0.1.0' });
   registerTools(server, ctx);
   const [clientEnd, serverEnd] = InMemoryTransport.createLinkedPair();
@@ -45,10 +43,11 @@ describe('resúmenes hablados', () => {
   it('dice "1 sale", no "1 sales"', async () => {
     const store = new MemoryStore();
     const business: Business = {
-      id: 'b1', name: 'Oak Street Auto', profileId: 'auto-repair',
+      id: 'b1', name: 'Oak Street Auto', status: 'active', profileVersion: 1,
       timezone: 'America/Chicago', taxRateBps: 0, nextOrderNumber: 1, version: 1
     };
     await store.putBusiness(business);
+    await store.putProfile(business.id, templateRecord('auto-repair'));
     const order: Order = {
       id: 'o1', number: 1, customerId: 'c1', stage: 'picked_up', fields: {}, lines: [],
       subtotalCents: 1000, taxCents: 0, totalCents: 1000, stageHistory: [],
