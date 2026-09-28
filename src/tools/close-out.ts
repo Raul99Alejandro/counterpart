@@ -45,9 +45,12 @@ export function registerCloseOut(server: McpServer, ctx: ToolContext): void {
       const order = found.ref.order;
 
       if (order.stage === ctx.profile.closedStage) {
+        // El método que quedó registrado, no el que se pidió ahora.
+        const paidOn = businessToday(ctx.business.timezone, new Date(order.closedAt ?? ctx.now()));
+        const recorded = (await ctx.store.listPayments(ctx.business.id, paidOn, paidOn)).find(p => p.orderId === order.id);
         return ok(say.alreadyClosed(ctx.profile, found.ref, order.totalCents), {
           orderId: order.id, number: order.number, amountCents: order.totalCents,
-          method: paymentMethod, alreadyClosed: true
+          method: recorded?.method ?? paymentMethod, alreadyClosed: true
         });
       }
 

@@ -208,4 +208,10 @@ describe('tools de escritura', () => {
     expect(text(r)).toContain('Please try again');
     expect(text(r)).not.toContain('conflicto');
   });
+  it('repetir un cierre informa el método de pago que quedó registrado', async () => {
+    const { client } = await fixture();
+    await client.callTool({ name: 'close_out_work_order', arguments: { order: 'the Civic', paymentMethod: 'card' } });
+    const again = await client.callTool({ name: 'close_out_work_order', arguments: { order: 'the Civic', paymentMethod: 'cash' } });
+    expect(again.structuredContent).toMatchObject({ alreadyClosed: true, method: 'card' });
+  });
 });

@@ -1,5 +1,6 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { Server } from 'node:http';
+import { McpServer } from '@modelcontextprotocol/server';
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { createApp } from '../../src/http/app.js';
 import { hashToken } from '../../src/http/auth.js';
@@ -137,4 +138,19 @@ describe('HTTP', () => {
     expect(r.status).toBe(404);
     expect(await r.json()).toEqual({ error: 'session not found' });
   });
+  it('sin session id solo acepta initialize y no deja servidores huérfanos', async () => {
+    const connect = vi.spyOn(McpServer.prototype, 'connect');
+    try {
+      const res = await fetch(`${base}/mcp`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${TOKEN}`, 'content-type': 'application/json', accept: 'application/json, text/event-stream' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} })
+      });
+      expect(res.status).toBe(400);
+      expect(connect).not.toHaveBeenCalled();
+    } finally {
+      connect.mockRestore();
+    }
+  });
+
 });

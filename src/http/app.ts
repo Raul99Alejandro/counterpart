@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { createMcpExpressApp, hostHeaderValidation } from '@modelcontextprotocol/express';
 import { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node';
-import { McpServer } from '@modelcontextprotocol/server';
+import { isInitializeRequest, McpServer } from '@modelcontextprotocol/server';
 import type { Express, NextFunction, Request, Response } from 'express';
 import { ProfileCache } from '../profiles/cache.js';
 import type { Profile } from '../profiles/schema.js';
@@ -114,6 +114,13 @@ export function createApp(deps: {
         }
         sessions.touch(sessionId, Date.now());
         await entry.transport.handleRequest(req, res, req.body);
+        return;
+      }
+
+      // Sin session id solo vale initialize: cualquier otra cosa construiría un servidor y un
+      // transporte que nadie cierra (carryover §5).
+      if (req.method !== 'POST' || !isInitializeRequest(req.body)) {
+        res.status(400).json({ error: 'missing session id' });
         return;
       }
 
