@@ -21,7 +21,7 @@ const clients: Client[] = [];
 beforeAll(async () => {
   const store = new MemoryStore();
   await seedAll(store, NOW);
-  for (const [id, name] of [['florist', 'Petal and Stem'], ['twins', 'Twin Florals'], ['other', 'Other Place'], ['iso', 'Iso Florals']]) {
+  for (const [id, name] of [['florist', 'Petal and Stem'], ['twins', 'Twin Florals'], ['other', 'Other Place'], ['iso', 'Iso Florals'], ['json', 'Json Florals']]) {
     await newBlankBusiness(store, { id: id!, name: name! });
     await store.putToken(hashToken(`token-${id}`), id!);
   }
@@ -66,7 +66,7 @@ describe('asistente de configuración por MCP', () => {
   it('flujo completo: describir, revisar, activar y operar en la misma sesión', async () => {
     const client = await connect('token-florist');
     const started = await client.callTool({ name: 'set_up_my_business', arguments: { description: 'I run a flower shop' } });
-    expect(text(started)).toBe("I'm drafting your setup. Ask me what I came up with in a few seconds.");
+    expect(text(started)).toMatch(/^I'm drafting your setup\./);
     await settled();
 
     const review = await client.callTool({ name: 'review_business_setup', arguments: {} });
@@ -112,6 +112,16 @@ describe('asistente de configuración por MCP', () => {
     expect((tool?._meta as { ui?: { resourceUri?: string } } | undefined)?.ui?.resourceUri).toBe('ui://counterpart/setup.html');
     const resource = await client.readResource({ uri: 'ui://counterpart/setup.html' });
     expect((resource.contents[0] as { text: string }).text).toContain('Counterpart · Setup');
+  });
+
+  it('el JSON de cada tool de alta lleva la frase: el bridge le pasa a Nova el JSON, no el texto', async () => {
+    const client = await connect('token-json');
+    const started = await client.callTool({ name: 'set_up_my_business', arguments: { description: 'I run a flower shop' } });
+    expect((started.structuredContent as { message: string }).message).toBe(text(started));
+    expect(text(started)).toMatch(/Don't check on it yet/);
+    const activated = await client.callTool({ name: 'activate_business_setup', arguments: { confirm: true } });
+    expect((activated.structuredContent as { message: string }).message).toBe(text(activated));
+    await settled();
   });
 
   it('descartar deja el negocio en blanco', async () => {

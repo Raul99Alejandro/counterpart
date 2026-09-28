@@ -22,14 +22,14 @@ export interface SetupToolContext {
 const [SET_UP, REVIEW, ACTIVATE] = SETUP_TOOL_NAMES;
 
 const START_TEXT: Record<StartResult, string> = {
-  started: "I'm drafting your setup. Ask me what I came up with in a few seconds.",
-  busy: "I'm still working on your last description. Ask me what I came up with in a few seconds.",
+  started: "I'm drafting your setup. Don't check on it yet: tell the user to ask you what you came up with in about twenty seconds.",
+  busy: "I'm still working on your last description. Don't check on it yet: tell the user to ask again in about twenty seconds.",
   limited: "That's a lot of drafts in one hour. Give me a little while before trying again.",
   already_active: 'Your business is already set up. Open me again to use it.'
 };
 
 const NO_DRAFT = "There's no setup in progress. Tell me about your business, like: I run a flower shop that takes orders for bouquets.";
-const STILL_DRAFTING = "I'm still drafting it. Ask me again in a few seconds.";
+const STILL_DRAFTING = "I'm still drafting it. Don't check again in this turn: tell the user to ask again in a few seconds.";
 
 export function draftSummary(profile: Profile, itemCount: number): string {
   const steps = profile.stages.map(s => s.label);
@@ -67,11 +67,12 @@ export function registerSetupTools(server: McpServer, ctx: SetupToolContext): Re
       inputSchema: z.object({
         description: z.string().min(3).describe('What the business does and sells, and the steps an order goes through, in the user\'s words.')
       }),
-      outputSchema: z.object({ status: z.enum(['started', 'busy', 'limited', 'already_active']) })
+      // El bridge le pasa a Nova el JSON y no el texto: la frase va también aquí.
+      outputSchema: z.object({ status: z.enum(['started', 'busy', 'limited', 'already_active']), message: z.string() })
     },
     guard(async ({ description }: { description: string }) => {
       const status = await ctx.setup.start(bizId, description);
-      return ok(START_TEXT[status], { status });
+      return ok(START_TEXT[status], { status, message: START_TEXT[status] });
     })
   );
 
@@ -104,7 +105,7 @@ export function registerSetupTools(server: McpServer, ctx: SetupToolContext): Re
       inputSchema: z.object({
         confirm: z.boolean().describe('True only if the user clearly said yes to turning the setup on; false if they said no or want to start over.')
       }),
-      outputSchema: z.object({ status: z.enum(['activated', 'discarded', 'none', 'not_ready', 'conflict']) })
+      outputSchema: z.object({ status: z.enum(['activated', 'discarded', 'none', 'not_ready', 'conflict']), message: z.string() })
     },
     guard(async ({ confirm }: { confirm: boolean }) => {
       const result = await ctx.setup.activate(bizId, confirm);
@@ -120,7 +121,8 @@ export function registerSetupTools(server: McpServer, ctx: SetupToolContext): Re
           });
         }
       }
-      return ok(activateText(result), { status: result.status });
+      const message = activateText(result);
+      return ok(message, { status: result.status, message });
     })
   );
 
