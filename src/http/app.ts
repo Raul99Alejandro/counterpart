@@ -4,6 +4,11 @@ import { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node';
 import { McpServer } from '@modelcontextprotocol/server';
 import type { Express, NextFunction, Request, Response } from 'express';
 import { ProfileCache } from '../profiles/cache.js';
+import type { Profile } from '../profiles/schema.js';
+import { unavailableGenerator, type DraftGenerator } from '../setup/generate.js';
+import { SetupService } from '../setup/service.js';
+import { registerSetupTools } from '../setup/tools.js';
+import { registerUiResources } from '../tools/ui-assets.js';
 import { registerTools, type ToolContext } from '../tools/context.js';
 import type { Store } from '../store/store.js';
 import type { Business } from '../domain/types.js';
@@ -21,6 +26,7 @@ export const MAX_SESSIONS_PER_BUSINESS = 10;
 /** Servidor con sesiones por negocio: una McpServer/transport por sesión, atadas al negocio del token. */
 export function createApp(deps: {
   store: Store; devBusinessId?: string; host: string; hosts?: HostPolicy; maxSessionsPerBusiness?: number;
+  generate?: DraftGenerator; now?: () => Date;
 }): Express {
   if (deps.devBusinessId && deps.host !== '127.0.0.1') {
     throw new Error('COUNTERPART_DEV_BUSINESS solo se permite escuchando en 127.0.0.1');
@@ -30,6 +36,32 @@ export function createApp(deps: {
   const maxSessions = deps.maxSessionsPerBusiness ?? MAX_SESSIONS_PER_BUSINESS;
   const sessions = new Sessions();
   const profiles = new ProfileCache(deps.store);
+  const now = deps.now ?? (() => new Date());
+  // Uno por proceso: el tope por hora y las generaciones en curso son del negocio, no de la sesión.
+  const setup = new SetupService({ store: deps.store, generate: deps.generate ?? unavailableGenerator, now });
+
+  const toolContext = (business: Business, profile: Profile): ToolContext => ({
+    business, profile, store: deps.store, now, newId: prefix => `${prefix}-${randomUUID()}`
+  });
+
+  /** Negocio activo → sus nueve tools. En blanco → las tres de alta, que al activar se cambian por las nueve. */
+  async function registerFor(server: McpServer, business: Business): Promise<void> {
+    if (business.status === 'active') {
+      registerTools(server, toolContext(business, await profiles.forBusiness(business)));
+      return;
+    }
+    // Antes de conectar: las páginas que usará el perfil al activarse tienen que existir ya (Step 3b).
+    registerUiResources(server, ['snapshot', 'sales-report']);
+    const setupTools = registerSetupTools(server, {
+      business, setup,
+      onActivated: (active, profile) => {
+        // La sesión sigue viva (spec B2 §5.2): fuera las de alta, dentro las del perfil, y se avisa al cliente.
+        for (const tool of setupTools) tool.remove();
+        registerTools(server, toolContext(active, profile));
+        server.sendToolListChanged();
+      }
+    });
+  }
   const sweeper = setInterval(() => sessions.sweep(Date.now(), IDLE_MS), 60_000);
   sweeper.unref();
 
@@ -92,11 +124,7 @@ export function createApp(deps: {
       }
 
       const server = new McpServer({ name: 'counterpart', version: '0.1.0' });
-      const ctx: ToolContext = {
-        business, profile: await profiles.forBusiness(business), store: deps.store,
-        now: () => new Date(), newId: prefix => `${prefix}-${randomUUID()}`
-      };
-      registerTools(server, ctx);
+      await registerFor(server, business);
 
       const transport = new NodeStreamableHTTPServerTransport({
         sessionIdGenerator: () => randomUUID(),
@@ -143,6 +171,7 @@ export function createApp(deps: {
   });
 
   app.locals.sessions = sessions;
+  app.locals.setup = setup;
   return app;
 }
 

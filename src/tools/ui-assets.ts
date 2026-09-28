@@ -20,13 +20,25 @@ export function packageRoot(from: string = import.meta.dirname): string {
   return dir;
 }
 
-export function uiBundlePath(name: 'snapshot' | 'sales-report'): string {
+export type UiName = 'snapshot' | 'sales-report';
+
+const URI: Record<UiName, string> = { snapshot: UI.snapshot, 'sales-report': UI.salesReport };
+
+export function uiBundlePath(name: UiName): string {
   return path.join(packageRoot(), 'build', 'ui', name, 'index.html');
 }
 
-export function registerUiResources(server: McpServer): void {
-  const pages = [['snapshot', UI.snapshot], ['sales-report', UI.salesReport]] as const;
-  for (const [name, uri] of pages) {
+/** Páginas ya registradas por servidor. La llave es `server.server`: igual a través del proxy de `instrument`. */
+const registered = new WeakMap<object, Set<UiName>>();
+
+/** Registra las páginas pedidas una sola vez por servidor: pedir dos veces la misma no hace nada. */
+export function registerUiResources(server: McpServer, names: UiName[]): void {
+  const done = registered.get(server.server) ?? new Set<UiName>();
+  registered.set(server.server, done);
+  for (const name of names) {
+    if (done.has(name)) continue;
+    done.add(name);
+    const uri = URI[name];
     registerAppResource(server, `Counterpart ${name}`, uri, { mimeType: RESOURCE_MIME_TYPE }, async () => ({
       contents: [{ uri, mimeType: RESOURCE_MIME_TYPE, text: await fs.readFile(uiBundlePath(name), 'utf8') }]
     }));

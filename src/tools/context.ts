@@ -106,5 +106,5 @@ export function registerTools(server: McpServer, ctx: ToolContext): void {
   registerAddLine(s, ctx);
   registerReorder(s, ctx);
   registerCloseOut(s, ctx);
-  registerUiResources(s);
+  registerUiResources(s, ['snapshot', 'sales-report']);
 }
