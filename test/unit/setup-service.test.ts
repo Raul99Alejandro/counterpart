@@ -185,4 +185,17 @@ describe('servicio de borradores', () => {
     expect(results.sort()).toEqual(['busy', 'started']);
     expect(generate.attempts).toHaveLength(1);
   });
+  it('revisar puede esperar a que termine la generación, para que el agente no pregunte en bucle', async () => {
+    const pending = deferred<unknown>();
+    const svc = service(await blankStore(), async () => pending.promise);
+    await svc.start('florist', 'flowers');
+    setTimeout(() => pending.resolve(floristDraft()), 30);
+    expect((await svc.review('florist', { waitMs: 5000 })).state).toBe('ready');
+  });
+
+  it('la espera de revisar tiene tope', async () => {
+    const svc = service(await blankStore(), async () => new Promise(() => {}));
+    await svc.start('florist', 'flowers');
+    expect((await svc.review('florist', { waitMs: 30 })).state).toBe('generating');
+  });
 });

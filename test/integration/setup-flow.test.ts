@@ -74,7 +74,7 @@ describe('asistente de configuración por MCP', () => {
     expect(review.structuredContent).toMatchObject({ state: 'ready', businessName: 'Petal and Stem' });
 
     const activated = await client.callTool({ name: 'activate_business_setup', arguments: { confirm: true } });
-    expect(text(activated)).toBe('Petal and Stem is ready. Open me again, then try: what flower orders are due today?');
+    expect(text(activated)).toBe('Petal and Stem is ready. To use it, say stop and open me again. Then try: what flower orders are due today?');
 
     const profileTools = Object.values(floristDraft().profile.toolNames as Record<string, string>).sort();
     expect(await names(client)).toEqual(profileTools);

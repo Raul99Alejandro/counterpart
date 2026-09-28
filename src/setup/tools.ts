@@ -28,6 +28,9 @@ const START_TEXT: Record<StartResult, string> = {
   already_active: 'Your business is already set up. Open me again to use it.'
 };
 
+/** Cuánto espera la revisión a un borrador en curso. El bridge deja una tool corriendo más allá del turno. */
+export const REVIEW_WAIT_MS = 20_000;
+
 const NO_DRAFT = "There's no setup in progress. Tell me about your business, like: I run a flower shop that takes orders for bouquets.";
 const STILL_DRAFTING = "I'm still drafting it. Don't check again in this turn: tell the user to ask again in a few seconds.";
 
@@ -41,7 +44,7 @@ export function draftSummary(profile: Profile, itemCount: number): string {
 /** El bridge arma su agente una vez por sesión de Alexa: las tools nuevas se ven al reabrir la Skill (Decisión 1). */
 export function readyText(business: Business, profile: Profile): string {
   const tryIt = profile.due === 'none' ? `what ${profile.nouns.orders} are open?` : `what ${profile.nouns.orders} are due today?`;
-  return `${business.name} is ready. Open me again, then try: ${tryIt}`;
+  return `${business.name} is ready. To use it, say stop and open me again. Then try: ${tryIt}`;
 }
 
 function activateText(result: ActivateResult): string {
@@ -88,7 +91,7 @@ export function registerSetupTools(server: McpServer, ctx: SetupToolContext): Re
       _meta: { ui: { resourceUri: UI.setup } }
     },
     guard(async () => {
-      const result = await ctx.setup.review(bizId);
+      const result = await ctx.setup.review(bizId, { waitMs: REVIEW_WAIT_MS });
       const message = result.state === 'ready' ? draftSummary(result.profile, result.items.length)
         : result.state === 'generating' ? STILL_DRAFTING
         : result.state === 'failed' ? result.spoken

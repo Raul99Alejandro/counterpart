@@ -28,7 +28,7 @@ describe('tools de alta', () => {
     await setup.settled();
     const activated = await client.callTool({ name: 'activate_business_setup', arguments: { confirm: true } });
     expect(activated.isError).toBeFalsy();
-    expect(text(activated)).toContain('Petal and Stem is ready. Open me again');
+    expect(text(activated)).toContain('Petal and Stem is ready. To use it, say stop and open me again.');
     expect((await store.getBusiness('florist'))?.status).toBe('active');
   });
 });

@@ -33,6 +33,8 @@ export type ActivateResult =
 export class SetupService {
   private readonly starts = new Map<string, number[]>();
   private readonly running = new Set<Promise<void>>();
+  /** Generación en curso por negocio: revisar puede esperarla. */
+  private readonly runs = new Map<string, Promise<void>>();
   /** Arranques en curso por negocio: se marca antes del primer await, para que dos llamadas a la vez no generen dos veces. */
   private readonly starting = new Set<string>();
 
@@ -66,12 +68,22 @@ export class SetupService {
       description, state: 'generating', createdAt,
       expiresAt: Math.floor(now.getTime() / 1000) + DRAFT_TTL_SECONDS
     });
-    const run: Promise<void> = this.generate(bizId, description, createdAt).finally(() => this.running.delete(run));
+    const run: Promise<void> = this.generate(bizId, description, createdAt).finally(() => {
+      this.running.delete(run);
+      if (this.runs.get(bizId) === run) this.runs.delete(bizId);
+    });
     this.running.add(run);
+    this.runs.set(bizId, run);
     return 'started';
   }
 
-  async review(bizId: string): Promise<ReviewResult> {
+  /**
+   * Con `waitMs`, espera a que termine la generación en curso (hasta ese tope) antes de contestar.
+   * Si contesta "todavía no" al instante, el agente vuelve a preguntar en bucle dentro del mismo turno.
+   */
+  async review(bizId: string, opts: { waitMs?: number } = {}): Promise<ReviewResult> {
+    const run = this.runs.get(bizId);
+    if (run && opts.waitMs) await Promise.race([run, delay(opts.waitMs)]);
     const draft = await this.current(bizId, this.deps.now());
     if (!draft) return { state: 'none' };
     if (draft.state === 'generating') return { state: 'generating' };
@@ -139,4 +151,9 @@ export class SetupService {
       log({ level: 'error', msg: 'setup_crashed', businessId: bizId, error: err instanceof Error ? `${err.name}: ${err.message}` : String(err) });
     }
   }
+}
+
+/** Espera que no retiene el proceso vivo. */
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms).unref());
 }
