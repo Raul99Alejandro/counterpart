@@ -119,6 +119,19 @@ Then `npm run generate && npm run deploy && npm run skill:deploy && npm run depl
 
 The third bridge talks to a **blank** business created with `npm run business:new -- florist "Petal and Stem" --secret`: `counterpart/florist/token`, `petal and stem` and `CounterpartFloristBridge`. Its skill starts with the three setup tools; after you say yes to the draft, open the skill again and it answers with the new business's nine tools.
 
+## See the screens in basic-host
+
+Counterpart's three MCP Apps (today's snapshot, the sales report and the setup draft) render in any MCP Apps host. To try them locally with the reference host from [ext-apps](https://github.com/modelcontextprotocol/ext-apps):
+
+```bash
+npx tsx src/index.ts                                  # Counterpart on :3000, in-memory store, demo tokens
+git clone https://github.com/modelcontextprotocol/ext-apps.git
+cd ext-apps/examples/basic-host && npm install
+SERVERS='["http://localhost:3000/mcp"]' npx tsx serve.ts   # open http://localhost:8080
+```
+
+basic-host sends no `Authorization` header, so either start Counterpart with `HOST=127.0.0.1 COUNTERPART_DEV_BUSINESS=shop` (local no-token mode) or put a small proxy in front that adds `Authorization: Bearer demo-shop-token`. Call `get_shop_snapshot` or `sales_report` and the screen appears next to the result; with a blank business, `review_business_setup` shows the draft.
+
 ## Configuration
 
 | Variable | Default | Meaning |

@@ -113,3 +113,24 @@ Problems we hit while building Counterpart, in the order we hit them. Each entry
 - **What happened:** By default the bridge rehydrates the user's recent turns from earlier sessions and extracts long-term "preferences". After a day of failed tests, every new session started with a history full of "Sorry, I couldn't…", and Nova 2 Lite answered "Sorry, I still can't…" without calling a single tool. Counterpart's logs showed no tool calls at all.
 - **Impact:** Half a day spent assuming the server or the deploy was still broken. Fixed by deleting the actor's memory events and records, and by turning off cross-session rehydration and long-term memory in our fork.
 - **Suggestion:** Don't rehydrate turns from other sessions by default for tool-backed skills whose answers come from live data, or at least drop tool-error turns from what gets rehydrated.
+
+## 17. Nova 2 Lite drafted a second date field next to the due date
+
+- **Area:** Amazon Bedrock (Nova 2 Lite), setup assistant
+- **What happened:** Asked to draft a flower shop, Nova 2 Lite returned a valid profile with `due: required` **and** a required `event_date` order field, three runs out of three, and with only 5 catalog items. Prompt changes raised the catalog to 12–25 items but the extra date stayed, and a more insistent prompt made one run fail validation.
+- **Impact:** Taking an order would have asked for two dates. We added a validation rule (no order field named like a date when `due` is set), so the repair pass removes it: 3/3 valid drafts, but 14–19 s instead of 4–9 s, because every draft now needs the repair round.
+- **Suggestion:** Nothing for Bedrock; for builders: keep rules the model keeps breaking in code, not in the prompt, and let a repair pass fix them.
+
+## 18. The bridge's agent doesn't see tools added mid-session
+
+- **Area:** `alexa-skill-mcp-bridge` agent
+- **What happened:** A blank business exposes three setup tools; after activation the server swaps them for the nine business tools and sends `notifications/tools/list_changed`. The bridge builds its Strands agent (tools and system prompt) once per session and never listens for the notification, so the new tools only appear when the user opens the skill again.
+- **Impact:** The activation answer always says "Open me again". MCP clients that honor the notification (basic-host) see the new tools right away.
+- **Suggestion:** Rebuild the agent's tool list on `tools/list_changed`, keeping the conversation.
+
+## 19. A one-day period drew one bar across the whole chart
+
+- **Area:** Counterpart sales report MCP App, seen in basic-host
+- **What happened:** On a Monday, "this week" is one day, and the chart drew a single bar as wide as the card.
+- **Impact:** Looked broken in the demo recording, which falls on a Monday. Bars are now capped at 64 px and centered.
+

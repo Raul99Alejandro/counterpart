@@ -79,12 +79,14 @@ export function salesChartSvg(daily: Point[], prevDaily: Point[] = [], width = 5
   const chart = height - 20; // espacio para las etiquetas
   const max = Math.max(1, ...daily.map(d => d.cents), ...prevDaily.map(d => d.cents));
   const gap = 4;
-  const barWidth = Math.max(2, Math.floor((width - gap * (daily.length - 1)) / daily.length));
+  // Tope de 64 px: un periodo de un día (hoy, o "esta semana" un lunes) no llena todo el ancho.
+  const barWidth = Math.min(64, Math.max(2, Math.floor((width - gap * (daily.length - 1)) / daily.length)));
+  const left = Math.round((width - (barWidth * daily.length + gap * (daily.length - 1))) / 2);
   const scale = (cents: number): number => Math.round((cents / max) * (chart - 10));
   const every = daily.length <= 7 ? 1 : 7;
 
   const parts = daily.map((d, i) => {
-    const x = i * (barWidth + gap);
+    const x = left + i * (barWidth + gap);
     const prev = prevDaily[i];
     const ghost = prev
       ? `<rect class="prev" x="${x}" y="${chart - scale(prev.cents)}" width="${barWidth}" height="${scale(prev.cents)}" rx="2">`

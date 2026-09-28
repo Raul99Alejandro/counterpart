@@ -74,4 +74,9 @@ describe('render de las UIs', () => {
     expect(svg).toContain('>Tue</text>');
     expect(svg.match(/class="prev"/g)).toHaveLength(2);
   });
+  it('un periodo de un solo día no dibuja una barra de todo el ancho', () => {
+    const svg = salesChartSvg([{ date: '2026-09-28', cents: 1000 }], [{ date: '2026-09-21', cents: 800 }]);
+    const widths = [...svg.matchAll(/width="(\d+)"/g)].map(m => Number(m[1]));
+    expect(Math.max(...widths)).toBeLessThanOrEqual(64);
+  });
 });
