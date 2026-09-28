@@ -117,7 +117,7 @@ BRIDGE_STACK_NAME=CounterpartShopBridge
 
 Then `npm run generate && npm run deploy && npm run skill:deploy && npm run deploy`, and open the skill's Test tab in the Alexa developer console. The bakery uses `counterpart/bakery/token`, `sweet crumb bakery` and `CounterpartBakeryBridge`.
 
-The third bridge talks to a **blank** business created with `npm run business:new -- florist "Petal and Stem" --secret`: `counterpart/florist/token`, `petal and stem` and `CounterpartFloristBridge`. Its skill starts with the three setup tools; after you say yes to the draft, open the skill again and it answers with the new business's nine tools.
+The third bridge talks to a **blank** business created with `npm run business:new -- florist "Petal and Stem" --secret`: `counterpart/florist/token`, `petal and stem` and `CounterpartFloristBridge`. Its skill starts with the three setup tools; after you say yes to the draft, the same conversation continues with the new business's nine tools (our fork refreshes the agent on `tools/list_changed`).
 
 ## See the screens in basic-host
 

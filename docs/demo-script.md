@@ -24,7 +24,7 @@ Las frases habladas van en inglés, tal como se dicen. Todas están en `test/gol
 3. **1:30–1:55 · Lo visual.** *"How's the shop looking today?"* y *"How did we do this week compared to last week?"*, mostrando las dos UIs de MCP Apps. Se presentan como la interfaz que Alexa+ muestra en dispositivos con pantalla, sin hacerlas pasar por una captura de Alexa+.
 4. **1:55–2:35 · Un negocio nuevo, configurado hablando.** "Petal and Stem" empieza en blanco (`npm run business:new -- florist "Petal and Stem" --reset` antes de grabar).
    - *"Open petal and stem"* → *"I run a flower shop. We take orders for bouquets and centerpieces, arrange them, and they're ready for pickup or delivery."*
-   - Esperar unos 20 s (el borrador pasa por una reparación) y *"What did you come up with?"*, con la pantalla del borrador de basic-host como inserto.
-   - *"Yes, turn it on"* → reabrir la Skill → *"Take an order for Maria Lopez, a dozen roses for Friday"* → *"What flower orders are due Friday?"*
+   - Esperar unos 15 s y *"What did you come up with?"*, con la pantalla del borrador de basic-host como inserto.
+   - *"Yes, turn it on"* → en la misma conversación: *"Take an order for Maria Lopez, a dozen roses for Friday"* → *"What bouquet orders are due Friday?"* (los sustantivos salen del borrador de Nova: revisarlos antes de grabar).
    - La pastelería queda como segundo perfil en el diagrama y en el texto de Devpost.
 5. **2:35–3:00 · Cómo está hecho.** El diagrama de `docs/aws-builder.md` (ECS Express Mode, DynamoDB, Secrets Manager, Bedrock AgentCore con Nova 2 Lite) y el cierre: un motor, cualquier negocio con órdenes.

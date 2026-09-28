@@ -118,19 +118,26 @@ Problems we hit while building Counterpart, in the order we hit them. Each entry
 
 - **Area:** Amazon Bedrock (Nova 2 Lite), setup assistant
 - **What happened:** Asked to draft a flower shop, Nova 2 Lite returned a valid profile with `due: required` **and** a required `event_date` order field, three runs out of three, and with only 5 catalog items. Prompt changes raised the catalog to 12–25 items but the extra date stayed, and a more insistent prompt made one run fail validation.
-- **Impact:** Taking an order would have asked for two dates. We added a validation rule (no order field named like a date when `due` is set), so the repair pass removes it: 3/3 valid drafts, but 14–19 s instead of 4–9 s, because every draft now needs the repair round.
-- **Suggestion:** Nothing for Bedrock; for builders: keep rules the model keeps breaking in code, not in the prompt, and let a repair pass fix them.
+- **Impact:** Taking an order would have asked for two dates. We now drop order fields named like a date when `due` is set, right after validation, so no repair round is needed and the draft keeps its `consumes` (about 5 s per draft in the deployed flow).
+- **Suggestion:** Nothing for Bedrock; for builders: fix deterministically in code what the model keeps getting wrong, instead of fighting it in the prompt.
 
 ## 18. The bridge's agent doesn't see tools added mid-session
 
-- **Area:** `alexa-skill-mcp-bridge` agent
-- **What happened:** A blank business exposes three setup tools; after activation the server swaps them for the nine business tools and sends `notifications/tools/list_changed`. The bridge builds its Strands agent (tools and system prompt) once per session and never listens for the notification, so the new tools only appear when the user opens the skill again.
-- **Impact:** The activation answer always says "Open me again". MCP clients that honor the notification (basic-host) see the new tools right away.
-- **Suggestion:** Rebuild the agent's tool list on `tools/list_changed`, keeping the conversation.
+- **Area:** `alexa-skill-mcp-bridge` agent on Amazon Bedrock AgentCore
+- **What happened:** A blank business exposes three setup tools; after activation the server swaps them for the nine business tools and sends `notifications/tools/list_changed`. The bridge builds its Strands agent (tools and system prompt) once per container and never listened for the notification. We assumed reopening the skill would start a fresh agent, but the skill uses the hashed **user** id as the AgentCore `runtimeSessionId`, so the same warm container (and the same agent, with its old tools and its conversation) answers every session of that user for up to its idle timeout. In the simulator, "take an order" after activation got "I don't have a tool for that", even after reopening, and one session's history leaked into the next.
+- **Impact:** The setup assistant looked broken on its first real voice test. Fixed in our fork: the MCP client drops its cached tools on `tools/list_changed`, and before each request the agent is rebuilt when the tools changed (keeping the conversation) or when a new Alexa session starts (clean history, tools listed again). Now "yes, turn it on" and "take an order for Maria Lopez" work in the same conversation.
+- **Suggestion:** Honor `tools/list_changed` in the bridge, and key conversation state by the Alexa session, not only by the container.
 
 ## 19. A one-day period drew one bar across the whole chart
 
 - **Area:** Counterpart sales report MCP App, seen in basic-host
 - **What happened:** On a Monday, "this week" is one day, and the chart drew a single bar as wide as the card.
 - **Impact:** Looked broken in the demo recording, which falls on a Monday. Bars are now capped at 64 px and centered.
+
+## 20. The agent polled a slow tool in a loop, and the turn fell apart
+
+- **Area:** `alexa-skill-mcp-bridge` agent with Nova 2 Lite, Counterpart setup assistant
+- **What happened:** The draft is generated in the background (it takes longer than one Alexa turn). Right after starting it, the agent called `review_business_setup` eleven times in one turn, each answering "still drafting", until the 6.5 s budget ran out. The bridge passes Nova the tool's `structuredContent` (JSON), not its text, so our "don't check yet" never reached the model.
+- **Impact:** "Sorry, something went wrong", and a muddled history that later made "yes, turn it on" do nothing. Fixed on our side: the setup tools' JSON now carries the spoken message, and the review waits for a draft in progress (up to 20 s) so the agent checks once.
+- **Suggestion:** For tools that return both, give the model the text as well as the JSON, or document that only `structuredContent` reaches it.
 

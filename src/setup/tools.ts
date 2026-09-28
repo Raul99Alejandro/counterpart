@@ -41,10 +41,10 @@ export function draftSummary(profile: Profile, itemCount: number): string {
     + `with ${things} in your catalog. Should I turn it on?`;
 }
 
-/** El bridge arma su agente una vez por sesión de Alexa: las tools nuevas se ven al reabrir la Skill (Decisión 1). */
+/** La sesión cambia sus tools y avisa con tools/list_changed; el fork del bridge las toma en el siguiente turno. */
 export function readyText(business: Business, profile: Profile): string {
   const tryIt = profile.due === 'none' ? `what ${profile.nouns.orders} are open?` : `what ${profile.nouns.orders} are due today?`;
-  return `${business.name} is ready. To use it, say stop and open me again. Then try: ${tryIt}`;
+  return `${business.name} is ready. Try: ${tryIt}`;
 }
 
 function activateText(result: ActivateResult): string {

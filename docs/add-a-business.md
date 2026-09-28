@@ -76,4 +76,4 @@ A blank business exposes only three tools. Connect an Alexa bridge to it (see th
 > "What did you come up with?"
 > "Yes, turn it on."
 
-Counterpart drafts a profile and a catalog with Amazon Nova 2 Lite, checks them with the same rules as a package, and turns nothing on until you say yes. Open the skill again and the business answers with its own nine tools.
+Counterpart drafts a profile and a catalog with Amazon Nova 2 Lite, checks them with the same rules as a package, and turns nothing on until you say yes. The same conversation continues with the business's own nine tools.

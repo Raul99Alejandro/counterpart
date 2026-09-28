@@ -42,5 +42,5 @@
 
 **What needs improvement:** On Windows its scripts could not start `npx` or `ask` (both `.cmd` shims), the stack name was fixed so a second Skill in the same account replaced the first, and the agent kept a dead MCP session after our server redeployed instead of starting a new one on HTTP 404. Our fork fixes all three: https://github.com/Raul99Alejandro/alexa-skill-mcp-bridge/tree/counterpart
 
-**Also for Alexa+:** add-ons can change shape at runtime. Counterpart's setup assistant starts with three setup tools and, once the owner says yes, swaps them for the nine tools of the new business and sends `notifications/tools/list_changed`. An orchestrator that builds its tool list once per session (as the bridge does) needs the user to reopen the skill; refreshing on the notification would make "set up my business, then use it" one conversation.
+**Also for Alexa+:** add-ons can change shape at runtime. Counterpart's setup assistant starts with three setup tools and, once the owner says yes, swaps them for the nine tools of the new business and sends `notifications/tools/list_changed`. An orchestrator that builds its tool list once (as the bridge did) keeps offering the old tools; our fork refreshes on the notification, which makes "set up my business, then use it" one conversation. We'd like Alexa+ to do the same.
 
