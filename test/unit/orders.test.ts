@@ -64,3 +64,8 @@ describe('órdenes', () => {
     expect(r).toEqual({ ok: false, code: 'CANNOT_CLOSE' });
   });
 });
+
+it('no mueve una orden cerrada', () => {
+  const closed = { ...newOrder({ id: 'o', number: 1, customerId: 'c', fields: {}, stage: 'picked_up', now: new Date() }) };
+  expect(moveStage(closed, 'in_bay', profile, new Date())).toEqual({ ok: false, code: 'INVALID_STAGE', reason: 'closed' });
+});

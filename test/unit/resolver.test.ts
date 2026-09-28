@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { loadTemplate } from '../../src/profiles/load.js';
-import { normalize, resolveOrder, tokenScore, type OrderRef } from '../../src/domain/resolver.js';
+import { normalize, pickBest, resolveOrder, tokenScore, type OrderRef } from '../../src/domain/resolver.js';
 import type { Asset, Customer, Order } from '../../src/domain/types.js';
 
 const profile = loadTemplate('auto-repair');
@@ -95,5 +95,14 @@ describe('referencias habladas', () => {
       asset: { id: 'a90', customerId: 'c90', fields: { vin: 'ZX9' }, spokenLabel: 'Box Truck' }
     };
     expect(resolveOrder('ZX9', [civic, truck], profile)).toEqual({ kind: 'one', ref: truck });
+  });
+});
+
+describe('pickBest', () => {
+  it('elige el mejor, empata dentro del margen y descarta lo que no llega al umbral', () => {
+    expect(pickBest([{ value: 'a', score: 1 }, { value: 'b', score: 0.5 }])).toEqual({ kind: 'one', value: 'a' });
+    expect(pickBest([{ value: 'a', score: 0.9 }, { value: 'b', score: 0.8 }])).toEqual({ kind: 'ambiguous', values: ['a', 'b'] });
+    expect(pickBest([{ value: 'a', score: 0.4 }])).toEqual({ kind: 'none' });
+    expect(pickBest([])).toEqual({ kind: 'none' });
   });
 });

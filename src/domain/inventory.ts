@@ -1,4 +1,4 @@
-import { tokenScore } from './resolver.js';
+import { pickBest, tokenScore } from './resolver.js';
 import type { CatalogItem, Order, OrderLine, PurchaseOrder } from './types.js';
 
 /** Busca un ítem del catálogo por nombre o sinónimo, con el mismo criterio que las referencias habladas. */
@@ -6,25 +6,21 @@ export function findItem(query: string, items: CatalogItem[]):
   | { kind: 'one'; item: CatalogItem }
   | { kind: 'none'; suggestions: CatalogItem[] }
   | { kind: 'ambiguous'; candidates: CatalogItem[] } {
-  const scored = items
-    .map(item => ({ item, score: tokenScore(query, [item.name, ...item.synonyms].join(' ')) }))
-    .sort((a, b) => b.score - a.score);
-
-  const best = scored[0];
-  if (!best || best.score < 0.5) {
-    return { kind: 'none', suggestions: scored.slice(0, 3).map(s => s.item) };
-  }
-  const second = scored[1];
-  if (second && best.score - second.score <= 0.15) {
-    return { kind: 'ambiguous', candidates: scored.filter(s => best.score - s.score <= 0.15).slice(0, 5).map(s => s.item) };
-  }
-  return { kind: 'one', item: best.item };
+  const scored = items.map(item => ({ value: item, score: tokenScore(query, [item.name, ...item.synonyms].join(' ')) }));
+  const picked = pickBest(scored);
+  if (picked.kind === 'one') return { kind: 'one', item: picked.value };
+  if (picked.kind === 'ambiguous') return { kind: 'ambiguous', candidates: picked.values };
+  // Sugerencias solo si se parecen en algo: tres ítems con puntaje 0 no son "closest matches".
+  const suggestions = scored.filter(s => s.score > 0).sort((a, b) => b.score - a.score).slice(0, 3).map(s => s.value);
+  return { kind: 'none', suggestions };
 }
 
 /** Arma la partida y devuelve los ítems con el stock ya descontado. `onHand` nunca baja de cero. */
 export function addLineToOrder(
   item: CatalogItem, quantity: number, items: CatalogItem[]
 ): { line: OrderLine; itemUpdates: CatalogItem[] } {
+  // El esquema de la tool ya exige positive(); esto protege a quien llame al dominio directo.
+  if (!(quantity > 0)) throw new RangeError(`la cantidad debe ser mayor que cero, no ${quantity}`);
   const updates = new Map<string, CatalogItem>();
 
   const take = (target: CatalogItem, qty: number): number => {
@@ -75,7 +71,7 @@ export function planReorder(
     if (alreadyOrdered.has(item.id)) { skipped.push(item); continue; }
     const supplierId = item.supplierId ?? 'unassigned';
     const lines = bySupplier.get(supplierId) ?? [];
-    lines.push({ itemId: item.id, qty: item.reorderQty + (backorders.get(item.id) ?? 0) });
+    lines.push({ itemId: item.id, qty: Math.max(1, item.reorderQty) + (backorders.get(item.id) ?? 0) });
     bySupplier.set(supplierId, lines);
   }
 

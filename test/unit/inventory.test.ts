@@ -86,3 +86,21 @@ describe('inventario', () => {
     expect(r.purchaseOrders).toEqual([{ supplierId: 's1', lines: [{ itemId: 'i2', qty: 12 }] }]);
   });
 });
+
+it('no sugiere como "closest matches" ítems que no se parecen en nada', () => {
+  const items = [
+    { id: 'a', name: 'Brake pads', synonyms: [], kind: 'part', unit: 'each', priceCents: 1, taxable: true, stocked: true, onHand: 1, reorderPoint: 0, reorderQty: 1, consumes: {}, version: 1 },
+    { id: 'b', name: 'Brake rotor', synonyms: [], kind: 'part', unit: 'each', priceCents: 1, taxable: true, stocked: true, onHand: 1, reorderPoint: 0, reorderQty: 1, consumes: {}, version: 1 }
+  ] as CatalogItem[];
+  expect(findItem('windshield', items)).toEqual({ kind: 'none', suggestions: [] });
+});
+
+it('rechaza cantidades de cero o menos', () => {
+  const item = { id: 'a', name: 'Pads', synonyms: [], kind: 'part', unit: 'each', priceCents: 1, taxable: true, stocked: true, onHand: 1, reorderPoint: 0, reorderQty: 1, consumes: {}, version: 1 } as CatalogItem;
+  expect(() => addLineToOrder(item, 0, [item])).toThrow(RangeError);
+});
+
+it('un reorden nunca pide menos de uno aunque reorderQty sea 0', () => {
+  const item = { id: 'a', name: 'Pads', synonyms: [], kind: 'part', unit: 'each', priceCents: 1, taxable: true, stocked: true, onHand: 0, reorderPoint: 2, reorderQty: 0, consumes: {}, version: 1 } as CatalogItem;
+  expect(planReorder([item], [], []).purchaseOrders[0]?.lines[0]?.qty).toBe(1);
+});

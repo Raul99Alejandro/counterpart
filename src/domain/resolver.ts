@@ -77,6 +77,20 @@ export function scoreOrder(tokens: string[], ref: OrderRef): number {
 /** Umbral compartido: por debajo de esto no se considera coincidencia. */
 export const MATCH_THRESHOLD = 0.5;
 
+/** Dos candidatos a menos de esto del mejor cuentan como empate. */
+export const TIE_MARGIN = 0.15;
+
+/** Un solo criterio para elegir entre candidatos puntuados: órdenes e ítems usan el mismo (carryover §5). */
+export function pickBest<T>(scored: Array<{ value: T; score: number }>):
+  | { kind: 'one'; value: T } | { kind: 'none' } | { kind: 'ambiguous'; values: T[] } {
+  const sorted = [...scored].sort((a, b) => b.score - a.score);
+  const best = sorted[0];
+  if (!best || best.score < MATCH_THRESHOLD) return { kind: 'none' };
+  const tied = sorted.filter(s => best.score - s.score <= TIE_MARGIN);
+  if (tied.length > 1) return { kind: 'ambiguous', values: tied.slice(0, 5).map(s => s.value) };
+  return { kind: 'one', value: best.value };
+}
+
 export function resolveOrder(query: string, candidates: OrderRef[], profile: Profile):
   | { kind: 'one'; ref: OrderRef } | { kind: 'none' } | { kind: 'ambiguous'; refs: OrderRef[] } {
   const tokens = normalizeQuery(query, profile);
@@ -88,14 +102,8 @@ export function resolveOrder(query: string, candidates: OrderRef[], profile: Pro
   const byNumber = asNumber ? candidates.find(c => c.order.number === Number(asNumber)) : undefined;
   if (byNumber && tokens.length === 1) return { kind: 'one', ref: byNumber };
 
-  const scored = candidates
-    .map(ref => ({ ref, score: scoreOrder(tokens, ref) }))
-    .sort((a, b) => b.score - a.score);
-
-  const best = scored[0];
-  if (!best || best.score < MATCH_THRESHOLD) return byNumber ? { kind: 'one', ref: byNumber } : { kind: 'none' };
-
-  const tied = scored.filter(s => best.score - s.score <= 0.15);
-  if (tied.length > 1) return { kind: 'ambiguous', refs: tied.slice(0, 5).map(s => s.ref) };
-  return { kind: 'one', ref: best.ref };
+  const picked = pickBest(candidates.map(ref => ({ value: ref, score: scoreOrder(tokens, ref) })));
+  if (picked.kind === 'none') return byNumber ? { kind: 'one', ref: byNumber } : { kind: 'none' };
+  if (picked.kind === 'ambiguous') return { kind: 'ambiguous', refs: picked.values };
+  return { kind: 'one', ref: picked.value };
 }
