@@ -15,31 +15,31 @@ export function parseProfile(raw: unknown): Profile {
 
   // Verificar que closedStage está en stages
   if (!stageIds.has(p.closedStage)) {
-    throw new Error(`closedStage "${p.closedStage}" no está en stages`);
+    throw new Error(`closedStage "${p.closedStage}" is not one of the stages`);
   }
 
   // Verificar que closeFrom contiene solo stages válidos y no incluye closedStage
   for (const s of p.closeFrom) {
-    if (!stageIds.has(s)) throw new Error(`closeFrom contiene "${s}", que no está en stages`);
-    if (s === p.closedStage) throw new Error(`closeFrom no puede incluir closedStage`);
+    if (!stageIds.has(s)) throw new Error(`closeFrom has "${s}", which is not one of the stages`);
+    if (s === p.closedStage) throw new Error(`closeFrom cannot include the closedStage "${s}"`);
   }
 
   // Verificar que no hay nombres de tools duplicados
   const names = TOOL_KEYS.map(k => p.toolNames[k]);
   const dupes = names.filter((n, i) => names.indexOf(n) !== i);
-  if (dupes.length > 0) throw new Error(`nombre de tool duplicado: ${dupes[0]}`);
+  if (dupes.length > 0) throw new Error(`tool name "${dupes[0]}" is used twice; every tool needs its own name`);
 
   // Si hay un activo, verificar que spokenAs solo usa campos definidos
   if (p.asset) {
     const fieldIds = new Set(p.asset.fields.map(f => f.id));
     for (const m of p.asset.spokenAs.matchAll(/\{([a-z0-9_]+)\}/g)) {
-      if (!fieldIds.has(m[1]!)) throw new Error(`spokenAs usa "{${m[1]}}", que no es un campo del activo`);
+      if (!fieldIds.has(m[1]!)) throw new Error(`spokenAs uses "{${m[1]}}", which is not a field of the asset`);
     }
   }
 
   // Verificar que orderFields no usan ids reservados
   for (const f of p.orderFields) {
-    if (RESERVED_FIELD_IDS.has(f.id)) throw new Error(`orderFields usa el id reservado "${f.id}"`);
+    if (RESERVED_FIELD_IDS.has(f.id)) throw new Error(`orderFields uses the reserved id "${f.id}"; pick another id`);
   }
 
   return p;

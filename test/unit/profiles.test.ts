@@ -26,7 +26,7 @@ describe('perfiles', () => {
   it('rechaza nombres de tool duplicados', () => {
     const bad = minimal();
     bad.toolNames.find = bad.toolNames.open;
-    expect(() => parseProfile(bad)).toThrow(/duplicado/);
+    expect(() => parseProfile(bad)).toThrow(/used twice/);
   });
 
   it('rechaza un spokenAs con un campo inexistente', () => {
@@ -38,7 +38,7 @@ describe('perfiles', () => {
   it('rechaza un orderFields con un id reservado por las tools', () => {
     const bad = minimal();
     bad.orderFields = [{ id: 'due', type: 'string', required: true }];
-    expect(() => parseProfile(bad)).toThrow(/reservado/);
+    expect(() => parseProfile(bad)).toThrow(/reserved/);
   });
 });
 
