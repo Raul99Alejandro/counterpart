@@ -36,3 +36,5 @@ svg text { fill: var(--muted); font-size: 12px; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
 th, td { text-align: left; padding: 4px 6px; border-bottom: 1px solid rgba(127, 127, 127, .25); }
 td.num, th.num { text-align: right; }
+rect.prev { fill: rgba(127, 127, 127, .35); }
+text.axis { font-size: 11px; fill: currentColor; opacity: .6; }

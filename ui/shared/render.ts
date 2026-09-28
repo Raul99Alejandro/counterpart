@@ -12,6 +12,7 @@ export interface SalesReportView {
   from: string; to: string; prevFrom: string; prevTo: string;
   totalCents: number; prevTotalCents: number; count: number; averageTicketCents: number;
   daily: Array<{ date: string; cents: number }>;
+  prevDaily: Array<{ date: string; cents: number }>;
   topItems: Array<{ name: string; quantity: number; cents: number }>;
 }
 
@@ -61,21 +62,43 @@ export function snapshotHtml(d: SnapshotView): string {
     + `<section class="split"><div><h2>Due today</h2>${due}</div><div><h2>Running low</h2>${low}</div></section>`;
 }
 
-export function salesChartSvg(daily: Array<{ date: string; cents: number }>, width = 560, height = 160): string {
-  if (daily.length === 0) {
+type Point = { date: string; cents: number };
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function dayLabel(date: string, count: number): string {
+  const d = new Date(`${date}T12:00:00Z`);
+  return count <= 7 ? WEEKDAYS[d.getUTCDay()]! : String(d.getUTCDate());
+}
+
+/** Barras del periodo con la del periodo anterior detrás, en gris, y etiquetas de fecha. */
+export function salesChartSvg(daily: Point[], prevDaily: Point[] = [], width = 560, height = 180): string {
+  if (daily.length === 0 || [...daily, ...prevDaily].every(d => d.cents === 0)) {
     return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="No sales in this period">`
       + `<text x="${width / 2}" y="${height / 2}" text-anchor="middle" class="muted">No sales in this period</text></svg>`;
   }
-  const max = Math.max(...daily.map(d => d.cents));
+  const chart = height - 20; // espacio para las etiquetas
+  const max = Math.max(1, ...daily.map(d => d.cents), ...prevDaily.map(d => d.cents));
   const gap = 4;
-  const barWidth = Math.max(1, Math.floor((width - gap * (daily.length - 1)) / daily.length));
-  const bars = daily.map((d, i) => {
-    const h = max === 0 ? 0 : Math.round((d.cents / max) * (height - 20));
+  const barWidth = Math.max(2, Math.floor((width - gap * (daily.length - 1)) / daily.length));
+  const scale = (cents: number): number => Math.round((cents / max) * (chart - 10));
+  const every = daily.length <= 7 ? 1 : 7;
+
+  const parts = daily.map((d, i) => {
     const x = i * (barWidth + gap);
-    return `<rect x="${x}" y="${height - h}" width="${barWidth}" height="${h}" rx="2">`
+    const prev = prevDaily[i];
+    const ghost = prev
+      ? `<rect class="prev" x="${x}" y="${chart - scale(prev.cents)}" width="${barWidth}" height="${scale(prev.cents)}" rx="2">`
+        + `<title>${escapeHtml(prev.date)}: ${money(prev.cents)}</title></rect>`
+      : '';
+    const inner = Math.max(1, Math.round(barWidth / 2));
+    const bar = `<rect x="${x + Math.round((barWidth - inner) / 2)}" y="${chart - scale(d.cents)}" width="${inner}" height="${scale(d.cents)}" rx="2">`
       + `<title>${escapeHtml(d.date)}: ${money(d.cents)}</title></rect>`;
+    const label = i % every === 0
+      ? `<text class="axis" x="${x + barWidth / 2}" y="${height - 4}" text-anchor="middle">${dayLabel(d.date, daily.length)}</text>`
+      : '';
+    return ghost + bar + label;
   }).join('');
-  return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Daily sales">${bars}</svg>`;
+  return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Daily sales, with the previous period in gray">${parts}</svg>`;
 }
 
 export function salesReportHtml(r: SalesReportView): string {
@@ -91,7 +114,7 @@ export function salesReportHtml(r: SalesReportView): string {
     + `<div><div class="kpi-label">Sales</div><div class="kpi-value">${r.count}</div></div>`
     + `<div><div class="kpi-label">Average</div><div class="kpi-value">${money(r.averageTicketCents)}</div></div>`
     + `</section>`
-    + `<section><h2>${escapeHtml(r.from)} – ${escapeHtml(r.to)}</h2>${salesChartSvg(r.daily)}</section>`
+    + `<section><h2>${escapeHtml(r.from)} – ${escapeHtml(r.to)}</h2>${salesChartSvg(r.daily, r.prevDaily)}</section>`
     + `<section><h2>Best sellers</h2>${top}</section>`;
 }
 

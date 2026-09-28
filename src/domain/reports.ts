@@ -1,5 +1,5 @@
 import type { Profile } from '../profiles/schema.js';
-import { shiftDays } from './dates.js';
+import { datesBetween, shiftDays } from './dates.js';
 import { lowStock } from './inventory.js';
 import type { OrderRef } from './resolver.js';
 import type { CatalogItem, Order, Payment } from './types.js';
@@ -16,6 +16,7 @@ export interface SalesReport {
   from: string; to: string; prevFrom: string; prevTo: string;
   totalCents: number; prevTotalCents: number; count: number; averageTicketCents: number;
   daily: Array<{ date: string; cents: number }>;
+  prevDaily: Array<{ date: string; cents: number }>;
   topItems: Array<{ name: string; quantity: number; cents: number }>;
 }
 
@@ -60,8 +61,12 @@ export function buildSalesReport(input: {
   const previous = payments.filter(p => inRange(p, range.prevFrom, range.prevTo));
   const totalCents = current.reduce((sum, p) => sum + p.amountCents, 0);
 
-  const byDay = new Map<string, number>();
-  for (const p of current) byDay.set(day(p), (byDay.get(day(p)) ?? 0) + p.amountCents);
+  /** Serie diaria completa del rango, con ceros: así las dos series quedan alineadas día por día. */
+  const series = (from: string, to: string, list: Payment[]) => {
+    const sums = new Map<string, number>();
+    for (const p of list) sums.set(day(p), (sums.get(day(p)) ?? 0) + p.amountCents);
+    return datesBetween(from, to).map(date => ({ date, cents: sums.get(date) ?? 0 }));
+  };
 
   const byItem = new Map<string, { name: string; quantity: number; cents: number }>();
   const ordersById = new Map(orders.map(o => [o.id, o]));
@@ -81,7 +86,8 @@ export function buildSalesReport(input: {
     prevTotalCents: previous.reduce((sum, p) => sum + p.amountCents, 0),
     count: current.length,
     averageTicketCents: current.length === 0 ? 0 : Math.round(totalCents / current.length),
-    daily: [...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, cents]) => ({ date, cents })),
+    daily: series(range.from, range.to, current),
+    prevDaily: series(range.prevFrom, range.prevTo, previous),
     topItems: [...byItem.values()].sort((a, b) => b.cents - a.cents).slice(0, 5)
   };
 }

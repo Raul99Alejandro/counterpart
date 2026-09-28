@@ -48,7 +48,30 @@ export function resolveDue(input: string, timezone: string, now: Date): string |
   return null;
 }
 
-/** Rangos inclusivos del periodo y del periodo anterior. Semanas de lunes a domingo. */
+/** Todas las fechas civiles de `from` a `to`, inclusive. */
+export function datesBetween(from: string, to: string): string[] {
+  const out: string[] = [];
+  for (let d = from; d <= to; d = shiftDays(d, 1)) out.push(d);
+  return out;
+}
+
+function previousMonth(ym: string): string {
+  const [y, m] = ym.split('-').map(Number) as [number, number];
+  return m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`;
+}
+
+function daysInMonth(ym: string): number {
+  const [y, m] = ym.split('-').map(Number) as [number, number];
+  return new Date(Date.UTC(y, m, 0)).getUTCDate();
+}
+
+const dayOf = (ym: string, day: number): string => `${ym}-${String(day).padStart(2, '0')}`;
+
+/**
+ * Rangos inclusivos del periodo y del periodo anterior. Semanas de lunes a domingo. Los periodos en
+ * curso (`this_week`, `this_month`) van hasta hoy y se comparan contra los mismos días del periodo
+ * anterior (spec B2 §5.5.6, que cambia el §7.4 del spec base).
+ */
 export function periodRange(period: Period, timezone: string, now: Date): {
   from: string; to: string; prevFrom: string; prevTo: string;
 } {
@@ -64,31 +87,22 @@ export function periodRange(period: Period, timezone: string, now: Date): {
     }
     case 'this_week': {
       const from = shiftDays(today, -mondayOffset);
-      return { from, to: shiftDays(from, 6), prevFrom: shiftDays(from, -7), prevTo: shiftDays(from, -1) };
+      return { from, to: today, prevFrom: shiftDays(from, -7), prevTo: shiftDays(today, -7) };
     }
     case 'last_week': {
       const from = shiftDays(today, -mondayOffset - 7);
       return { from, to: shiftDays(from, 6), prevFrom: shiftDays(from, -7), prevTo: shiftDays(from, -1) };
     }
-    case 'this_month':
-      return monthRange(today.slice(0, 7));
+    case 'this_month': {
+      const ym = today.slice(0, 7);
+      const prev = previousMonth(ym);
+      const day = Number(today.slice(8));
+      return { from: dayOf(ym, 1), to: today, prevFrom: dayOf(prev, 1), prevTo: dayOf(prev, Math.min(day, daysInMonth(prev))) };
+    }
     case 'last_month': {
-      const [y, m] = today.split('-').map(Number) as [number, number];
-      const prev = m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`;
-      return monthRange(prev);
+      const ym = previousMonth(today.slice(0, 7));
+      const prev = previousMonth(ym);
+      return { from: dayOf(ym, 1), to: dayOf(ym, daysInMonth(ym)), prevFrom: dayOf(prev, 1), prevTo: dayOf(prev, daysInMonth(prev)) };
     }
   }
-}
-
-function monthRange(ym: string): { from: string; to: string; prevFrom: string; prevTo: string } {
-  const [y, m] = ym.split('-').map(Number) as [number, number];
-  const from = `${ym}-01`;
-  const to = `${ym}-${String(new Date(Date.UTC(y, m, 0)).getUTCDate()).padStart(2, '0')}`;
-  const prevYm = m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`;
-  const [py, pm] = prevYm.split('-').map(Number) as [number, number];
-  return {
-    from, to,
-    prevFrom: `${prevYm}-01`,
-    prevTo: `${prevYm}-${String(new Date(Date.UTC(py, pm, 0)).getUTCDate()).padStart(2, '0')}`
-  };
 }

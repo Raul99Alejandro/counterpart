@@ -16,7 +16,7 @@
     "test:dynamo": "cross-env DYNAMODB_ENDPOINT=http://localhost:8000 vitest run test/integration/dynamo-store.test.ts",
     "seed": "tsx seed/cli.ts",
     "token": "tsx infra/create-token.ts",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p ui/tsconfig.json",
     "build:ui": "cross-env UI_NAME=snapshot vite build --config ui/vite.config.ts && cross-env UI_NAME=sales-report vite build --config ui/vite.config.ts && cross-env UI_NAME=setup vite build --config ui/vite.config.ts",
     "smoke": "tsx infra/smoke.ts",
     "golden": "tsx infra/golden/cli.ts",

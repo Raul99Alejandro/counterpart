@@ -12,6 +12,7 @@ const output = z.object({
   from: z.string(), to: z.string(), prevFrom: z.string(), prevTo: z.string(),
   totalCents: z.number(), prevTotalCents: z.number(), count: z.number(), averageTicketCents: z.number(),
   daily: z.array(z.object({ date: z.string(), cents: z.number() })),
+  prevDaily: z.array(z.object({ date: z.string(), cents: z.number() })),
   topItems: z.array(z.object({ name: z.string(), quantity: z.number(), cents: z.number() }))
 });
 

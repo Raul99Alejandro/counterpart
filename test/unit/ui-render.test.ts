@@ -41,7 +41,7 @@ describe('render de las UIs', () => {
   it('omite la comparación cuando no hay periodo anterior', () => {
     const html = salesReportHtml({
       from: '2026-09-14', to: '2026-09-20', prevFrom: '2026-09-07', prevTo: '2026-09-13',
-      totalCents: 5000, prevTotalCents: 0, count: 2, averageTicketCents: 2500, daily: [], topItems: []
+      totalCents: 5000, prevTotalCents: 0, count: 2, averageTicketCents: 2500, daily: [], prevDaily: [], topItems: []
     });
     expect(html).not.toContain('%');
     expect(html).toContain('No items sold.');
@@ -64,5 +64,14 @@ describe('render de las UIs', () => {
   it('muestra el mensaje cuando el borrador no está listo', () => {
     expect(setupHtml({ state: 'generating', businessName: '<b>x</b>', message: 'Still drafting.' }))
       .toBe('<section><h2>&lt;b&gt;x&lt;/b&gt;</h2><p class="empty">Still drafting.</p></section>');
+  });
+  it('la gráfica etiqueta los días y dibuja el periodo anterior', () => {
+    const svg = salesChartSvg(
+      [{ date: '2026-09-14', cents: 1000 }, { date: '2026-09-15', cents: 0 }],
+      [{ date: '2026-09-07', cents: 500 }, { date: '2026-09-08', cents: 800 }]
+    );
+    expect(svg).toContain('>Mon</text>');
+    expect(svg).toContain('>Tue</text>');
+    expect(svg.match(/class="prev"/g)).toHaveLength(2);
   });
 });

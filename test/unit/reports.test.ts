@@ -56,8 +56,25 @@ describe('reportes', () => {
     expect(r.prevTotalCents).toBe(8000);
     expect(r.count).toBe(2);
     expect(r.averageTicketCents).toBe(7500);
-    expect(r.daily).toEqual([{ date: '2026-09-15', cents: 10000 }, { date: '2026-09-16', cents: 5000 }]);
+    // Serie completa del rango, con ceros (spec B2 §5.5.5).
+    expect(r.daily.filter(d => d.cents > 0)).toEqual([{ date: '2026-09-15', cents: 10000 }, { date: '2026-09-16', cents: 5000 }]);
+    expect(r.daily).toHaveLength(7);
     // Dos pagos de la misma orden no deben duplicar sus líneas en el agregado de artículos.
     expect(r.topItems).toEqual([{ name: 'Oil filter', quantity: 2, cents: 1800 }]);
   });
+});
+
+it('el reporte trae todos los días del rango y la serie del periodo anterior alineada', () => {
+  const pay = (id: string, paidOn: string, amountCents: number): Payment =>
+    ({ id, orderId: id, amountCents, method: 'cash', paidAt: `${paidOn}T18:00:00.000Z`, paidOn });
+  const report = buildSalesReport({
+    range: { from: '2026-09-14', to: '2026-09-16', prevFrom: '2026-09-07', prevTo: '2026-09-09' },
+    payments: [pay('a', '2026-09-15', 1000), pay('b', '2026-09-07', 500)], orders: []
+  });
+  expect(report.daily).toEqual([
+    { date: '2026-09-14', cents: 0 }, { date: '2026-09-15', cents: 1000 }, { date: '2026-09-16', cents: 0 }
+  ]);
+  expect(report.prevDaily).toEqual([
+    { date: '2026-09-07', cents: 500 }, { date: '2026-09-08', cents: 0 }, { date: '2026-09-09', cents: 0 }
+  ]);
 });
