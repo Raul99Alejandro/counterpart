@@ -39,6 +39,12 @@ export function validateSetup(raw: unknown): SetupCheck {
     const name = profile.toolNames[key];
     if (reserved.includes(name)) errors.push(`profile.toolNames.${key}: "${name}" is reserved for the setup tools; pick another name`);
   }
+  // Nova tiende a agregar un "event_date" obligatorio además de `due`: la orden pediría dos fechas.
+  if (profile.due !== 'none') {
+    profile.orderFields.forEach((f, i) => {
+      if (/date/.test(f.id)) errors.push(`profile.orderFields[${i}].id: "${f.id}" repeats the due date; remove it, due already records when the order is for`);
+    });
+  }
   if (profile.stages.length > MAX_STAGES) {
     errors.push(`profile.stages: ${profile.stages.length} stages is too many; use at most ${MAX_STAGES}`);
   }

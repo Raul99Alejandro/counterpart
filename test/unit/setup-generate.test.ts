@@ -1,0 +1,70 @@
+import { describe, expect, it } from 'vitest';
+import type { Message } from '@aws-sdk/client-bedrock-runtime';
+import {
+  generateSetup, novaDraftGenerator, SETUP_INPUT_SCHEMA, SETUP_TOOL, type ConverseFn
+} from '../../src/setup/generate.js';
+import { GENERIC_QUESTION, STAGES_QUESTION } from '../../src/setup/validate.js';
+import { floristDraft, scriptedGenerator } from '../helpers/setup.js';
+
+const broken = () => { const d = floristDraft(); d.profile.closedStage = 'done'; return d; };
+
+describe('generación del borrador con una reparación', () => {
+  it('acepta el primer intento válido', async () => {
+    const generate = scriptedGenerator(floristDraft());
+    const outcome = await generateSetup('I run a flower shop', generate);
+    expect(outcome.ok).toBe(true);
+    expect(generate.attempts).toHaveLength(1);
+  });
+
+  it('repara una vez con la lista exacta de errores', async () => {
+    const generate = scriptedGenerator(broken(), floristDraft());
+    const outcome = await generateSetup('I run a flower shop', generate);
+    expect(outcome.ok).toBe(true);
+    expect(generate.attempts[1]?.previous?.errors).toEqual(['profile: closedStage "done" is not one of the stages']);
+    expect(generate.attempts[1]?.previous?.draft).toEqual(broken());
+  });
+
+  it('se rinde tras la reparación y pregunta por lo que faltó', async () => {
+    const generate = scriptedGenerator(broken());
+    const outcome = await generateSetup('I run a flower shop', generate);
+    expect(outcome).toMatchObject({ ok: false, spoken: STAGES_QUESTION });
+    expect(generate.attempts).toHaveLength(2);
+  });
+
+  it('un generador que lanza cuenta como intento fallido', async () => {
+    const outcome = await generateSetup('I run a flower shop', scriptedGenerator(new Error('AccessDeniedException')));
+    expect(outcome).toMatchObject({ ok: false, spoken: GENERIC_QUESTION });
+    if (!outcome.ok) expect(outcome.errors[0]).toMatch(/did not return a setup \(AccessDeniedException\)/);
+  });
+});
+
+describe('generador de Nova', () => {
+  function fakeConverse(reply: Message): ConverseFn & { calls: Parameters<ConverseFn>[0][] } {
+    const calls: Parameters<ConverseFn>[0][] = [];
+    return Object.assign(async (input: Parameters<ConverseFn>[0]) => { calls.push(input); return reply; }, { calls });
+  }
+
+  it('fuerza la herramienta con el esquema derivado de zod y devuelve su entrada', async () => {
+    const converse = fakeConverse({ role: 'assistant', content: [{ toolUse: { toolUseId: 't1', name: SETUP_TOOL, input: floristDraft() } }] });
+    const draft = await novaDraftGenerator(converse)({ description: 'I run a flower shop' });
+    expect(draft).toEqual(floristDraft());
+    const call = converse.calls[0]!;
+    expect(call.toolConfig.toolChoice).toEqual({ tool: { name: SETUP_TOOL } });
+    expect(Object.keys((SETUP_INPUT_SCHEMA as { properties: object }).properties)).toEqual(['profile', 'catalog']);
+    expect(SETUP_INPUT_SCHEMA).not.toHaveProperty('$schema');
+    expect(call.messages[0]?.content?.[0]).toEqual({ text: 'I run a flower shop' });
+  });
+
+  it('en la reparación le manda los errores y su intento anterior', async () => {
+    const converse = fakeConverse({ role: 'assistant', content: [{ toolUse: { toolUseId: 't1', name: SETUP_TOOL, input: {} } }] });
+    await novaDraftGenerator(converse)({ description: 'I run a flower shop', previous: { draft: { a: 1 }, errors: ['profile: bad'] } });
+    const text = (converse.calls[0]!.messages[0]!.content![0] as { text: string }).text;
+    expect(text).toContain('- profile: bad');
+    expect(text).toContain('{"a":1}');
+  });
+
+  it('una respuesta sin la herramienta es un error', async () => {
+    const converse = fakeConverse({ role: 'assistant', content: [{ text: 'Sure! Here is your setup.' }] });
+    await expect(novaDraftGenerator(converse)({ description: 'x' })).rejects.toThrow(/no save_business_setup call/);
+  });
+});

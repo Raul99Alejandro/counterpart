@@ -61,6 +61,16 @@ describe('validación del borrador del asistente', () => {
     expect(text).toMatch(/consume each other in a loop/);
   });
 
+  it('capa 3: sin campos de fecha cuando due ya guarda la fecha de la orden', () => {
+    const d = floristDraft();
+    d.profile.orderFields.push({ id: 'event_date', type: 'string', required: true });
+    expect(errorsOf(d).join('\n')).toMatch(/profile\.orderFields\[2\]\.id: "event_date" repeats the due date/);
+    const none = floristDraft();
+    none.profile.due = 'none';
+    none.profile.orderFields.push({ id: 'event_date', type: 'string', required: false });
+    expect(validateSetup(none).ok).toBe(true);
+  });
+
   it('elige la pregunta hablada según lo que faltó', () => {
     expect(spokenFailure(['profile: closedStage "done" is not one of the stages'])).toBe(STAGES_QUESTION);
     expect(spokenFailure(['profile.stages: Too small: expected array to have >=2 items'])).toBe(STAGES_QUESTION);
