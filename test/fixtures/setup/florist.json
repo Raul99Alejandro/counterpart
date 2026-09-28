@@ -1,0 +1,38 @@
+{
+  "profile": {
+    "id": "flower-shop",
+    "nouns": { "order": "flower order", "orders": "flower orders", "item": "flower", "items": "flowers", "customer": "customer" },
+    "synonyms": { "order": ["order", "arrangement", "bouquet order"], "item": ["stem", "flower", "supply"] },
+    "toolNames": {
+      "snapshot": "get_flower_shop_snapshot", "find": "find_flower_orders", "open": "take_flower_order",
+      "move": "move_flower_order_stage", "addLine": "add_to_flower_order", "stock": "check_flowers",
+      "reorder": "reorder_flowers", "closeOut": "close_out_flower_order", "salesReport": "sales_report"
+    },
+    "stages": [
+      { "id": "ordered", "label": "ordered" },
+      { "id": "arranging", "label": "arranging" },
+      { "id": "ready", "label": "ready" },
+      { "id": "out_for_delivery", "label": "out for delivery" },
+      { "id": "delivered", "label": "delivered" }
+    ],
+    "closedStage": "delivered",
+    "closeFrom": ["ready", "out_for_delivery"],
+    "asset": null,
+    "orderFields": [
+      { "id": "arrangement", "type": "string", "required": true },
+      { "id": "card_message", "type": "string", "required": false }
+    ],
+    "due": "required"
+  },
+  "catalog": {
+    "items": [
+      { "id": "dozen-roses", "name": "Dozen roses bouquet", "synonyms": ["dozen roses", "roses"], "kind": "product", "unit": "bouquet", "priceCents": 6500, "stocked": false, "consumes": { "rose-stem": 12, "wrap": 1 } },
+      { "id": "seasonal-bouquet", "name": "Seasonal bouquet", "synonyms": ["seasonal"], "kind": "product", "unit": "bouquet", "priceCents": 4500, "stocked": false, "consumes": { "wrap": 1 } },
+      { "id": "centerpiece", "name": "Table centerpiece", "kind": "product", "unit": "each", "priceCents": 8500, "stocked": false, "consumes": { "vase": 1 } },
+      { "id": "delivery", "name": "Delivery", "kind": "product", "unit": "trip", "priceCents": 1500, "taxable": false, "stocked": false },
+      { "id": "rose-stem", "name": "Red rose stem", "synonyms": ["rose"], "kind": "supply", "unit": "stem", "priceCents": 250, "stocked": true, "onHand": 40, "reorderPoint": 48, "reorderQty": 100, "supplierId": "wholesale-flowers" },
+      { "id": "wrap", "name": "Bouquet wrap", "kind": "supply", "unit": "sheet", "priceCents": 80, "stocked": true, "onHand": 60, "reorderPoint": 20, "reorderQty": 100 },
+      { "id": "vase", "name": "Glass vase", "kind": "supply", "unit": "each", "priceCents": 600, "stocked": true, "onHand": 12, "reorderPoint": 6, "reorderQty": 24 }
+    ]
+  }
+}
