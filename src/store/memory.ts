@@ -1,5 +1,5 @@
 import type { Asset, Business, CatalogItem, Customer, Order, Payment, PurchaseOrder } from '../domain/types.js';
-import { ConflictError, type Store } from './store.js';
+import { ConflictError, type Activation, type Draft, type ProfileRecord, type Store } from './store.js';
 
 interface Tenant {
   business: Business;
@@ -9,6 +9,8 @@ interface Tenant {
   items: Map<string, CatalogItem>;
   payments: Payment[];
   purchaseOrders: Map<string, PurchaseOrder>;
+  profile?: ProfileRecord;
+  draft?: Draft;
 }
 
 const copy = <T>(value: T): T => structuredClone(value);
@@ -115,5 +117,42 @@ export class MemoryStore implements Store {
   async putPurchaseOrders(bizId: string, pos: PurchaseOrder[]): Promise<void> {
     const t = this.tenant(bizId);
     for (const po of pos) t.purchaseOrders.set(po.id, copy(po));
+  }
+
+  async getProfile(bizId: string): Promise<ProfileRecord | null> {
+    const profile = this.tenants.get(bizId)?.profile;
+    return profile ? copy(profile) : null;
+  }
+
+  async putProfile(bizId: string, record: ProfileRecord): Promise<void> {
+    this.tenant(bizId).profile = copy(record);
+  }
+
+  async getDraft(bizId: string): Promise<Draft | null> {
+    const draft = this.tenants.get(bizId)?.draft;
+    return draft ? copy(draft) : null;
+  }
+
+  async putDraft(bizId: string, draft: Draft): Promise<void> {
+    this.tenant(bizId).draft = copy(draft);
+  }
+
+  async deleteDraft(bizId: string): Promise<void> {
+    const t = this.tenants.get(bizId);
+    if (t) delete t.draft;
+  }
+
+  async activateBusiness(bizId: string, a: Activation): Promise<void> {
+    const t = this.tenant(bizId);
+    // Validar todo antes de escribir nada, igual que la transacción de DynamoDB.
+    if (t.business.version !== a.business.version) throw new ConflictError('business');
+    for (const item of a.items) {
+      const current = t.items.get(item.id);
+      if (current && current.version !== item.version) throw new ConflictError(`item ${item.id}`);
+    }
+    t.business = copy({ ...a.business, version: a.business.version + 1 });
+    t.profile = copy(a.profile);
+    for (const item of a.items) t.items.set(item.id, copy({ ...item, version: item.version + 1 }));
+    delete t.draft;
   }
 }

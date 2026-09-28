@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { ConflictError, type Store } from '../../src/store/store.js';
+import { ConflictError, type Draft, type ProfileRecord, type Store } from '../../src/store/store.js';
 import type { Business, CatalogItem, Order, Payment, PurchaseOrder } from '../../src/domain/types.js';
+import { loadProfile } from '../../src/profiles/load.js';
 
 const biz: Business = {
   id: 'b1', name: 'Oak Street Auto', profileId: 'auto-repair',
@@ -20,6 +21,15 @@ const item: CatalogItem = {
 
 const payment = (id: string, paidOn: string, paidAt = `${paidOn}T18:00:00.000Z`): Payment => ({
   id, orderId: 'o1', amountCents: 1000, method: 'cash', paidAt, paidOn
+});
+
+const profileRecord = (): ProfileRecord => ({
+  profile: loadProfile('auto-repair'), source: 'template:auto-repair', version: 1
+});
+
+const draft = (over: Partial<Draft> = {}): Draft => ({
+  description: 'I run a flower shop', state: 'generating',
+  createdAt: '2026-09-29T15:00:00.000Z', expiresAt: 1790000000, ...over
 });
 
 /** Lo que cualquier implementación de Store tiene que cumplir. La corren MemoryStore y DynamoStore. */
@@ -171,6 +181,48 @@ export function runStoreContract(name: string, makeStore: () => Promise<Store>):
       expect(await store.getOrder('b1', 'b2-open')).toBeNull();
       expect((await store.getBusinessByTokenHash('hash-abc'))?.id).toBe('b1');
       expect((await store.getBusinessByTokenHash('hash-xyz'))?.id).toBe('b2');
+    });
+
+    it('guarda y lee el perfil de un negocio', async () => {
+      const store = await ready();
+      expect(await store.getProfile('b1')).toBeNull();
+      await store.putProfile('b1', profileRecord());
+      expect(await store.getProfile('b1')).toEqual(profileRecord());
+      expect(await store.getProfile('nadie')).toBeNull();
+    });
+
+    it('guarda, reemplaza y borra el borrador', async () => {
+      const store = await ready();
+      expect(await store.getDraft('b1')).toBeNull();
+      await store.putDraft('b1', draft());
+      const ready1 = draft({ state: 'ready', profile: loadProfile('bakery'), catalog: [item] });
+      await store.putDraft('b1', ready1);
+      expect(await store.getDraft('b1')).toEqual(ready1);
+      await store.deleteDraft('b1');
+      expect(await store.getDraft('b1')).toBeNull();
+      await store.deleteDraft('b1'); // borrar lo que no existe no falla
+    });
+
+    it('activa un negocio de una vez: META, perfil, ítems y sin borrador', async () => {
+      const store = await ready();
+      await store.putDraft('b1', draft({ state: 'ready' }));
+      const current = (await store.getBusiness('b1'))!;
+      await store.activateBusiness('b1', { business: current, profile: profileRecord(), items: [item] });
+      expect((await store.getBusiness('b1'))?.version).toBe(current.version + 1);
+      expect(await store.getProfile('b1')).toEqual(profileRecord());
+      expect((await store.listItems('b1')).map(i => [i.id, i.version])).toEqual([['i1', 2]]);
+      expect(await store.getDraft('b1')).toBeNull();
+    });
+
+    it('no activa nada si la versión del negocio es vieja', async () => {
+      const store = await ready();
+      await store.putDraft('b1', draft({ state: 'ready' }));
+      const stale = { ...(await store.getBusiness('b1'))!, version: 1 };
+      await expect(store.activateBusiness('b1', { business: stale, profile: profileRecord(), items: [item] }))
+        .rejects.toBeInstanceOf(ConflictError);
+      expect(await store.getProfile('b1')).toBeNull();
+      expect(await store.listItems('b1')).toEqual([]);
+      expect(await store.getDraft('b1')).not.toBeNull();
     });
   });
 }

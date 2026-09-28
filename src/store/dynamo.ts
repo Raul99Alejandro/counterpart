@@ -2,11 +2,11 @@ import {
   ConditionalCheckFailedException, DynamoDBClient, TransactionCanceledException
 } from '@aws-sdk/client-dynamodb';
 import {
-  DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, TransactWriteCommand, UpdateCommand,
+  DeleteCommand, DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, TransactWriteCommand, UpdateCommand,
   type QueryCommandInput
 } from '@aws-sdk/lib-dynamodb';
 import type { Asset, Business, CatalogItem, Customer, Order, Payment, PurchaseOrder } from '../domain/types.js';
-import { ConflictError, type Store } from './store.js';
+import { ConflictError, type Activation, type Draft, type ProfileRecord, type Store } from './store.js';
 
 type Row = Record<string, unknown>;
 
@@ -189,5 +189,41 @@ export class DynamoStore implements Store {
 
   async putPurchaseOrders(bizId: string, pos: PurchaseOrder[]): Promise<void> {
     for (const po of pos) await this.put(bizKey(bizId), `PO#${po.id}`, po);
+  }
+
+  getProfile(bizId: string): Promise<ProfileRecord | null> {
+    return this.get<ProfileRecord>(bizKey(bizId), 'PROFILE');
+  }
+
+  putProfile(bizId: string, record: ProfileRecord): Promise<void> {
+    return this.put(bizKey(bizId), 'PROFILE', record);
+  }
+
+  getDraft(bizId: string): Promise<Draft | null> {
+    return this.get<Draft>(bizKey(bizId), 'DRAFT');
+  }
+
+  putDraft(bizId: string, draft: Draft): Promise<void> {
+    return this.put(bizKey(bizId), 'DRAFT', draft);
+  }
+
+  async deleteDraft(bizId: string): Promise<void> {
+    await this.doc.send(new DeleteCommand({ TableName: this.table, Key: { pk: bizKey(bizId), sk: 'DRAFT' } }));
+  }
+
+  async activateBusiness(bizId: string, a: Activation): Promise<void> {
+    // META, PROFILE y DRAFT más los ítems: una transacción admite hasta 100 operaciones.
+    if (a.items.length + 3 > TRANSACTION_LIMIT) {
+      throw new Error(`activateBusiness admite hasta ${TRANSACTION_LIMIT - 3} ítems`);
+    }
+    const pk = bizKey(bizId);
+    await this.guarded('business', () => this.doc.send(new TransactWriteCommand({
+      TransactItems: [
+        { Put: this.versionedPut(pk, 'META', a.business) },
+        { Put: { TableName: this.table, Item: { ...a.profile, pk, sk: 'PROFILE' } } },
+        ...a.items.map(i => ({ Put: this.versionedPut(pk, `ITEM#${i.id}`, i) })),
+        { Delete: { TableName: this.table, Key: { pk, sk: 'DRAFT' } } }
+      ]
+    })));
   }
 }
