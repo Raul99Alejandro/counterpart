@@ -21,12 +21,15 @@ const orderReference = (profile: Profile): string => {
     + `Pass it as the user said it; never ask for the ${order} number.`;
 };
 
+/** Un id de campo dicho en voz alta: `card_message` → `card message`. */
+export const spokenId = (id: string): string => id.replace(/_/g, ' ');
+
 /** Lo que abrir una orden necesita sí o sí, dicho como lista hablada ("a, b and c"). */
 function neededToOpen(profile: Profile): string {
   const needed = [
     `the ${profile.nouns.customer}'s name`,
     ...(profile.asset ? [`the ${profile.asset.noun}`] : []),
-    ...profile.orderFields.filter(f => f.required).map(f => f.id),
+    ...profile.orderFields.filter(f => f.required).map(f => spokenId(f.id)),
     ...(profile.due === 'required' ? ['the due date'] : [])
   ];
   return needed.length === 1 ? needed[0]! : `${needed.slice(0, -1).join(', ')} and ${needed[needed.length - 1]}`;
@@ -92,7 +95,7 @@ export function toolSpecs(profile: Profile): Record<ToolKey, ToolSpec> {
 // Cada campo dice qué es: sin descripción, Nova 2 Lite pedía un sabor que la frase ya traía.
 function fieldSchema(field: FieldDef, owner: string): z.ZodTypeAny {
   const base = field.type === 'integer' ? z.number().int() : z.string().min(1);
-  const described = base.describe(`The ${field.id} of the ${owner}, as the user said it.`);
+  const described = base.describe(`The ${spokenId(field.id)} of the ${owner}, as the user said it.`);
   return field.required ? described : described.optional();
 }
 

@@ -3,12 +3,13 @@ import { openStore, storeConfig } from '../src/store/from-env.js';
 import type { Store } from '../src/store/store.js';
 import { clearBusinesses, ensureTable } from '../src/store/table.js';
 import { issueToken, secretsManagerWriter } from '../infra/token.js';
-import { addBusiness } from './business.js';
+import { addBusiness, newBlankBusiness } from './business.js';
 import { checkPackage, loadPackage } from './package.js';
 
 // Uso:
 //   npm run business:check -- <carpeta>
 //   npm run business:add -- <carpeta> [--secret] [--reset]
+//   npm run business:new -- <bizId> "<nombre>" [--secret] [--reset]
 const [command, ...args] = process.argv.slice(2);
 const positional = args.filter(a => !a.startsWith('--'));
 
@@ -42,8 +43,23 @@ try {
       if (!args.includes('--reset')) await emitToken(store, pkg.id, args.includes('--secret'), region);
       break;
     }
+    case 'new': {
+      const [bizId, name] = positional;
+      if (!bizId || !name) fail('Uso: npm run business:new -- <bizId> "<nombre>" [--secret] [--reset]');
+      const { store, client, local, table, region } = openDynamo();
+      if (local) await ensureTable(client, table);
+      const reset = args.includes('--reset');
+      if (reset) {
+        requireRemoteReset(local, bizId);
+        await clearBusinesses(client, table, [bizId]);
+      }
+      await newBlankBusiness(store, { id: bizId, name });
+      console.error(`Negocio en blanco "${bizId}" (${name}) creado. Solo expone las tools de alta.`);
+      if (!reset) await emitToken(store, bizId, args.includes('--secret'), region);
+      break;
+    }
     default:
-      fail('Subcomandos: check, add');
+      fail('Subcomandos: check, add, new');
   }
 } catch (err) {
   fail(err instanceof Error ? err.message : String(err));

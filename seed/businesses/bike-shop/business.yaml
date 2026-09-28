@@ -1,0 +1,36 @@
+name: Spoke and Chain Cycles
+timezone: America/Denver
+taxRateBps: 790
+firstOrderNumber: 100
+profile:
+  id: bike-repair
+  nouns: { order: repair, orders: repairs, item: part, items: parts, customer: rider }
+  synonyms:
+    order: [tune-up, job, ticket]
+    item: [part, tube, tire]
+  toolNames:
+    snapshot: get_bike_shop_snapshot
+    find: find_repairs
+    open: check_in_bike
+    move: move_repair_stage
+    addLine: add_to_repair
+    stock: check_bike_parts
+    reorder: reorder_bike_parts
+    closeOut: close_out_repair
+    salesReport: sales_report
+  stages:
+    - { id: checked_in, label: checked in }
+    - { id: repairing, label: being repaired }
+    - { id: ready, label: ready for pickup }
+    - { id: picked_up, label: picked up }
+  closedStage: picked_up
+  closeFrom: [ready]
+  asset:
+    noun: bike
+    fields:
+      - { id: brand, type: string, required: true }
+      - { id: model, type: string, required: true }
+      - { id: color, type: string, required: false }
+    spokenAs: "{brand} {model}"
+  orderFields: []
+  due: optional

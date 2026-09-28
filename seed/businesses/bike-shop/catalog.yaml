@@ -1,0 +1,9 @@
+items:
+  - { id: tune-up, name: Basic tune-up, synonyms: [tune up], kind: labor, unit: job, priceCents: 7500, taxable: false, stocked: false }
+  - { id: flat-fix, name: Flat fix, synonyms: [flat, puncture], kind: labor, unit: job, priceCents: 1500, taxable: false, stocked: false, consumes: { tube-700c: 1 } }
+  - { id: brake-adjust, name: Brake adjustment, kind: labor, unit: job, priceCents: 2000, taxable: false, stocked: false }
+  - { id: tube-700c, name: 700c inner tube, synonyms: [tube, inner tube], kind: part, priceCents: 900, stocked: true, onHand: 6, reorderPoint: 10, reorderQty: 30, supplierId: velo-supply }
+  - { id: tire-700c, name: 700c tire, synonyms: [road tire], kind: part, priceCents: 4500, stocked: true, onHand: 8, reorderPoint: 4, reorderQty: 12, supplierId: velo-supply }
+  - { id: chain, name: Chain, kind: part, priceCents: 3200, stocked: true, onHand: 3, reorderPoint: 4, reorderQty: 10, supplierId: velo-supply }
+  - { id: brake-pads, name: Brake pads, synonyms: [pads], kind: part, priceCents: 1800, stocked: true, onHand: 12, reorderPoint: 6, reorderQty: 20, supplierId: velo-supply }
+  - { id: bar-tape, name: Bar tape, kind: part, priceCents: 2500, stocked: true, onHand: 5, reorderPoint: 3, reorderQty: 10 }

@@ -1,0 +1,10 @@
+customers:
+  - name: Lena Park
+    asset: { brand: Specialized, model: Allez, color: red }
+    order: { stage: checked_in, lines: [tune-up] }
+  - name: Omar Diaz
+    asset: { brand: Cannondale, model: Topstone }
+    order: { stage: repairing, lines: [flat-fix, tube-700c] }
+  - name: June Okafor
+    asset: { brand: Giant, model: Escape }
+    order: { stage: ready, lines: [brake-adjust, brake-pads] }

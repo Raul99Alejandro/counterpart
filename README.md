@@ -146,7 +146,7 @@ DynamoDB Local takes a few seconds to start; wait for it before running `npm run
 
 ## Adding a business
 
-Add a YAML file to `src/profiles/` with the business's nouns and synonyms, its stages and which one closes an order, its nine tool names, an optional asset (for example a vehicle) and any order fields (for example a cake's flavor). Profiles are validated at startup: tool names must be unique and well formed, the closing stage must exist, and order fields cannot reuse the ids the tools already use. Seed data lives in `seed/`.
+A new business is data, not code: a folder under `seed/businesses/` with `business.yaml`, `catalog.yaml` and an optional `demo.yaml`, checked with `npm run business:check -- <folder>` and seeded with `npm run business:add -- <folder>`. Or create an empty one with `npm run business:new -- <id> "<name>"` and configure it by voice with the setup assistant. See [docs/add-a-business.md](docs/add-a-business.md); `seed/businesses/bike-shop` was written by hand without touching code.
 
 ## Project layout
 
@@ -158,7 +158,7 @@ src/speech/     spoken English phrasing
 src/tools/      the nine MCP tools and the MCP Apps resources
 src/http/       Express app, auth, sessions, request context
 ui/             the two MCP Apps UIs (built with Vite into single HTML files)
-seed/           deterministic demo data and the seeding CLI
+seed/           business packages (seed/businesses/), deterministic seeding and the business CLI
 infra/          token CLI, smoke check, build helpers
 test/           unit, integration, contract and golden-phrase tests
 ```

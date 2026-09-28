@@ -106,4 +106,11 @@ describe('generación de tools', () => {
       expect(toolSpecs(bakery).snapshot.description).toContain("what's on the board");
     });
   });
+  it('dice los ids de campo con guion bajo como palabras', () => {
+    const florist = { ...bakery, orderFields: [{ id: 'card_message', type: 'string' as const, required: true }] };
+    const schema = openInput(florist);
+    const described = (schema.shape as Record<string, { description?: string }>).card_message?.description;
+    expect(described).toBe('The card message of the cake order, as the user said it.');
+    expect(toolSpecs(florist).open.description).toContain("Needed: the customer's name, card message and the due date.");
+  });
 });
