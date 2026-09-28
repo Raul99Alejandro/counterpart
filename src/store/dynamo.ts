@@ -102,8 +102,8 @@ export class DynamoStore implements Store {
     return this.get<Business>(bizKey(bizId), 'META');
   }
 
-  async putToken(tokenHash: string, bizId: string): Promise<void> {
-    await this.put(`TOKEN#${tokenHash}`, 'TOKEN', { businessId: bizId });
+  async putToken(tokenHash: string, bizId: string, createdAt = new Date().toISOString()): Promise<void> {
+    await this.put(`TOKEN#${tokenHash}`, 'TOKEN', { businessId: bizId, createdAt });
   }
 
   async getBusinessByTokenHash(tokenHash: string): Promise<Business | null> {
@@ -188,7 +188,12 @@ export class DynamoStore implements Store {
   }
 
   async putPurchaseOrders(bizId: string, pos: PurchaseOrder[]): Promise<void> {
-    for (const po of pos) await this.put(bizKey(bizId), `PO#${po.id}`, po);
+    if (pos.length === 0) return;
+    if (pos.length > TRANSACTION_LIMIT) throw new Error(`putPurchaseOrders admite hasta ${TRANSACTION_LIMIT} órdenes por llamada`);
+    // Una transacción: un reorden con varios proveedores queda completo o no queda.
+    await this.doc.send(new TransactWriteCommand({
+      TransactItems: pos.map(po => ({ Put: { TableName: this.table, Item: { ...po, pk: bizKey(bizId), sk: `PO#${po.id}` } } }))
+    }));
   }
 
   getProfile(bizId: string): Promise<ProfileRecord | null> {

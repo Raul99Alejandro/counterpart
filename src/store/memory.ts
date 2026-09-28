@@ -17,7 +17,7 @@ const copy = <T>(value: T): T => structuredClone(value);
 
 export class MemoryStore implements Store {
   private tenants = new Map<string, Tenant>();
-  private tokens = new Map<string, string>();
+  private tokens = new Map<string, { bizId: string; createdAt: string }>();
 
   private tenant(bizId: string): Tenant {
     const t = this.tenants.get(bizId);
@@ -42,12 +42,12 @@ export class MemoryStore implements Store {
     return this.tenants.has(bizId) ? copy(this.tenant(bizId).business) : null;
   }
 
-  async putToken(tokenHash: string, bizId: string): Promise<void> {
-    this.tokens.set(tokenHash, bizId);
+  async putToken(tokenHash: string, bizId: string, createdAt = new Date().toISOString()): Promise<void> {
+    this.tokens.set(tokenHash, { bizId, createdAt });
   }
 
   async getBusinessByTokenHash(tokenHash: string): Promise<Business | null> {
-    const bizId = this.tokens.get(tokenHash);
+    const bizId = this.tokens.get(tokenHash)?.bizId;
     return bizId ? this.getBusiness(bizId) : null;
   }
 
@@ -58,16 +58,21 @@ export class MemoryStore implements Store {
     return number;
   }
 
-  async listCustomers(bizId: string): Promise<Customer[]> { return copy([...this.tenant(bizId).customers.values()]); }
+  /** Lecturas: un negocio inexistente se lee vacío, como en DynamoDB. */
+  private peek(bizId: string): Tenant | undefined {
+    return this.tenants.get(bizId);
+  }
+
+  async listCustomers(bizId: string): Promise<Customer[]> { return copy([...(this.peek(bizId)?.customers.values() ?? [])]); }
   async putCustomer(bizId: string, c: Customer): Promise<void> { this.tenant(bizId).customers.set(c.id, copy(c)); }
-  async listAssets(bizId: string): Promise<Asset[]> { return copy([...this.tenant(bizId).assets.values()]); }
+  async listAssets(bizId: string): Promise<Asset[]> { return copy([...(this.peek(bizId)?.assets.values() ?? [])]); }
   async putAsset(bizId: string, a: Asset): Promise<void> { this.tenant(bizId).assets.set(a.id, copy(a)); }
-  async listOrders(bizId: string): Promise<Order[]> { return copy([...this.tenant(bizId).orders.values()]); }
+  async listOrders(bizId: string): Promise<Order[]> { return copy([...(this.peek(bizId)?.orders.values() ?? [])]); }
   async getOrder(bizId: string, orderId: string): Promise<Order | null> {
-    const o = this.tenant(bizId).orders.get(orderId);
+    const o = this.peek(bizId)?.orders.get(orderId);
     return o ? copy(o) : null;
   }
-  async listItems(bizId: string): Promise<CatalogItem[]> { return copy([...this.tenant(bizId).items.values()]); }
+  async listItems(bizId: string): Promise<CatalogItem[]> { return copy([...(this.peek(bizId)?.items.values() ?? [])]); }
 
   async putOrder(bizId: string, o: Order): Promise<void> {
     const t = this.tenant(bizId);
@@ -107,11 +112,11 @@ export class MemoryStore implements Store {
   }
 
   async listPayments(bizId: string, from: string, to: string): Promise<Payment[]> {
-    return copy(this.tenant(bizId).payments.filter(p => p.paidOn >= from && p.paidOn <= to));
+    return copy((this.peek(bizId)?.payments ?? []).filter(p => p.paidOn >= from && p.paidOn <= to));
   }
 
   async listOpenPurchaseOrders(bizId: string): Promise<PurchaseOrder[]> {
-    return copy([...this.tenant(bizId).purchaseOrders.values()].filter(po => po.status === 'open'));
+    return copy([...(this.peek(bizId)?.purchaseOrders.values() ?? [])].filter(po => po.status === 'open'));
   }
 
   async putPurchaseOrders(bizId: string, pos: PurchaseOrder[]): Promise<void> {

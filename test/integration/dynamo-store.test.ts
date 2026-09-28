@@ -86,3 +86,18 @@ describe.skipIf(!endpoint)('clearBusinesses contra DynamoDB Local', () => {
       .rejects.toThrow(ResourceNotFoundException);
   });
 });
+
+describe.skipIf(!endpoint)('tokens en DynamoDB Local', () => {
+  const client = dynamoClient({ region: 'us-east-1', endpoint });
+  const table = `counterpart-token-${randomUUID()}`;
+
+  beforeAll(async () => { await ensureTable(client, table); });
+  afterAll(async () => { await dropTable(client, table); });
+
+  it('guarda cuándo se emitió cada token', async () => {
+    const store = new DynamoStore(client, table);
+    await store.putToken('hash-fecha', 'b1', '2026-09-30T12:00:00.000Z');
+    const out = await client.send(new GetItemCommand({ TableName: table, Key: { pk: { S: 'TOKEN#hash-fecha' }, sk: { S: 'TOKEN' } } }));
+    expect(out.Item?.createdAt?.S).toBe('2026-09-30T12:00:00.000Z');
+  });
+});

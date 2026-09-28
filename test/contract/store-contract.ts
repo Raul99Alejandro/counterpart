@@ -224,5 +224,24 @@ export function runStoreContract(name: string, makeStore: () => Promise<Store>):
       expect(await store.listItems('b1')).toEqual([]);
       expect(await store.getDraft('b1')).not.toBeNull();
     });
+
+    it('lee vacío un negocio inexistente, igual en los dos stores', async () => {
+      const store = await ready();
+      expect(await store.listCustomers('nadie')).toEqual([]);
+      expect(await store.listAssets('nadie')).toEqual([]);
+      expect(await store.listOrders('nadie')).toEqual([]);
+      expect(await store.getOrder('nadie', 'o1')).toBeNull();
+      expect(await store.listItems('nadie')).toEqual([]);
+      expect(await store.listPayments('nadie', '2026-01-01', '2026-12-31')).toEqual([]);
+      expect(await store.listOpenPurchaseOrders('nadie')).toEqual([]);
+    });
+
+    it('guarda todas las órdenes de compra de una vez, y una lista vacía no hace nada', async () => {
+      const store = await ready();
+      await store.putPurchaseOrders('b1', []);
+      const po = (id: string): PurchaseOrder => ({ id, supplierId: 's1', lines: [{ itemId: 'i1', qty: 5 }], status: 'open', createdAt: '2026-09-15T15:00:00.000Z' });
+      await store.putPurchaseOrders('b1', [po('p1'), po('p2'), po('p3')]);
+      expect((await store.listOpenPurchaseOrders('b1')).map(p => p.id).sort()).toEqual(['p1', 'p2', 'p3']);
+    });
   });
 }

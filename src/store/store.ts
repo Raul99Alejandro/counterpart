@@ -27,10 +27,14 @@ export interface Draft {
 /** Lo que escribe la activación de un negocio, todo o nada. */
 export interface Activation { business: Business; profile: ProfileRecord; items: CatalogItem[] }
 
+/**
+ * Lecturas de un negocio que no existe devuelven vacío o null en los dos stores. Las escrituras suponen
+ * un negocio existente: quien llama siempre lo resolvió antes por su token.
+ */
 export interface Store {
   putBusiness(b: Business): Promise<void>;
   getBusiness(bizId: string): Promise<Business | null>;
-  putToken(tokenHash: string, bizId: string): Promise<void>;
+  putToken(tokenHash: string, bizId: string, createdAt?: string): Promise<void>;
   getBusinessByTokenHash(tokenHash: string): Promise<Business | null>;
   /** Consume el número antes de escribir la orden: si esa escritura falla, el número se salta. Aceptado (carryover §5). */
   takeOrderNumber(bizId: string): Promise<number>;
