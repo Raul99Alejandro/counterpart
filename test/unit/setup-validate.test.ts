@@ -61,14 +61,39 @@ describe('validación del borrador del asistente', () => {
     expect(text).toMatch(/consume each other in a loop/);
   });
 
-  it('capa 3: sin campos de fecha cuando due ya guarda la fecha de la orden', () => {
+  it('quita los campos de fecha cuando due ya guarda la fecha, sin gastar una reparación', () => {
     const d = floristDraft();
     d.profile.orderFields.push({ id: 'event_date', type: 'string', required: true });
-    expect(errorsOf(d).join('\n')).toMatch(/profile\.orderFields\[2\]\.id: "event_date" repeats the due date/);
+    d.profile.orderFields.push({ id: 'update_notes', type: 'string', required: false });
+    const result = validateSetup(d);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.setup.profile.orderFields.map(f => f.id)).toEqual(['arrangement', 'card_message', 'update_notes']);
     const none = floristDraft();
     none.profile.due = 'none';
     none.profile.orderFields.push({ id: 'event_date', type: 'string', required: false });
-    expect(validateSetup(none).ok).toBe(true);
+    const kept = validateSetup(none);
+    expect(kept.ok && kept.setup.profile.orderFields.map(f => f.id)).toContain('event_date');
+  });
+
+  it('la pista para un id de campo pide guion bajo, no guion', () => {
+    const d = floristDraft();
+    d.profile.orderFields[0].id = 'Card Message';
+    const line = errorsOf(d).find(e => e.startsWith('profile.orderFields[0].id'))!;
+    expect(line).toMatch(/underscores/);
+    expect(line).not.toMatch(/dashes/);
+  });
+
+  it('capa 3: un perfil del modelo no puede nacer cerrado, repetir etapas ni dejar sustantivos vacíos', () => {
+    const first = floristDraft();
+    first.profile.closedStage = 'ordered';
+    first.profile.closeFrom = ['ready'];
+    expect(errorsOf(first).join('\n')).toMatch(/profile\.closedStage: "ordered" is the first stage/);
+    const twice = floristDraft();
+    twice.profile.stages.push({ id: 'ready', label: 'ready again' });
+    expect(errorsOf(twice).join('\n')).toMatch(/profile\.stages\[5\]\.id: "ready" is used twice/);
+    const blank = floristDraft();
+    blank.profile.nouns.orders = ' ';
+    expect(errorsOf(blank).join('\n')).toMatch(/profile\.nouns\.orders: empty/);
   });
 
   it('elige la pregunta hablada según lo que faltó', () => {

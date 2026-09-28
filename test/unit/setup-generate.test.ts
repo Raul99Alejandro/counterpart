@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Message } from '@aws-sdk/client-bedrock-runtime';
 import {
-  generateSetup, novaDraftGenerator, SETUP_INPUT_SCHEMA, SETUP_TOOL, type ConverseFn
+  generateSetup, NoSetupInReply, novaDraftGenerator, SETUP_INPUT_SCHEMA, SETUP_TOOL, UNAVAILABLE_TEXT, type ConverseFn
 } from '../../src/setup/generate.js';
 import { GENERIC_QUESTION, STAGES_QUESTION } from '../../src/setup/validate.js';
 import { floristDraft, scriptedGenerator } from '../helpers/setup.js';
@@ -31,10 +31,19 @@ describe('generación del borrador con una reparación', () => {
     expect(generate.attempts).toHaveLength(2);
   });
 
-  it('un generador que lanza cuenta como intento fallido', async () => {
-    const outcome = await generateSetup('I run a flower shop', scriptedGenerator(new Error('AccessDeniedException')));
-    expect(outcome).toMatchObject({ ok: false, spoken: GENERIC_QUESTION });
-    if (!outcome.ok) expect(outcome.errors[0]).toMatch(/did not return a setup \(AccessDeniedException\)/);
+  it('un servicio que falla (permisos, throttling) no paga la reparación y lo dice aparte', async () => {
+    const generate = scriptedGenerator(new Error('AccessDeniedException'));
+    const outcome = await generateSetup('I run a flower shop', generate);
+    expect(outcome).toMatchObject({ ok: false, spoken: UNAVAILABLE_TEXT });
+    expect(generate.attempts).toHaveLength(1);
+    if (!outcome.ok) expect(outcome.errors[0]).toMatch(/AccessDeniedException/);
+  });
+
+  it('una respuesta sin la herramienta sí se repara', async () => {
+    const generate = scriptedGenerator(new NoSetupInReply(), floristDraft());
+    const outcome = await generateSetup('I run a flower shop', generate);
+    expect(outcome.ok).toBe(true);
+    expect(generate.attempts).toHaveLength(2);
   });
 });
 
@@ -65,6 +74,6 @@ describe('generador de Nova', () => {
 
   it('una respuesta sin la herramienta es un error', async () => {
     const converse = fakeConverse({ role: 'assistant', content: [{ text: 'Sure! Here is your setup.' }] });
-    await expect(novaDraftGenerator(converse)({ description: 'x' })).rejects.toThrow(/no save_business_setup call/);
+    await expect(novaDraftGenerator(converse)({ description: 'x' })).rejects.toBeInstanceOf(NoSetupInReply);
   });
 });

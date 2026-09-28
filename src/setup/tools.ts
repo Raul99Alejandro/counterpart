@@ -2,6 +2,7 @@ import type { McpServer, RegisteredTool } from '@modelcontextprotocol/server';
 import { registerAppTool } from '@modelcontextprotocol/ext-apps/server';
 import * as z from 'zod/v4';
 import type { Business } from '../domain/types.js';
+import { log } from '../log.js';
 import type { Profile } from '../profiles/schema.js';
 import { say } from '../speech/say.js';
 import { guard, ok } from '../tools/context.js';
@@ -23,7 +24,8 @@ const [SET_UP, REVIEW, ACTIVATE] = SETUP_TOOL_NAMES;
 const START_TEXT: Record<StartResult, string> = {
   started: "I'm drafting your setup. Ask me what I came up with in a few seconds.",
   busy: "I'm still working on your last description. Ask me what I came up with in a few seconds.",
-  limited: "That's a lot of drafts in one hour. Give me a little while before trying again."
+  limited: "That's a lot of drafts in one hour. Give me a little while before trying again.",
+  already_active: 'Your business is already set up. Open me again to use it.'
 };
 
 const NO_DRAFT = "There's no setup in progress. Tell me about your business, like: I run a flower shop that takes orders for bouquets.";
@@ -65,7 +67,7 @@ export function registerSetupTools(server: McpServer, ctx: SetupToolContext): Re
       inputSchema: z.object({
         description: z.string().min(3).describe('What the business does and sells, and the steps an order goes through, in the user\'s words.')
       }),
-      outputSchema: z.object({ status: z.enum(['started', 'busy', 'limited']) })
+      outputSchema: z.object({ status: z.enum(['started', 'busy', 'limited', 'already_active']) })
     },
     guard(async ({ description }: { description: string }) => {
       const status = await ctx.setup.start(bizId, description);
@@ -106,7 +108,18 @@ export function registerSetupTools(server: McpServer, ctx: SetupToolContext): Re
     },
     guard(async ({ confirm }: { confirm: boolean }) => {
       const result = await ctx.setup.activate(bizId, confirm);
-      if (result.status === 'activated') ctx.onActivated(result.business, result.profile);
+      if (result.status === 'activated') {
+        // La activación ya quedó escrita: si el cambio de tools de la sesión falla, el negocio igual
+        // está listo y la sesión nueva lo ve. Nunca "no cambié nada".
+        try {
+          ctx.onActivated(result.business, result.profile);
+        } catch (err) {
+          log({
+            level: 'error', msg: 'setup_swap_failed', businessId: bizId,
+            error: err instanceof Error ? `${err.name}: ${err.message}` : String(err)
+          });
+        }
+      }
       return ok(activateText(result), { status: result.status });
     })
   );

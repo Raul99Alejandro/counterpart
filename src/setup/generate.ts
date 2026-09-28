@@ -16,6 +16,17 @@ export type SetupOutcome = { ok: true; setup: ValidSetup } | { ok: false; spoken
 
 export const SETUP_TOOL = 'save_business_setup';
 
+/** El modelo contestó sin llamar a la herramienta: es un intento fallido y se repara. */
+export class NoSetupInReply extends Error {
+  constructor() {
+    super(`no ${SETUP_TOOL} call in the reply`);
+    this.name = 'NoSetupInReply';
+  }
+}
+
+/** Bedrock no respondió (permisos, throttling, modelo): pedir más detalle no lo arregla. */
+export const UNAVAILABLE_TEXT = "I couldn't reach my drafting service just now. Try again in a minute.";
+
 /** Esquema JSON de la herramienta, derivado de los esquemas zod: una sola fuente de verdad (spec B2 §5.3). */
 export const SETUP_INPUT_SCHEMA: Record<string, unknown> = (() => {
   const { $schema: _ignored, ...schema } = z.toJSONSchema(draftSchema, { io: 'input' }) as Record<string, unknown>;
@@ -26,18 +37,23 @@ export const SETUP_INPUT_SCHEMA: Record<string, unknown> = (() => {
 export async function generateSetup(description: string, generate: DraftGenerator): Promise<SetupOutcome> {
   const first = await attempt(generate, { description });
   if (first.check.ok) return { ok: true, setup: first.check.setup };
+  // El servicio falló: una reparación sería otra llamada fallida.
+  if (first.unavailable) return { ok: false, errors: first.check.errors, spoken: UNAVAILABLE_TEXT };
   const second = await attempt(generate, { description, previous: { draft: first.draft, errors: first.check.errors } });
   if (second.check.ok) return { ok: true, setup: second.check.setup };
   return { ok: false, errors: second.check.errors, spoken: spokenFailure(second.check.errors) };
 }
 
-async function attempt(generate: DraftGenerator, input: Attempt): Promise<{ draft: unknown; check: SetupCheck }> {
+async function attempt(
+  generate: DraftGenerator, input: Attempt
+): Promise<{ draft: unknown; check: SetupCheck; unavailable?: boolean }> {
   try {
     const draft = await generate(input);
     return { draft, check: validateSetup(draft) };
   } catch (err) {
-    const reason = err instanceof Error ? err.message : String(err);
-    return { draft: null, check: { ok: false, errors: [`the model did not return a setup (${reason})`] } };
+    const reason = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+    const check: SetupCheck = { ok: false, errors: [`the model did not return a setup (${reason})`] };
+    return { draft: null, check, unavailable: !(err instanceof NoSetupInReply) };
   }
 }
 
@@ -92,7 +108,7 @@ export function novaDraftGenerator(converse: ConverseFn): DraftGenerator {
       }
     });
     const use = message.content?.find(block => block.toolUse?.name === SETUP_TOOL)?.toolUse;
-    if (!use) throw new Error(`no ${SETUP_TOOL} call in the reply`);
+    if (!use) throw new NoSetupInReply();
     return use.input;
   };
 }

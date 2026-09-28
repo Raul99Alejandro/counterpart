@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryStore } from '../../src/store/memory.js';
 import { SetupService, STALE_TEXT } from '../../src/setup/service.js';
-import type { DraftGenerator } from '../../src/setup/generate.js';
+import { UNAVAILABLE_TEXT, type DraftGenerator } from '../../src/setup/generate.js';
 import { GENERIC_QUESTION, STAGES_QUESTION } from '../../src/setup/validate.js';
 import { newBlankBusiness } from '../../seed/business.js';
 import { floristDraft, scriptedGenerator } from '../helpers/setup.js';
@@ -73,7 +73,7 @@ describe('servicio de borradores', () => {
     const svc = service(store, scriptedGenerator(new Error('AccessDeniedException')));
     await svc.start('florist', 'flowers');
     await svc.settled();
-    expect(await svc.review('florist')).toEqual({ state: 'failed', spoken: GENERIC_QUESTION });
+    expect(await svc.review('florist')).toEqual({ state: 'failed', spoken: UNAVAILABLE_TEXT });
     expect(await store.getProfile('florist')).toBeNull();
   });
 
@@ -134,9 +134,9 @@ describe('servicio de borradores', () => {
     const result = await svc.activate('florist', true);
     expect(result.status).toBe('activated');
     const business = (await store.getBusiness('florist'))!;
-    expect(business).toMatchObject({ status: 'active', profileVersion: 1 });
+    expect(business).toMatchObject({ status: 'active', profileVersion: NOW.getTime() });
     if (result.status === 'activated') expect(result.business).toEqual(business);
-    expect(await store.getProfile('florist')).toMatchObject({ source: 'assistant', version: 1 });
+    expect(await store.getProfile('florist')).toMatchObject({ source: 'assistant', version: NOW.getTime() });
     expect(await store.listItems('florist')).toHaveLength(7);
     expect(await store.getDraft('florist')).toBeNull();
   });
@@ -149,5 +149,40 @@ describe('servicio de borradores', () => {
     expect(await svc.activate('florist', true)).toEqual({ status: 'not_ready' });
     pending.resolve(floristDraft());
     await svc.settled();
+  });
+  it('la versión del perfil no se repite después de un reset que borró el PROFILE', async () => {
+    // Un reset (business:new --reset) borra la partición con el proceso vivo: la caché de perfiles
+    // no puede volver a ver la misma versión para otro borrador.
+    const versions: number[] = [];
+    for (const minutes of [0, 30]) {
+      clock = new Date(NOW.getTime() + minutes * MINUTE);
+      const store = await blankStore();
+      const svc = service(store, scriptedGenerator(floristDraft()));
+      await svc.start('florist', 'flowers');
+      await svc.settled();
+      await svc.activate('florist', true);
+      versions.push((await store.getBusiness('florist'))!.profileVersion);
+    }
+    expect(versions[0]).not.toBe(versions[1]);
+  });
+  it('una sesión vieja de un negocio ya activo no arranca borradores', async () => {
+    const store = await blankStore();
+    const generate = scriptedGenerator(floristDraft());
+    const svc = service(store, generate);
+    await svc.start('florist', 'flowers');
+    await svc.settled();
+    await svc.activate('florist', true);
+    expect(await svc.start('florist', 'flowers again')).toBe('already_active');
+    expect(generate.attempts).toHaveLength(1);
+    expect(await store.getDraft('florist')).toBeNull();
+  });
+
+  it('dos arranques a la vez generan una sola vez', async () => {
+    const generate = scriptedGenerator(floristDraft());
+    const svc = service(await blankStore(), generate);
+    const results = await Promise.all([svc.start('florist', 'first'), svc.start('florist', 'second')]);
+    await svc.settled();
+    expect(results.sort()).toEqual(['busy', 'started']);
+    expect(generate.attempts).toHaveLength(1);
   });
 });

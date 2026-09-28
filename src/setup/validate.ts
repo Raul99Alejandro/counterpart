@@ -27,7 +27,7 @@ export function validateSetup(raw: unknown): SetupCheck {
 
   let profile: Profile;
   try {
-    profile = parseProfile(parsed.data.profile);
+    profile = withoutDateFields(parseProfile(parsed.data.profile));
   } catch (err) {
     return { ok: false, errors: [`profile: ${err instanceof Error ? err.message : String(err)}`] };
   }
@@ -39,11 +39,17 @@ export function validateSetup(raw: unknown): SetupCheck {
     const name = profile.toolNames[key];
     if (reserved.includes(name)) errors.push(`profile.toolNames.${key}: "${name}" is reserved for the setup tools; pick another name`);
   }
-  // Nova tiende a agregar un "event_date" obligatorio además de `due`: la orden pediría dos fechas.
-  if (profile.due !== 'none') {
-    profile.orderFields.forEach((f, i) => {
-      if (/date/.test(f.id)) errors.push(`profile.orderFields[${i}].id: "${f.id}" repeats the due date; remove it, due already records when the order is for`);
-    });
+  // Reglas que un YAML escrito a mano nunca rompía y un perfil del modelo sí puede romper.
+  if (profile.closedStage === profile.stages[0]?.id) {
+    errors.push(`profile.closedStage: "${profile.closedStage}" is the first stage, so every new order would open already closed; close on the last stage`);
+  }
+  const seenStages = new Set<string>();
+  profile.stages.forEach((stage, i) => {
+    if (seenStages.has(stage.id)) errors.push(`profile.stages[${i}].id: "${stage.id}" is used twice; every stage needs its own id`);
+    seenStages.add(stage.id);
+  });
+  for (const [noun, word] of Object.entries(profile.nouns)) {
+    if (word.trim() === '') errors.push(`profile.nouns.${noun}: empty; say what the business calls it`);
   }
   if (profile.stages.length > MAX_STAGES) {
     errors.push(`profile.stages: ${profile.stages.length} stages is too many; use at most ${MAX_STAGES}`);
@@ -56,6 +62,15 @@ export function validateSetup(raw: unknown): SetupCheck {
 
   if (errors.length > 0) return { ok: false, errors };
   return { ok: true, setup: { profile, items: toCatalogItems(items) } };
+}
+
+/**
+ * Nova tiende a agregar un "event_date" obligatorio además de `due`, y la orden pediría dos fechas.
+ * Se quita aquí, sin gastar una reparación: `due` ya guarda la fecha de la orden.
+ */
+function withoutDateFields(profile: Profile): Profile {
+  if (profile.due === 'none') return profile;
+  return { ...profile, orderFields: profile.orderFields.filter(f => !/(^|_)date(_|$)/.test(f.id)) };
 }
 
 /** La frase para el usuario cuando el borrador no se pudo arreglar: pregunta por lo que faltó. */

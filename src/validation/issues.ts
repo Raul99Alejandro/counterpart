@@ -9,6 +9,17 @@ const HINTS: Record<string, string> = {
   taxRateBps: 'write the tax rate in basis points, e.g. 825 for 8.25%'
 };
 
+/** Los ids de campos (de una orden o de un activo) llevan guion bajo; los de ítems, guion. */
+const FIELD_ID_HINT = 'use lowercase letters, digits and underscores, starting with a letter';
+
+function hintFor(path: readonly PropertyKey[]): string {
+  const last = path.at(-1);
+  if (typeof last !== 'string') return '';
+  const inFields = path.some(key => key === 'fields' || key === 'orderFields');
+  const hint = last === 'id' && inFields ? FIELD_ID_HINT : HINTS[last];
+  return hint ? ` — ${hint}` : '';
+}
+
 /** `a.b[2].c` a partir de la ruta de un error de zod. */
 function issuePath(path: readonly PropertyKey[]): string {
   return path.reduce<string>((acc, key) =>
@@ -20,8 +31,7 @@ export function formatIssues(error: z.ZodError, prefix = ''): string[] {
   return error.issues.map(issue => {
     const at = issuePath(issue.path);
     const where = [prefix, at].filter(Boolean).join(prefix && at ? '.' : '');
-    const last = issue.path.at(-1);
-    const hint = typeof last === 'string' && HINTS[last] ? ` — ${HINTS[last]}` : '';
+    const hint = hintFor(issue.path);
     return `${where || '(root)'}: ${issue.message}${hint}`;
   });
 }

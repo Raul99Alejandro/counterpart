@@ -12,7 +12,7 @@ export const STALE_GENERATION_MS = 5 * 60 * 1000;
 export const STALE_TEXT = "My last draft didn't finish. Tell me about your business again.";
 const HOUR_MS = 60 * 60 * 1000;
 
-export type StartResult = 'started' | 'busy' | 'limited';
+export type StartResult = 'started' | 'busy' | 'limited' | 'already_active';
 export type ReviewResult =
   | { state: 'none' }
   | { state: 'generating' }
@@ -33,11 +33,25 @@ export type ActivateResult =
 export class SetupService {
   private readonly starts = new Map<string, number[]>();
   private readonly running = new Set<Promise<void>>();
+  /** Arranques en curso por negocio: se marca antes del primer await, para que dos llamadas a la vez no generen dos veces. */
+  private readonly starting = new Set<string>();
 
   constructor(private readonly deps: { store: Store; generate: DraftGenerator; now: () => Date }) {}
 
   async start(bizId: string, description: string): Promise<StartResult> {
+    if (this.starting.has(bizId)) return 'busy';
+    this.starting.add(bizId);
+    try {
+      return await this.begin(bizId, description);
+    } finally {
+      this.starting.delete(bizId);
+    }
+  }
+
+  private async begin(bizId: string, description: string): Promise<StartResult> {
     const now = this.deps.now();
+    // Una sesión abierta antes de activar todavía tiene las tools de alta: no se genera nada.
+    if ((await this.deps.store.getBusiness(bizId))?.status !== 'blank') return 'already_active';
     if ((await this.current(bizId, now))?.state === 'generating') return 'busy';
 
     const recent = (this.starts.get(bizId) ?? []).filter(t => now.getTime() - t < HOUR_MS);
@@ -77,7 +91,10 @@ export class SetupService {
 
     const business = await store.getBusiness(bizId);
     if (!business || business.status !== 'blank') return { status: 'none' };
-    const version = ((await store.getProfile(bizId))?.version ?? 0) + 1;
+    // Nunca una versión ya vista: un reset borra PROFILE con el proceso vivo y la caché de perfiles
+    // (por versión) serviría el perfil del borrador anterior. La hora en ms es creciente y única.
+    const previous = (await store.getProfile(bizId))?.version ?? 0;
+    const version = Math.max(previous + 1, this.deps.now().getTime());
     const active: Business = { ...business, status: 'active', profileVersion: version };
     try {
       await store.activateBusiness(bizId, {
