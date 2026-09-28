@@ -1,0 +1,161 @@
+items:
+  - id: cake-8
+    name: 8-inch round cake
+    synonyms: []
+    kind: product
+    unit: cake
+    priceCents: 4500
+    taxable: true
+    stocked: false
+    onHand: 10
+    reorderPoint: 3
+    reorderQty: 12
+    supplierId: sup-1
+    consumes:
+      box-8: 1
+      board-8: 1
+  - id: cake-10
+    name: 10-inch round cake
+    synonyms: []
+    kind: product
+    unit: cake
+    priceCents: 6500
+    taxable: true
+    stocked: false
+    onHand: 10
+    reorderPoint: 3
+    reorderQty: 12
+    supplierId: sup-1
+    consumes:
+      box-10: 1
+      board-10: 1
+  - id: cupcakes
+    name: Cupcake dozen
+    synonyms: []
+    kind: product
+    unit: dozen
+    priceCents: 3600
+    taxable: true
+    stocked: false
+    onHand: 10
+    reorderPoint: 3
+    reorderQty: 12
+    supplierId: sup-1
+    consumes: {}
+  - id: filling
+    name: Custom filling
+    synonyms: []
+    kind: product
+    unit: each
+    priceCents: 900
+    taxable: true
+    stocked: false
+    onHand: 10
+    reorderPoint: 3
+    reorderQty: 12
+    supplierId: sup-1
+    consumes: {}
+  - id: delivery
+    name: Delivery
+    synonyms: []
+    kind: product
+    unit: trip
+    priceCents: 2500
+    taxable: false
+    stocked: false
+    onHand: 10
+    reorderPoint: 3
+    reorderQty: 12
+    supplierId: sup-1
+    consumes: {}
+  - id: box-8
+    name: 8-inch cake box
+    synonyms: []
+    kind: supply
+    unit: each
+    priceCents: 120
+    taxable: true
+    stocked: true
+    onHand: 40
+    reorderPoint: 20
+    reorderQty: 100
+    supplierId: sup-1
+    consumes: {}
+  - id: box-10
+    name: 10-inch cake box
+    synonyms: []
+    kind: supply
+    unit: each
+    priceCents: 150
+    taxable: true
+    stocked: true
+    onHand: 12
+    reorderPoint: 20
+    reorderQty: 100
+    supplierId: sup-1
+    consumes: {}
+  - id: board-8
+    name: 8-inch cake board
+    synonyms: []
+    kind: supply
+    unit: each
+    priceCents: 80
+    taxable: true
+    stocked: true
+    onHand: 35
+    reorderPoint: 20
+    reorderQty: 100
+    supplierId: sup-1
+    consumes: {}
+  - id: board-10
+    name: 10-inch cake board
+    synonyms: []
+    kind: supply
+    unit: each
+    priceCents: 95
+    taxable: true
+    stocked: true
+    onHand: 8
+    reorderPoint: 20
+    reorderQty: 100
+    supplierId: sup-1
+    consumes: {}
+  - id: flour
+    name: Flour
+    synonyms: []
+    kind: ingredient
+    unit: pound
+    priceCents: 90
+    taxable: true
+    stocked: true
+    onHand: 60
+    reorderPoint: 25
+    reorderQty: 100
+    supplierId: sup-3
+    consumes: {}
+  - id: butter
+    name: Butter
+    synonyms: []
+    kind: ingredient
+    unit: pound
+    priceCents: 480
+    taxable: true
+    stocked: true
+    onHand: 14
+    reorderPoint: 20
+    reorderQty: 40
+    supplierId: sup-3
+    consumes: {}
+  - id: cocoa
+    name: Cocoa powder
+    synonyms: []
+    kind: ingredient
+    unit: pound
+    priceCents: 720
+    taxable: true
+    stocked: true
+    onHand: 6
+    reorderPoint: 8
+    reorderQty: 20
+    supplierId: sup-3
+    consumes: {}

@@ -1,0 +1,5 @@
+name: Sweet Crumb Bakery
+timezone: America/Chicago
+taxRateBps: 825
+firstOrderNumber: 12
+template: bakery

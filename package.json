@@ -21,6 +21,7 @@
     "smoke": "tsx infra/smoke.ts",
     "golden": "tsx infra/golden/cli.ts",
     "business:check": "tsx seed/business-cli.ts check",
+    "business:add": "tsx seed/business-cli.ts add",
     "deploy": "bash infra/deploy.sh",
     "teardown": "bash infra/teardown.sh",
     "predev": "npm run build:ui"

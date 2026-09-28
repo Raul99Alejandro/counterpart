@@ -1,0 +1,87 @@
+historySeed: 1234
+customers:
+  - name: Dana Lee
+    asset:
+      year: 2019
+      make: Honda
+      model: Civic
+      plate: JHK 4821
+    order:
+      stage: estimate
+      lines:
+        - labor-align
+        - labor-diag
+      hoursAgo: 7
+  - name: Mark Ortiz
+    asset:
+      year: 2016
+      make: Toyota
+      model: Camry
+    order:
+      stage: approved
+      lines:
+        - rotor
+        - wiper
+      hoursAgo: 12
+  - name: Priya Shah
+    asset:
+      year: 2018
+      make: Toyota
+      model: Camry
+    order:
+      stage: in_bay
+      lines:
+        - labor-align
+        - battery
+      hoursAgo: 17
+  - name: Alex Nowak
+    asset:
+      year: 2015
+      make: Subaru
+      model: Outback
+    order:
+      stage: in_bay
+      lines:
+        - coolant
+      hoursAgo: 22
+  - name: Rosa Medina
+    asset:
+      year: 2021
+      make: Kia
+      model: Sorento
+    order:
+      stage: waiting_on_parts
+      lines:
+        - rotor
+        - labor-brake
+      hoursAgo: 27
+  - name: Tom Becker
+    asset:
+      year: 2017
+      make: Chevrolet
+      model: Malibu
+    order:
+      stage: waiting_on_parts
+      lines:
+        - spark-plug
+      hoursAgo: 32
+  - name: Nina Patel
+    asset:
+      year: 2020
+      make: Mazda
+      model: CX-5
+    order:
+      stage: ready_for_pickup
+      lines:
+        - labor-align
+      hoursAgo: 37
+  - name: Owen Clark
+    asset:
+      year: 2014
+      make: Ram
+      model: "1500"
+    order:
+      stage: ready_for_pickup
+      lines:
+        - coolant
+      hoursAgo: 42

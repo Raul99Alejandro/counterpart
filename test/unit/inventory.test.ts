@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { addLineToOrder, findItem, lowStock, planReorder } from '../../src/domain/inventory.js';
 import type { CatalogItem, Order } from '../../src/domain/types.js';
-import { BAKERY_ITEMS, SHOP_ITEMS } from '../../seed/data.js';
+import path from 'node:path';
+import { loadPackage } from '../../seed/package.js';
+import { PACKAGES_DIR } from '../../seed/run.js';
+
+const SHOP_ITEMS = loadPackage(path.join(PACKAGES_DIR, 'shop')).items;
+const BAKERY_ITEMS = loadPackage(path.join(PACKAGES_DIR, 'bakery')).items;
 
 function item(over: Partial<CatalogItem> & { id: string; name: string }): CatalogItem {
   return {

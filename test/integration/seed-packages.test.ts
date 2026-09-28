@@ -1,7 +1,9 @@
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { MemoryStore } from '../../src/store/memory.js';
-import { seedAll } from '../../seed/run.js';
+import { PACKAGES_DIR, seedAll } from '../../seed/run.js';
+import { checkPackage, loadPackage } from '../../seed/package.js';
+import { addBusiness } from '../../seed/business.js';
 
 const NOW = new Date('2026-09-15T15:00:00Z'); // martes
 
@@ -32,5 +34,21 @@ describe('siembra del demo', () => {
     await seedAll(store, NOW);
     expect(await fingerprint(store, 'shop')).toMatchSnapshot();
     expect(await fingerprint(store, 'bakery')).toMatchSnapshot();
+  });
+});
+
+describe('paquetes del demo', () => {
+  for (const id of ['shop', 'bakery']) {
+    it(`${id} pasa business:check`, () => {
+      expect(checkPackage(path.join(PACKAGES_DIR, id))).toMatchObject({ ok: true });
+    });
+  }
+
+  it('addBusiness siembra un paquete y se niega a sembrarlo dos veces', async () => {
+    const store = new MemoryStore();
+    const pkg = loadPackage(path.join(PACKAGES_DIR, 'bakery'));
+    await addBusiness(store, pkg, NOW);
+    expect((await store.getBusiness('bakery'))?.status).toBe('active');
+    await expect(addBusiness(store, pkg, NOW)).rejects.toThrow(/Ya existe el negocio "bakery"/);
   });
 });

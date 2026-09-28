@@ -1,0 +1,194 @@
+items:
+  - id: pads-front
+    name: Front brake pads
+    synonyms:
+      - brake pads
+      - pads
+    kind: part
+    unit: each
+    priceCents: 4500
+    taxable: true
+    stocked: true
+    onHand: 1
+    reorderPoint: 2
+    reorderQty: 12
+    supplierId: sup-1
+    consumes: {}
+  - id: pads-rear
+    name: Rear brake pads
+    synonyms: []
+    kind: part
+    unit: each
+    priceCents: 4200
+    taxable: true
+    stocked: true
+    onHand: 6
+    reorderPoint: 3
+    reorderQty: 12
+    supplierId: sup-1
+    consumes: {}
+  - id: rotor
+    name: Brake rotor
+    synonyms:
+      - rotor
+    kind: part
+    unit: each
+    priceCents: 6800
+    taxable: true
+    stocked: true
+    onHand: 2
+    reorderPoint: 4
+    reorderQty: 12
+    supplierId: sup-1
+    consumes: {}
+  - id: oil-filter
+    name: Oil filter
+    synonyms:
+      - filter
+    kind: part
+    unit: each
+    priceCents: 900
+    taxable: true
+    stocked: true
+    onHand: 3
+    reorderPoint: 5
+    reorderQty: 12
+    supplierId: sup-1
+    consumes: {}
+  - id: oil-5w30
+    name: 5W-30 quart
+    synonyms:
+      - 5w30
+      - oil
+    kind: part
+    unit: quart
+    priceCents: 750
+    taxable: true
+    stocked: true
+    onHand: 24
+    reorderPoint: 10
+    reorderQty: 12
+    supplierId: sup-1
+    consumes: {}
+  - id: air-filter
+    name: Air filter
+    synonyms: []
+    kind: part
+    unit: each
+    priceCents: 1900
+    taxable: true
+    stocked: true
+    onHand: 7
+    reorderPoint: 3
+    reorderQty: 12
+    supplierId: sup-1
+    consumes: {}
+  - id: wiper
+    name: Wiper blade
+    synonyms:
+      - wipers
+    kind: part
+    unit: each
+    priceCents: 1600
+    taxable: true
+    stocked: true
+    onHand: 9
+    reorderPoint: 3
+    reorderQty: 12
+    supplierId: sup-1
+    consumes: {}
+  - id: battery
+    name: Battery
+    synonyms: []
+    kind: part
+    unit: each
+    priceCents: 15900
+    taxable: true
+    stocked: true
+    onHand: 2
+    reorderPoint: 2
+    reorderQty: 12
+    supplierId: sup-2
+    consumes: {}
+  - id: coolant
+    name: Coolant gallon
+    synonyms:
+      - antifreeze
+    kind: part
+    unit: gallon
+    priceCents: 2400
+    taxable: true
+    stocked: true
+    onHand: 5
+    reorderPoint: 3
+    reorderQty: 12
+    supplierId: sup-2
+    consumes: {}
+  - id: spark-plug
+    name: Spark plug
+    synonyms:
+      - plugs
+    kind: part
+    unit: each
+    priceCents: 1200
+    taxable: true
+    stocked: true
+    onHand: 16
+    reorderPoint: 3
+    reorderQty: 12
+    supplierId: sup-1
+    consumes: {}
+  - id: labor-oil
+    name: Oil change
+    synonyms: []
+    kind: labor
+    unit: job
+    priceCents: 6000
+    taxable: false
+    stocked: false
+    onHand: 10
+    reorderPoint: 3
+    reorderQty: 12
+    supplierId: sup-1
+    consumes:
+      oil-filter: 1
+      oil-5w30: 5
+  - id: labor-brake
+    name: Brake job labor
+    synonyms: []
+    kind: labor
+    unit: hour
+    priceCents: 12000
+    taxable: false
+    stocked: false
+    onHand: 10
+    reorderPoint: 3
+    reorderQty: 12
+    supplierId: sup-1
+    consumes: {}
+  - id: labor-diag
+    name: Diagnostic
+    synonyms: []
+    kind: labor
+    unit: hour
+    priceCents: 9500
+    taxable: false
+    stocked: false
+    onHand: 10
+    reorderPoint: 3
+    reorderQty: 12
+    supplierId: sup-1
+    consumes: {}
+  - id: labor-align
+    name: Alignment
+    synonyms: []
+    kind: labor
+    unit: job
+    priceCents: 11000
+    taxable: false
+    stocked: false
+    onHand: 10
+    reorderPoint: 3
+    reorderQty: 12
+    supplierId: sup-1
+    consumes: {}

@@ -1,0 +1,67 @@
+historySeed: 4321
+customers:
+  - name: Grace Kim
+    order:
+      stage: ordered
+      fields:
+        flavor: vanilla
+        size: 8-inch
+        inscription: Happy Birthday
+      due: wednesday
+      lines:
+        - cake-8
+      hoursAgo: 10
+  - name: Luis Romero
+    order:
+      stage: ordered
+      fields:
+        flavor: chocolate
+        size: 10-inch
+      due: saturday
+      lines:
+        - cake-10
+      hoursAgo: 17
+  - name: Emma Wright
+    order:
+      stage: baking
+      fields:
+        flavor: red velvet
+        size: 10-inch
+        inscription: Congrats
+      due: saturday
+      lines:
+        - cake-10
+        - filling
+      hoursAgo: 24
+  - name: Jonas Meyer
+    order:
+      stage: decorating
+      fields:
+        flavor: carrot
+        size: 8-inch
+      due: saturday
+      lines:
+        - cake-8
+      hoursAgo: 31
+  - name: Ada Silva
+    order:
+      stage: ready
+      fields:
+        flavor: lemon
+        size: 8-inch
+      due: thursday
+      lines:
+        - cake-8
+      hoursAgo: 38
+  - name: Ben Haddad
+    order:
+      stage: ready
+      fields:
+        flavor: chocolate
+        size: 10-inch
+        inscription: Thank You
+      due: monday
+      lines:
+        - cake-10
+        - filling
+      hoursAgo: 45

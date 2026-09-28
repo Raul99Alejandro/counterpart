@@ -1,0 +1,5 @@
+name: Oak Street Auto
+timezone: America/Chicago
+taxRateBps: 825
+firstOrderNumber: 41
+template: auto-repair
