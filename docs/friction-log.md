@@ -141,3 +141,10 @@ Problems we hit while building Counterpart, in the order we hit them. Each entry
 - **Impact:** "Sorry, something went wrong", and a muddled history that later made "yes, turn it on" do nothing. Fixed on our side: the setup tools' JSON now carries the spoken message, and the review waits for a draft in progress (up to 20 s) so the agent checks once.
 - **Suggestion:** For tools that return both, give the model the text as well as the JSON, or document that only `structuredContent` reaches it.
 
+## 21. Per-tool intents and a warm old container hid the setup flow
+
+- **Area:** `alexa-skill-mcp-bridge` skill and Amazon Bedrock AgentCore
+- **What happened:** Two things kept "yes, turn it on" from activating the new business in the simulator. First, the skill had one Alexa intent per setup tool, generated from their schemas, so "what did you come up with" and "yes, turn it on" reached the agent as half-filled tool hints instead of the user's words. Second, after deploying fixes the user's Alexa sessions kept landing on a warm container of the previous runtime version.
+- **Impact:** Three rounds of testing to find both. Fixed by turning per-tool intents off for the blank business (`BRIDGE_TOOL_INTENTS=false`, a new override in our fork: every phrase goes to the agent whole through the catch-all) and by stopping the stale session with `aws bedrock-agentcore stop-runtime-session` after each agent deploy.
+- **Suggestion:** For AgentCore, drain or stop sessions on older versions when the endpoint moves to a new one. For the bridge, default per-tool intents off when the server's tools can change.
+
