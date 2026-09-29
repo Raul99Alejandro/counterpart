@@ -10,10 +10,12 @@ import { floristDraft, scriptedGenerator } from '../helpers/setup.js';
 const text = (r: { content: unknown[] }): string => (r.content[0] as { text: string }).text;
 
 describe('tools de alta', () => {
+  let clock = new Date('2026-09-29T15:00:00Z');
+
   it('si el cambio de tools falla después de activar, no dice que no cambió nada', async () => {
     const store = new MemoryStore();
     const business = await newBlankBusiness(store, { id: 'florist', name: 'Petal and Stem' });
-    const setup = new SetupService({ store, generate: scriptedGenerator(floristDraft()), now: () => new Date() });
+    const setup = new SetupService({ store, generate: scriptedGenerator(floristDraft()), now: () => clock });
     const server = new McpServer({ name: 'counterpart', version: '0.1.0' });
     registerSetupTools(server, {
       business, setup,
@@ -26,6 +28,8 @@ describe('tools de alta', () => {
 
     await client.callTool({ name: 'set_up_my_business', arguments: { description: 'I run a flower shop' } });
     await setup.settled();
+    await client.callTool({ name: 'review_business_setup', arguments: {} });
+    clock = new Date(clock.getTime() + 5000);
     const activated = await client.callTool({ name: 'activate_business_setup', arguments: { confirm: true } });
     expect(activated.isError).toBeFalsy();
     expect(text(activated)).toContain('Petal and Stem is ready. Try:');

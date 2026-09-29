@@ -19,6 +19,12 @@ async function blankStore(): Promise<MemoryStore> {
 
 const service = (store: MemoryStore, generate: DraftGenerator) => new SetupService({ store, generate, now: () => clock });
 
+/** Lo que hace una persona: oye el resumen y contesta unos segundos después. */
+async function reviewAndWait(svc: SetupService): Promise<void> {
+  await svc.review('florist');
+  clock = new Date(clock.getTime() + 5000);
+}
+
 function deferred<T>() {
   let resolve!: (value: T) => void;
   const promise = new Promise<T>(r => { resolve = r; });
@@ -131,12 +137,13 @@ describe('servicio de borradores', () => {
     const svc = service(store, scriptedGenerator(floristDraft()));
     await svc.start('florist', 'flowers');
     await svc.settled();
+    await reviewAndWait(svc);
     const result = await svc.activate('florist', true);
     expect(result.status).toBe('activated');
     const business = (await store.getBusiness('florist'))!;
-    expect(business).toMatchObject({ status: 'active', profileVersion: NOW.getTime() });
+    expect(business).toMatchObject({ status: 'active', profileVersion: clock.getTime() });
     if (result.status === 'activated') expect(result.business).toEqual(business);
-    expect(await store.getProfile('florist')).toMatchObject({ source: 'assistant', version: NOW.getTime() });
+    expect(await store.getProfile('florist')).toMatchObject({ source: 'assistant', version: clock.getTime() });
     expect(await store.listItems('florist')).toHaveLength(7);
     expect(await store.getDraft('florist')).toBeNull();
   });
@@ -160,6 +167,7 @@ describe('servicio de borradores', () => {
       const svc = service(store, scriptedGenerator(floristDraft()));
       await svc.start('florist', 'flowers');
       await svc.settled();
+      await reviewAndWait(svc);
       await svc.activate('florist', true);
       versions.push((await store.getBusiness('florist'))!.profileVersion);
     }
@@ -171,6 +179,7 @@ describe('servicio de borradores', () => {
     const svc = service(store, generate);
     await svc.start('florist', 'flowers');
     await svc.settled();
+    await reviewAndWait(svc);
     await svc.activate('florist', true);
     expect(await svc.start('florist', 'flowers again')).toBe('already_active');
     expect(generate.attempts).toHaveLength(1);
@@ -197,5 +206,25 @@ describe('servicio de borradores', () => {
     const svc = service(await blankStore(), async () => new Promise(() => {}));
     await svc.start('florist', 'flowers');
     expect((await svc.review('florist', { waitMs: 30 })).state).toBe('generating');
+  });
+  it('no activa si nadie tuvo tiempo de contestar al resumen: el modelo no puede confirmar solo', async () => {
+    const store = await blankStore();
+    const svc = service(store, scriptedGenerator(floristDraft()));
+    await svc.start('florist', 'flowers');
+    await svc.settled();
+    expect((await svc.review('florist')).state).toBe('ready');
+    clock = new Date(NOW.getTime() + 1000);
+    expect(await svc.activate('florist', true)).toEqual({ status: 'needs_confirmation' });
+    expect((await store.getBusiness('florist'))?.status).toBe('blank');
+    clock = new Date(NOW.getTime() + 6000);
+    expect((await svc.activate('florist', true)).status).toBe('activated');
+  });
+
+  it('no activa un borrador que nadie revisó', async () => {
+    const svc = service(await blankStore(), scriptedGenerator(floristDraft()));
+    await svc.start('florist', 'flowers');
+    await svc.settled();
+    clock = new Date(NOW.getTime() + 60_000);
+    expect(await svc.activate('florist', true)).toEqual({ status: 'needs_confirmation' });
   });
 });

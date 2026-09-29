@@ -54,6 +54,7 @@ function activateText(result: ActivateResult): string {
     case 'none': return "There's no finished setup to turn on yet. Tell me about your business first.";
     case 'not_ready': return STILL_DRAFTING;
     case 'conflict': return 'Something changed while I was saving, so nothing was turned on. Ask me to review the setup again.';
+    case 'needs_confirmation': return "Nothing was turned on. Read the setup to the user, ask whether to turn it on, and call this again only after they say yes.";
   }
 }
 
@@ -104,11 +105,11 @@ export function registerSetupTools(server: McpServer, ctx: SetupToolContext): Re
     ACTIVATE,
     {
       title: 'Turn on business setup',
-      description: 'Turn on the drafted setup after the user clearly says yes, or throw it away when they say no or want to start over. Use this only after review_business_setup.',
+      description: 'Turn on the drafted setup after the user clearly says yes, or throw it away when they say no or want to start over. Use this only after review_business_setup, and never in the same turn: the user must hear the setup and answer first.',
       inputSchema: z.object({
         confirm: z.boolean().describe('True only if the user clearly said yes to turning the setup on; false if they said no or want to start over.')
       }),
-      outputSchema: z.object({ status: z.enum(['activated', 'discarded', 'none', 'not_ready', 'conflict']), message: z.string() })
+      outputSchema: z.object({ status: z.enum(['activated', 'discarded', 'none', 'not_ready', 'conflict', 'needs_confirmation']), message: z.string() })
     },
     guard(async ({ confirm }: { confirm: boolean }) => {
       const result = await ctx.setup.activate(bizId, confirm);

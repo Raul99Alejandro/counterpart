@@ -13,6 +13,9 @@ import { DEMO_TOKENS, seedAll } from '../../seed/run.js';
 import { floristDraft, scriptedGenerator } from '../helpers/setup.js';
 
 const NOW = new Date('2026-09-29T15:00:00Z');
+let now = NOW;
+/** Una persona contesta al resumen unos segundos después (la activación lo exige). */
+const answerLater = (): void => { now = new Date(now.getTime() + 5000); };
 let app: Express;
 let server: Server;
 let base: string;
@@ -25,7 +28,7 @@ beforeAll(async () => {
     await newBlankBusiness(store, { id: id!, name: name! });
     await store.putToken(hashToken(`token-${id}`), id!);
   }
-  app = createApp({ store, host: '127.0.0.1', generate: scriptedGenerator(floristDraft()), now: () => NOW });
+  app = createApp({ store, host: '127.0.0.1', generate: scriptedGenerator(floristDraft()), now: () => now });
   server = app.listen(0, '127.0.0.1');
   await new Promise<void>(resolve => server.once('listening', () => resolve()));
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}/mcp`;
@@ -73,6 +76,7 @@ describe('asistente de configuración por MCP', () => {
     expect(text(review)).toBe('I set you up to track flower orders through 5 steps: ordered, arranging, ready, out for delivery and delivered, with 7 flowers in your catalog. Should I turn it on?');
     expect(review.structuredContent).toMatchObject({ state: 'ready', businessName: 'Petal and Stem' });
 
+    answerLater();
     const activated = await client.callTool({ name: 'activate_business_setup', arguments: { confirm: true } });
     expect(text(activated)).toBe('Petal and Stem is ready. Try: what flower orders are due today?');
 
@@ -91,6 +95,8 @@ describe('asistente de configuración por MCP', () => {
     const second = await connect('token-twins');
     await first.callTool({ name: 'set_up_my_business', arguments: { description: 'I run a flower shop' } });
     await settled();
+    await first.callTool({ name: 'review_business_setup', arguments: {} });
+    answerLater();
     await first.callTool({ name: 'activate_business_setup', arguments: { confirm: true } });
     const again = await second.callTool({ name: 'activate_business_setup', arguments: { confirm: true } });
     expect(text(again)).toBe("There's no finished setup to turn on yet. Tell me about your business first.");

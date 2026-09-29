@@ -11,6 +11,11 @@ export const DRAFT_TTL_SECONDS = 24 * 60 * 60;
 export const STALE_GENERATION_MS = 5 * 60 * 1000;
 export const STALE_TEXT = "My last draft didn't finish. Tell me about your business again.";
 const HOUR_MS = 60 * 60 * 1000;
+/**
+ * Tiempo mínimo entre el resumen y la activación. Nova llegó a llamar la activación un segundo
+ * después de revisar, en el mismo turno y sin que nadie dijera que sí; una persona tarda más.
+ */
+export const MIN_CONFIRM_MS = 4000;
 
 export type StartResult = 'started' | 'busy' | 'limited' | 'already_active';
 export type ReviewResult =
@@ -23,7 +28,8 @@ export type ActivateResult =
   | { status: 'discarded' }
   | { status: 'none' }
   | { status: 'not_ready' }
-  | { status: 'conflict' };
+  | { status: 'conflict' }
+  | { status: 'needs_confirmation' };
 
 /**
  * El asistente de configuración (spec B2 §5.2–5.3). La generación es asíncrona: el bridge da 6.5 s
@@ -37,6 +43,8 @@ export class SetupService {
   private readonly runs = new Map<string, Promise<void>>();
   /** Arranques en curso por negocio: se marca antes del primer await, para que dos llamadas a la vez no generen dos veces. */
   private readonly starting = new Set<string>();
+  /** Último resumen listo que se le mostró al usuario, por negocio y borrador. */
+  private readonly reviewed = new Map<string, { createdAt: string; at: number }>();
 
   constructor(private readonly deps: { store: Store; generate: DraftGenerator; now: () => Date }) {}
 
@@ -88,6 +96,7 @@ export class SetupService {
     if (!draft) return { state: 'none' };
     if (draft.state === 'generating') return { state: 'generating' };
     if (draft.state === 'failed') return { state: 'failed', spoken: draft.error ?? GENERIC_QUESTION };
+    this.reviewed.set(bizId, { createdAt: draft.createdAt, at: this.deps.now().getTime() });
     return { state: 'ready', profile: draft.profile!, items: draft.catalog! };
   }
 
@@ -99,6 +108,11 @@ export class SetupService {
     if (!confirm) {
       await store.deleteDraft(bizId);
       return { status: 'discarded' };
+    }
+    // El "sí" tiene que venir de una persona que oyó el resumen: no del modelo en el mismo turno.
+    const seen = this.reviewed.get(bizId);
+    if (!seen || seen.createdAt !== draft.createdAt || this.deps.now().getTime() - seen.at < MIN_CONFIRM_MS) {
+      return { status: 'needs_confirmation' };
     }
 
     const business = await store.getBusiness(bizId);
