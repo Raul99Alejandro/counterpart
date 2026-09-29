@@ -45,7 +45,7 @@ export function createApp(deps: {
   });
 
   /** Negocio activo → sus nueve tools. En blanco → las tres de alta, que al activar se cambian por las nueve. */
-  async function registerFor(server: McpServer, business: Business): Promise<void> {
+  async function registerFor(server: McpServer, business: Business, state: { status: Business['status'] }): Promise<void> {
     if (business.status === 'active') {
       registerTools(server, toolContext(business, await profiles.forBusiness(business)));
       return;
@@ -55,6 +55,7 @@ export function createApp(deps: {
     const setupTools = registerSetupTools(server, {
       business, setup,
       onActivated: (active, profile) => {
+        state.status = 'active';
         // La sesión sigue viva (spec B2 §5.2): fuera las de alta, dentro las del perfil, y se avisa al cliente.
         for (const tool of setupTools) tool.remove();
         registerTools(server, toolContext(active, profile));
@@ -112,6 +113,13 @@ export function createApp(deps: {
           res.status(404).json({ error: 'session not found' });
           return;
         }
+        if (entry.state.status !== business.status) {
+          // El negocio cambió de estado fuera de esta sesión (un reset, o se activó desde otra):
+          // sus tools ya no corresponden. 404 y el cliente abre una sesión nueva con las correctas.
+          sessions.drop(sessionId);
+          res.status(404).json({ error: 'session not found' });
+          return;
+        }
         sessions.touch(sessionId, Date.now());
         await entry.transport.handleRequest(req, res, req.body);
         return;
@@ -131,11 +139,12 @@ export function createApp(deps: {
       }
 
       const server = new McpServer({ name: 'counterpart', version: '0.1.0' });
-      await registerFor(server, business);
+      const state = { status: business.status };
+      await registerFor(server, business, state);
 
       const transport = new NodeStreamableHTTPServerTransport({
         sessionIdGenerator: () => randomUUID(),
-        onsessioninitialized: id => sessions.set(id, { transport, server, businessId: business.id, lastSeen: Date.now() }),
+        onsessioninitialized: id => sessions.set(id, { transport, server, businessId: business.id, state, lastSeen: Date.now() }),
         onsessionclosed: id => sessions.drop(id)
       });
 

@@ -24,11 +24,12 @@ const clients: Client[] = [];
 beforeAll(async () => {
   const store = new MemoryStore();
   await seedAll(store, NOW);
-  for (const [id, name] of [['florist', 'Petal and Stem'], ['twins', 'Twin Florals'], ['other', 'Other Place'], ['iso', 'Iso Florals'], ['json', 'Json Florals']]) {
+  for (const [id, name] of [['florist', 'Petal and Stem'], ['twins', 'Twin Florals'], ['other', 'Other Place'], ['iso', 'Iso Florals'], ['json', 'Json Florals'], ['retake', 'Retake Florals']]) {
     await newBlankBusiness(store, { id: id!, name: name! });
     await store.putToken(hashToken(`token-${id}`), id!);
   }
   app = createApp({ store, host: '127.0.0.1', generate: scriptedGenerator(floristDraft()), now: () => now });
+  app.locals.store = store;
   server = app.listen(0, '127.0.0.1');
   await new Promise<void>(resolve => server.once('listening', () => resolve()));
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}/mcp`;
@@ -98,8 +99,11 @@ describe('asistente de configuración por MCP', () => {
     await first.callTool({ name: 'review_business_setup', arguments: {} });
     answerLater();
     await first.callTool({ name: 'activate_business_setup', arguments: { confirm: true } });
-    const again = await second.callTool({ name: 'activate_business_setup', arguments: { confirm: true } });
-    expect(text(again)).toBe("There's no finished setup to turn on yet. Tell me about your business first.");
+    // La sesión vieja quedó con las tools de alta de un negocio que ya está activo: 404, y el
+    // cliente abre una sesión nueva que ya trae las tools del perfil. No hay segunda activación.
+    await expect(second.callTool({ name: 'activate_business_setup', arguments: { confirm: true } }))
+      .rejects.toThrow(/session not found/);
+    expect(await names(await connect('token-twins'))).toContain('take_flower_order');
   });
 
   it('el token de un negocio no ve ni toca el borrador de otro', async () => {
@@ -128,6 +132,24 @@ describe('asistente de configuración por MCP', () => {
     const activated = await client.callTool({ name: 'activate_business_setup', arguments: { confirm: true } });
     expect((activated.structuredContent as { message: string }).message).toBe(text(activated));
     await settled();
+  });
+
+  it('una sesión abierta antes de un reset del negocio recibe 404 y la nueva ve las tools de alta', async () => {
+    const client = await connect('token-retake');
+    await client.callTool({ name: 'set_up_my_business', arguments: { description: 'I run a flower shop' } });
+    await settled();
+    await client.callTool({ name: 'review_business_setup', arguments: {} });
+    answerLater();
+    await client.callTool({ name: 'activate_business_setup', arguments: { confirm: true } });
+    expect(await names(client)).toContain('take_flower_order');
+
+    // reset-demo.sh: el negocio vuelve a estar en blanco con el proceso vivo.
+    const store = app.locals.store as MemoryStore;
+    const active = (await store.getBusiness('retake'))!;
+    await store.putBusiness({ ...active, status: 'blank', profileVersion: 0 });
+
+    await expect(client.listTools()).rejects.toThrow(/session not found/);
+    expect(await names(await connect('token-retake'))).toEqual([...SETUP_TOOL_NAMES].sort());
   });
 
   it('descartar deja el negocio en blanco', async () => {

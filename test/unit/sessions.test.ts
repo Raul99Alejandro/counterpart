@@ -3,7 +3,7 @@ import { Sessions, type SessionEntry } from '../../src/http/sessions.js';
 
 // Dobles mínimos: countFor solo mira businessId.
 const entry = (businessId: string): SessionEntry => ({
-  businessId, lastSeen: 0,
+  businessId, state: { status: 'active' }, lastSeen: 0,
   transport: { close: async () => {} } as unknown as SessionEntry['transport'],
   server: { close: async () => {} } as unknown as SessionEntry['server']
 });

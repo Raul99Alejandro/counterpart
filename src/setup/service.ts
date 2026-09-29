@@ -96,7 +96,11 @@ export class SetupService {
     if (!draft) return { state: 'none' };
     if (draft.state === 'generating') return { state: 'generating' };
     if (draft.state === 'failed') return { state: 'failed', spoken: draft.error ?? GENERIC_QUESTION };
-    this.reviewed.set(bizId, { createdAt: draft.createdAt, at: this.deps.now().getTime() });
+    // La primera vez que se muestra este borrador: revisarlo otra vez no reinicia la espera,
+    // o el modelo que revisa antes de activar atraparía a la persona en un bucle.
+    if (this.reviewed.get(bizId)?.createdAt !== draft.createdAt) {
+      this.reviewed.set(bizId, { createdAt: draft.createdAt, at: this.deps.now().getTime() });
+    }
     return { state: 'ready', profile: draft.profile!, items: draft.catalog! };
   }
 
@@ -112,6 +116,9 @@ export class SetupService {
     // El "sí" tiene que venir de una persona que oyó el resumen: no del modelo en el mismo turno.
     const seen = this.reviewed.get(bizId);
     if (!seen || seen.createdAt !== draft.createdAt || this.deps.now().getTime() - seen.at < MIN_CONFIRM_MS) {
+      // Un intento rechazado reinicia la espera: reintentar en el mismo turno no la cumple.
+      // Sin revisión previa no se registra nada: el resumen todavía no se mostró.
+      if (seen?.createdAt === draft.createdAt) this.reviewed.set(bizId, { ...seen, at: this.deps.now().getTime() });
       return { status: 'needs_confirmation' };
     }
 

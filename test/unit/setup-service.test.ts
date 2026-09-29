@@ -226,5 +226,30 @@ describe('servicio de borradores', () => {
     await svc.settled();
     clock = new Date(NOW.getTime() + 60_000);
     expect(await svc.activate('florist', true)).toEqual({ status: 'needs_confirmation' });
+    clock = new Date(NOW.getTime() + 120_000);
+    expect(await svc.activate('florist', true)).toEqual({ status: 'needs_confirmation' });
+  });
+  it('reintentar la activación en el mismo turno no abre la compuerta', async () => {
+    const store = await blankStore();
+    const svc = service(store, scriptedGenerator(floristDraft()));
+    await svc.start('florist', 'flowers');
+    await svc.settled();
+    await svc.review('florist');
+    clock = new Date(NOW.getTime() + 1000);
+    expect((await svc.activate('florist', true)).status).toBe('needs_confirmation');
+    clock = new Date(NOW.getTime() + 4500);
+    expect((await svc.activate('florist', true)).status).toBe('needs_confirmation');
+    expect((await store.getBusiness('florist'))?.status).toBe('blank');
+  });
+
+  it('revisar otra vez en el turno del sí no atrapa a la persona en un bucle', async () => {
+    const svc = service(await blankStore(), scriptedGenerator(floristDraft()));
+    await svc.start('florist', 'flowers');
+    await svc.settled();
+    await svc.review('florist');
+    clock = new Date(NOW.getTime() + 10_000);
+    await svc.review('florist');
+    clock = new Date(NOW.getTime() + 11_000);
+    expect((await svc.activate('florist', true)).status).toBe('activated');
   });
 });

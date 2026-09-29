@@ -1,11 +1,14 @@
 import type { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node';
 import type { McpServer } from '@modelcontextprotocol/server';
+import type { BusinessStatus } from '../domain/types.js';
 import { log } from '../log.js';
 
 export interface SessionEntry {
   transport: NodeStreamableHTTPServerTransport;
   server: McpServer;
   businessId: string;
+  /** Estado del negocio para el que se registraron las tools de esta sesión. La activación lo actualiza. */
+  state: { status: BusinessStatus };
   lastSeen: number;
 }
 

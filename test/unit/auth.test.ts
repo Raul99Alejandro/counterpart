@@ -20,7 +20,7 @@ describe('autenticación', () => {
 });
 
 describe('sesiones', () => {
-  const entry = { transport: {} as never, server: {} as never, businessId: 'b1', lastSeen: 0 };
+  const entry = { transport: {} as never, server: {} as never, businessId: 'b1', state: { status: 'active' as const }, lastSeen: 0 };
 
   it('solo entrega la sesión al negocio dueño', () => {
     const s = new Sessions();
