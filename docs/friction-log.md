@@ -148,3 +148,24 @@ Problems we hit while building Counterpart, in the order we hit them. Each entry
 - **Impact:** Three rounds of testing to find both. Fixed by turning per-tool intents off for the blank business (`BRIDGE_TOOL_INTENTS=false`, a new override in our fork: every phrase goes to the agent whole through the catch-all) and by stopping the stale session with `aws bedrock-agentcore stop-runtime-session` after each agent deploy.
 - **Suggestion:** For AgentCore, drain or stop sessions on older versions when the endpoint moves to a new one. For the bridge, default per-tool intents off when the server's tools can change.
 
+
+## 22. The developer console simulator recorded silence from any microphone
+
+- **Area:** Alexa developer console, Test tab (Alexa Simulator), in current Chrome
+- **What happened:** Every spoken phrase came back as "No Content", with a real voice or a virtual cable. The request to `avs-alexa-na.amazon.com` carried 3 s of flat noise or zeros. The simulator's recorder keeps a reference to each `ScriptProcessorNode` input buffer (`inputBuffer.getChannelData(0)`) instead of copying it, and Chrome reuses that buffer on every callback, so the whole recording is the last chunk repeated. It also binds the microphone once, at page load, and ignores the stream it asks for on each press.
+- **Impact:** Hours to find, since typed input works and one early voice test happened to pass. We record the demo with a small page script that hands the recorder copies and makes it reinitialize (`video/sim-mic-fix.js` in the hackathon repo).
+- **Suggestion:** Copy the buffer in the recorder (`getChannelData(0).slice()`), or move it to an AudioWorklet.
+
+## 23. The bridge ends the session after any reply that isn't a question
+
+- **Area:** `alexa-skill-mcp-bridge` skill
+- **What happened:** The bridge sets `shouldEndSession` when the agent's reply doesn't end in "?". After "I've started drafting your setup. Ask me what I came up with when you're ready." the session closed, and the owner's next phrase went to plain Alexa (which answered with Amazon shopping results).
+- **Impact:** A natural follow-up broke the demo. The script now names the skill in those follow-ups ("Ask Petal and Stem what it came up with"), which works whether or not the session is still open.
+- **Suggestion:** Let the agent say whether it expects a reply, instead of guessing from punctuation.
+
+## 24. basic-host opens an MCP session per page load and never closes it
+
+- **Area:** MCP Apps `basic-host` example, Counterpart session cap
+- **What happened:** Counterpart allows 10 open sessions per business, closed after 30 minutes idle. Every basic-host page load (and every OBS scene switch, which reloads the page) opened one and left it open, so after a few rounds the server answered 429 and the screens stayed blank.
+- **Impact:** Blank MCP App scenes in a recording check. Our local basic-host patch sends `DELETE` with the session id on `pagehide`.
+- **Suggestion:** Terminate the Streamable HTTP session when the host page unloads.
