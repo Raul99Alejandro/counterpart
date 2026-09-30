@@ -22,7 +22,7 @@ export const GENERIC_QUESTION = "I couldn't finish your setup. Tell me a bit mor
 
 /** Validación en tres capas (spec B2 §5.3): esquema, reglas del perfil del servidor y reglas propias del asistente. */
 export function validateSetup(raw: unknown): SetupCheck {
-  const parsed = draftSchema.safeParse(raw);
+  const parsed = draftSchema.safeParse(withDashedConsumes(raw));
   if (!parsed.success) return { ok: false, errors: formatIssues(parsed.error) };
 
   let profile: Profile;
@@ -74,6 +74,25 @@ function withoutDateFields(profile: Profile): Profile {
 }
 
 /** La frase para el usuario cuando el borrador no se pudo arreglar: pregunta por lo que faltó. */
+/**
+ * Nova a veces escribe en `consumes` el id de un ítem con guion bajo ("rose_stem") aunque el ítem se
+ * llame "rose-stem", y la reparación no siempre lo corrige. Es el mismo ítem: se arregla aquí.
+ */
+function withDashedConsumes(raw: unknown): unknown {
+  const items = (raw as { catalog?: { items?: unknown } } | null)?.catalog?.items;
+  if (!Array.isArray(items)) return raw;
+  const fixed = items.map(item => {
+    const consumes = (item as { consumes?: unknown } | null)?.consumes;
+    if (!consumes || typeof consumes !== 'object' || Array.isArray(consumes)) return item;
+    return {
+      ...item,
+      consumes: Object.fromEntries(Object.entries(consumes).map(([id, n]) => [/^[a-z0-9_-]+$/.test(id) ? id.replace(/_/g, '-') : id, n]))
+    };
+  });
+  const draft = raw as { catalog: object };
+  return { ...draft, catalog: { ...draft.catalog, items: fixed } };
+}
+
 export function spokenFailure(errors: string[]): string {
   if (errors.some(e => /^profile(\.stages|\.closedStage|\.closeFrom|: (closedStage|closeFrom))/.test(e))) return STAGES_QUESTION;
   if (errors.some(e => e.startsWith('catalog'))) return CATALOG_QUESTION;

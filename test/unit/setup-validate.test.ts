@@ -52,6 +52,20 @@ describe('validación del borrador del asistente', () => {
     expect(errorsOf(d).join('\n')).toMatch(/4 items; use between 5 and 60/);
   });
 
+  it('acepta consumes con guion bajo cuando el id del ítem lleva guion ("rose_stem" por "rose-stem")', () => {
+    const d = floristDraft();
+    d.catalog.items[0].consumes = { rose_stem: 12, wrap: 1 };
+    const result = validateSetup(d);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.setup.items[0]?.consumes).toEqual({ 'rose-stem': 12, wrap: 1 });
+  });
+
+  it('una llave de consumes inválida dice que tiene que ser el id de un ítem', () => {
+    const d = floristDraft();
+    d.catalog.items[0].consumes = { 'Rose Stem': 12 };
+    expect(errorsOf(d).join('\n')).toMatch(/catalog\.items\[0\]\.consumes\.Rose Stem: .* — use the exact id of another item in the catalog/);
+  });
+
   it('capa 3: consumes hacia ítems existentes y sin ciclos', () => {
     const d = floristDraft();
     d.catalog.items[1].consumes = { ribbon: 1 };

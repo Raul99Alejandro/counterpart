@@ -12,9 +12,13 @@ const HINTS: Record<string, string> = {
 /** Los ids de campos (de una orden o de un activo) llevan guion bajo; los de ítems, guion. */
 const FIELD_ID_HINT = 'use lowercase letters, digits and underscores, starting with a letter';
 
+/** Las llaves de `consumes` son ids de otros ítems. */
+const CONSUMES_HINT = 'use the exact id of another item in the catalog (lowercase letters, digits and dashes)';
+
 function hintFor(path: readonly PropertyKey[]): string {
   const last = path.at(-1);
   if (typeof last !== 'string') return '';
+  if (path.at(-2) === 'consumes') return ` — ${CONSUMES_HINT}`;
   const inFields = path.some(key => key === 'fields' || key === 'orderFields');
   const hint = last === 'id' && inFields ? FIELD_ID_HINT : HINTS[last];
   return hint ? ` — ${hint}` : '';
