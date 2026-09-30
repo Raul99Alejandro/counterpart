@@ -116,7 +116,7 @@ export function salesReportHtml(r: SalesReportView): string {
     + `<div><div class="kpi-label">Sales</div><div class="kpi-value">${r.count}</div></div>`
     + `<div><div class="kpi-label">Average</div><div class="kpi-value">${money(r.averageTicketCents)}</div></div>`
     + `</section>`
-    + `<section><h2>${escapeHtml(r.from)} – ${escapeHtml(r.to)}</h2>${salesChartSvg(r.daily, r.prevDaily)}</section>`
+    + `<section><h2>${escapeHtml(r.from)} – ${escapeHtml(r.to)}</h2>${salesChartSvg(r.daily, r.prevDaily, 560, 280)}</section>`
     + `<section><h2>Best sellers</h2>${top}</section>`;
 }
 

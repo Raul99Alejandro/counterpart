@@ -1,10 +1,10 @@
 :root {
   --bg: #ffffff; --fg: #1b1f24; --muted: #6a737d; --line: #e4e7eb;
-  --accent: #2f6fde; --up: #1a7f37; --down: #cf222e;
+  --accent: #2f6fde; --up: #1a7f37; --down: #cf222e; --card: #f6f8fa;
   color-scheme: light dark;
 }
 @media (prefers-color-scheme: dark) {
-  :root { --bg: #16181d; --fg: #e6e8eb; --muted: #9aa3ad; --line: #2a2f37; --accent: #6ea2ff; --up: #3fb950; --down: #f85149; }
+  :root { --bg: #16181d; --fg: #e6e8eb; --muted: #9aa3ad; --line: #2a2f37; --accent: #6ea2ff; --up: #3fb950; --down: #f85149; --card: #1e2128; }
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
@@ -38,3 +38,51 @@ th, td { text-align: left; padding: 4px 6px; border-bottom: 1px solid rgba(127, 
 td.num, th.num { text-align: right; }
 rect.prev { fill: rgba(127, 127, 127, .35); }
 text.axis { font-size: 11px; fill: currentColor; opacity: .6; }
+
+/* Pantallas grandes (Echo Show, TV): tarjetas y cifras que se leen desde lejos. */
+@media (min-width: 900px) {
+  body { font-size: 17px; }
+  main { padding: 26px; gap: 20px; height: 100vh; align-content: stretch; }
+  main > section, .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px 24px; }
+  h2 { font-size: 13px; margin-bottom: 14px; }
+  li { margin: 7px 0; }
+  .kpi-label { font-size: 15px; }
+  .kpi-value { font-size: 40px; line-height: 1.1; }
+  .up, .down { font-size: 15px; }
+  .bar { grid-template-columns: 10em 1fr 2em; gap: 14px; margin: 12px 0; }
+  .track { height: 14px; border-radius: 7px; }
+  .fill { border-radius: 7px; }
+  .count { font-size: 20px; font-weight: 650; }
+
+  /* Resumen del día: la cifra grande a la izquierda, las etapas a la derecha, pendientes abajo. */
+  body.snapshot main { grid-template-columns: 1fr 1.8fr; grid-template-rows: 1.25fr 1fr; }
+  body.snapshot main > section:nth-child(2) { display: flex; flex-direction: column; justify-content: space-evenly; }
+  body.snapshot .bar { font-size: 19px; }
+  body.snapshot section.kpi { display: flex; flex-direction: column; justify-content: center; }
+  body.snapshot section.kpi .kpi-value { font-size: 68px; }
+  body.snapshot section.split { grid-column: 1 / -1; grid-template-columns: 1fr 1fr; background: none; border: 0; padding: 0; gap: 20px; }
+  body.snapshot section.split > div { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px 24px; }
+
+  /* Ventas: tres cifras arriba, la gráfica y lo más vendido lado a lado. */
+  body.sales main { grid-template-columns: 2fr 1fr; grid-template-rows: auto 1fr; }
+  body.sales main > section:nth-child(2) { display: flex; flex-direction: column; min-height: 0; }
+  body.sales main > section:nth-child(2) svg { flex: 1 1 0; min-height: 0; width: 100%; height: 100%; }
+  body.sales section.kpis { grid-column: 1 / -1; grid-template-columns: repeat(3, 1fr); gap: 20px; background: none; border: 0; padding: 0; }
+  body.sales section.kpis > div { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px 24px; }
+  body.sales svg text.axis { font-size: 13px; }
+
+  /* Borrador: quién es y sus pasos a la izquierda, el catálogo en dos columnas a la derecha. */
+  body.setup main { grid-template-columns: 1fr 1.9fr; grid-template-rows: auto auto 1fr; }
+  body.setup main > section:nth-child(4) { grid-column: 2; grid-row: 1 / span 3; }
+  body.setup section.kpi .kpi-value { font-size: 34px; }
+  body.setup .steps { gap: 8px; }
+  body.setup .steps li { padding: 4px 12px; }
+  body.setup table, body.setup tbody { display: block; }
+  body.setup thead { display: none; }
+  body.setup tbody { columns: 2; column-gap: 28px; }
+  body.setup tr { display: flex; gap: 10px; break-inside: avoid; border-bottom: 1px solid var(--line); }
+  body.setup td { border: 0; padding: 5px 0; }
+  body.setup td:first-child { flex: 1; }
+  body.setup td:nth-child(2) { display: none; }
+  body.setup td:nth-child(4) { width: 3em; color: var(--muted); }
+}
