@@ -67,7 +67,7 @@ export function registerSetupTools(server: McpServer, ctx: SetupToolContext): Re
     SET_UP,
     {
       title: 'Set up my business',
-      description: 'Draft the setup for this business from the user\'s own description of what they sell and the steps an order goes through. Use this when the user describes their business, for example "I run a flower shop". Drafting takes a few seconds; afterwards use review_business_setup.',
+      description: 'Draft the setup for this business from the user\'s own description of what they sell and the steps an order goes through. Use this when the user describes their business, for example "I run a flower shop". Drafting takes a few seconds: end the turn right after this call and let the user ask what you came up with. Never call review_business_setup in the same turn.',
       inputSchema: z.object({
         description: z.string().min(3).describe('What the business does and sells, and the steps an order goes through, in the user\'s words.')
       }),
@@ -85,7 +85,7 @@ export function registerSetupTools(server: McpServer, ctx: SetupToolContext): Re
     REVIEW,
     {
       title: 'Review business setup',
-      description: 'Tell the user what setup was drafted for their business and ask whether to turn it on. Use this when the user asks what you came up with, how the setup looks, or whether it is ready.',
+      description: 'Tell the user what setup was drafted for their business and ask whether to turn it on. Use this when the user asks what you came up with, how the setup looks, or whether it is ready, never in the same turn as set_up_my_business.',
       inputSchema: z.object({}),
       outputSchema: setupViewSchema,
       annotations: { readOnlyHint: true, idempotentHint: true },

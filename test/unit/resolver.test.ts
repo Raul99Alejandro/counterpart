@@ -73,6 +73,12 @@ describe('referencias habladas', () => {
     expect(written.kind === 'one' && written.ref.order.number).toBe(47);
   });
 
+  it('empata modelos escritos todo junto ("CX5" por "CX-5"), como los pasa el agente', () => {
+    const cx5 = ref(47, 'Nina Patel', '2020 Mazda CX-5');
+    const found = resolveOrder('the CX5', [civic, cx5], profile);
+    expect(found.kind === 'one' && found.ref.order.number).toBe(47);
+  });
+
   it('resuelve por nombre del cliente en posesivo', () => {
     const r = resolveOrder("Dana's", [civic, camryA, camryB], profile);
     expect(r).toEqual({ kind: 'one', ref: civic });
