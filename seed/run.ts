@@ -6,6 +6,7 @@ import { newOrder, recalcTotals } from '../src/domain/orders.js';
 import type { Business, CatalogItem, Customer, Order, OrderLine, Payment } from '../src/domain/types.js';
 import type { Profile } from '../src/profiles/schema.js';
 import type { Store } from '../src/store/store.js';
+import { newBlankBusiness } from './business.js';
 import { loadPackage, type BusinessPackage } from './package.js';
 import { mulberry32 } from './random.js';
 
@@ -16,6 +17,9 @@ export const DEMO_BUSINESS_IDS: readonly string[] = ['shop', 'bakery'];
 
 /** Paquetes de negocio (spec B2 §5.1): una carpeta por negocio. */
 export const PACKAGES_DIR = path.join(import.meta.dirname, 'businesses');
+
+/** Token de la floristería en blanco que se siembra en memoria. */
+export const DEMO_BLANK_TOKEN = 'demo-florist-token';
 
 const HOUR_MS = 3600 * 1000;
 
@@ -28,6 +32,12 @@ export async function seedAll(
     await seedPackage(store, loadPackage(path.join(PACKAGES_DIR, id)), now);
     if (demoTokens) await store.putToken(hashToken(DEMO_TOKENS[id as keyof typeof DEMO_TOKENS]), id);
   }
+}
+
+/** Solo en memoria: una floristería en blanco, como la del video, que se configura por voz con el asistente. */
+export async function seedLocalBlank(store: Store): Promise<void> {
+  await newBlankBusiness(store, { id: 'florist', name: 'Petal and Stem' });
+  await store.putToken(hashToken(DEMO_BLANK_TOKEN), 'florist');
 }
 
 /** Siembra un negocio activo: META, perfil, catálogo, clientes y órdenes del demo, y 30 días de historia. */

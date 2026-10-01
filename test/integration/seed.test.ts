@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { MemoryStore } from '../../src/store/memory.js';
 import { resolveDue } from '../../src/domain/dates.js';
 import { hashToken } from '../../src/http/auth.js';
-import { DEMO_TOKENS, seedAll } from '../../seed/run.js';
+import { DEMO_BLANK_TOKEN, DEMO_TOKENS, seedAll, seedLocalBlank } from '../../seed/run.js';
 import { loadTemplate } from '../../src/profiles/load.js';
 
 const MOMENTS: Array<[string, Date]> = [
@@ -50,5 +50,16 @@ describe('perfiles guardados por la siembra', () => {
       expect(record.source).toBe(`template:${template}`);
       expect(record.profile).toEqual(loadTemplate(template));
     }
+  });
+});
+
+describe('floristería en blanco local', () => {
+  it('queda en blanco y responde a su token de demo', async () => {
+    const store = new MemoryStore();
+    await seedLocalBlank(store);
+    const biz = await store.getBusinessByTokenHash(hashToken(DEMO_BLANK_TOKEN));
+    expect(biz?.id).toBe('florist');
+    expect(biz?.status).toBe('blank');
+    expect(biz?.name).toBe('Petal and Stem');
   });
 });

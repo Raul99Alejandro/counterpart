@@ -6,7 +6,7 @@ import { log } from './log.js';
 import { openStore, storeConfig } from './store/from-env.js';
 import { ensureTable } from './store/table.js';
 import { bedrockConverse, novaDraftGenerator } from './setup/generate.js';
-import { seedAll } from '../seed/run.js';
+import { seedAll, seedLocalBlank } from '../seed/run.js';
 
 const port = Number(process.env.PORT ?? 3000);
 const host = process.env.HOST ?? '0.0.0.0';
@@ -18,6 +18,7 @@ const { store, client } = openStore(cfg);
 if (cfg.kind === 'memory') {
   // En memoria nada persiste: el demo se siembra en cada arranque.
   await seedAll(store);
+  await seedLocalBlank(store);
 } else if (cfg.endpoint && client) {
   // Contra DynamoDB Local la tabla puede no existir todavía. En AWS la crea la infraestructura.
   await ensureTable(client, cfg.table);

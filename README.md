@@ -6,6 +6,58 @@ Counterpart is a self-hosted [MCP](https://modelcontextprotocol.io) server that 
 
 **Demo video (2:55): [watch on YouTube](https://youtu.be/5FErlAKw83U).** An auto shop run by voice, the same answers as MCP Apps on a screen, a bakery in its own words, and a new flower shop set up just by describing it, all on the real system deployed on AWS.
 
+## For judges
+
+### Try it in two minutes (no AWS account needed)
+
+Requirements: Node.js 24.
+
+```bash
+git clone https://github.com/Raul99Alejandro/counterpart.git && cd counterpart
+npm ci
+npm run dev        # MCP server on http://127.0.0.1:3000/mcp, in-memory store, three demo businesses
+```
+
+In a second terminal (bash), check it end to end (6 checks: health, auth, protocol version 2025-11-25, the nine tools, a spoken summary, session isolation between businesses):
+
+```bash
+SMOKE_TOKEN=demo-shop-token SMOKE_OTHER_TOKEN=demo-bakery-token npm run smoke -- http://127.0.0.1:3000/mcp
+```
+
+Then call the tools the way Alexa+ would, with the [MCP Inspector](https://github.com/modelcontextprotocol/inspector): `npx @modelcontextprotocol/inspector`, transport **Streamable HTTP**, URL `http://127.0.0.1:3000/mcp`, header `Authorization: Bearer demo-shop-token`. Try:
+
+| Tool | Arguments | What you hear |
+|---|---|---|
+| `get_shop_snapshot` | — | The day in one spoken sentence; the result also points to the snapshot MCP App |
+| `find_work_orders` | `{"query": "the blue sedan"}` | "1 work order: work order 41, Dana Lee's 2019 blue sedan." |
+| `add_parts_or_labor` | `{"order": "the blue sedan", "item": "front brake pads"}` | The line added and the new total |
+| `sales_report` | `{"period": "last_week"}` | Last week against the week before; the result also points to the sales MCP App |
+
+Use `demo-bakery-token` to see the same engine as a bakery (`take_cake_order`, `check_ingredients`…).
+
+### Set up a new business by voice (needs AWS credentials with Amazon Bedrock access to Nova 2 Lite)
+
+Start the server with AWS credentials in the environment and connect with `demo-florist-token`, a blank flower shop. It has only three tools:
+
+1. `set_up_my_business` with `{"description": "I run a flower shop. We take orders for bouquets and centerpieces, then arrange them, and they're ready for pickup or delivered."}`. It answers right away; Nova 2 Lite drafts in the background.
+2. A few seconds later, `review_business_setup`: the spoken summary (and the draft as an MCP App in hosts that render them).
+3. `activate_business_setup` with `{"confirm": true}`. The server sends `notifications/tools/list_changed`, and the tool list becomes the flower shop's nine tools, named in its own words, in the same session.
+
+### What's real and what's simulated
+
+| Part | Status |
+|---|---|
+| MCP server (spec 2025-11-25, Streamable HTTP), nine tools per business, three MCP Apps | **Real.** Deployed on AWS (ECS Express Mode, DynamoDB, Secrets Manager) and covered by 335 automated tests |
+| Voice | **Real Alexa:** speech recognition and text-to-speech in the Alexa developer console simulator, through an Alexa Skill per business |
+| The agent that picks the tool | **Stand-in for Alexa+:** the Alexa+ MCP Toolkit is not public, so a Strands agent on Bedrock AgentCore (Nova 2 Lite) plays the Alexa+ orchestrator through our fork of [alexa-skill-mcp-bridge](https://github.com/Raul99Alejandro/alexa-skill-mcp-bridge/tree/counterpart) |
+| Setting up a business by voice | **Real:** Nova 2 Lite on Bedrock drafts it, the server validates it, and nothing activates without the owner's yes |
+| MCP Apps on screen | **Real** in the MCP Apps reference host (basic-host); not verified on an Alexa+ device, which we could not access |
+| Payments | **Recorded, not charged:** closing out an order records card or cash; there is no payment processor |
+| Businesses, customers and sales history | **Demo data**, seeded deterministically |
+| Demo video | The product footage was recorded live and only trimmed; the B-roll scenes, the narration voices and the music are AI-generated |
+
+Also: the [friction log](docs/friction-log.md) (24 entries), the [AWS architecture](docs/aws-builder.md), and tool choice measured against Nova 2 Lite with the golden phrases in `test/golden/` (auto shop 22/22, bakery 23/23).
+
 ## The idea
 
 A mechanic under a car and a baker with frosting on their hands have the same problem: the system that runs their shop is on a computer across the room. Their businesses look nothing alike, but they share a shape — orders that move through stages, items that get used up, payments at the end.
@@ -56,10 +108,10 @@ npm ci
 npm run dev
 ```
 
-The in-memory store seeds two demo businesses at startup, with the development-only tokens `demo-shop-token` and `demo-bakery-token`. Check the server end to end:
+The in-memory store seeds three demo businesses at startup, with development-only tokens: the auto shop (`demo-shop-token`), the bakery (`demo-bakery-token`) and a blank flower shop to set up by voice (`demo-florist-token`). Check the server end to end:
 
 ```bash
-npm run smoke -- http://127.0.0.1:3000/mcp demo-shop-token
+SMOKE_TOKEN=demo-shop-token SMOKE_OTHER_TOKEN=demo-bakery-token npm run smoke -- http://127.0.0.1:3000/mcp
 ```
 
 To use a graphical MCP client such as the [MCP Inspector](https://github.com/modelcontextprotocol/inspector), point it at `http://127.0.0.1:3000/mcp` with the header `Authorization: Bearer demo-shop-token`. For hosts that cannot send headers, run locally without a token instead:
