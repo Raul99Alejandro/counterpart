@@ -12,6 +12,8 @@ A mechanic under a car and a baker with frosting on their hands have the same pr
 
 Counterpart has one engine for that shape and a **business profile** for each kind of business. A profile is a YAML file with the business's vocabulary, stages, and tool names. The server generates each tool's name, description, and input schema from it, so Alexa+ reads a repair shop's `open_work_order` ("Open a new work order, also called a repair order, RO, ticket or job…") and a bakery's `take_cake_order` from the same code.
 
+A business that isn't in the box can be **set up by voice**. A blank business starts with three setup tools. The owner describes the business ("I run a flower shop. We take orders for bouquets and centerpieces…"), and Amazon Nova 2 Lite on Bedrock drafts its order stages and catalog. Alexa reads back a summary, an MCP App shows the draft on screen, and nothing turns on until the owner says yes; the server enforces that, not the prompt. Then the server swaps in the business's nine tools and sends `notifications/tools/list_changed`, so the same conversation goes on: "Take an order for Maria Lopez, a dozen roses for Friday."
+
 ## Tools
 
 | Intent | Auto repair | Bakery |
@@ -27,6 +29,8 @@ Counterpart has one engine for that shape and a **business profile** for each ki
 | Sales report (with UI) | `sales_report` | `sales_report` |
 
 Every reply is one or two plain English sentences meant to be spoken. People say "the blue sedan" or "Dana's", not "order 4821", so every tool accepts spoken references and asks "which one?" when two orders match. Voice assistants retry, so the writes that can safely repeat are idempotent: opening the same order again within two minutes returns the one already open, moving an order to the stage it is already in changes nothing, reordering skips items already on order, and closing out an order that was already closed today reports it without charging again. Adding parts or labor is deliberately not deduplicated, because adding the same item twice can be intended. The two reporting tools also return an [MCP Apps](https://github.com/modelcontextprotocol/ext-apps) UI for screen devices.
+
+A blank business has three setup tools instead: `set_up_my_business` (starts a draft in the background, since drafting takes longer than one Alexa turn), `review_business_setup` (speaks the draft and shows it as an MCP App) and `activate_business_setup` (turns it on or throws it away, only after the owner answers).
 
 ## Architecture
 
@@ -105,7 +109,7 @@ npm run teardown -- --yes          # add --keep-data to keep the table and the t
 
 ## Connect the Alexa bridge
 
-The Alexa+ MCP Toolkit is not public, so the voice demo uses [alexa-skill-mcp-bridge](https://github.com/KayLerch/alexa-skill-mcp-bridge): an Alexa Skill plus an agent on Amazon Bedrock AgentCore (Nova 2 Lite) that plays the Alexa+ orchestrator. We run one bridge per business, the way each business would install its own Alexa+ add-on. Our [fork](https://github.com/Raul99Alejandro/alexa-skill-mcp-bridge/tree/counterpart) adds two `.env` settings for that: `BRIDGE_STACK_NAME` and `BRIDGE_INVOCATION_NAME`.
+The Alexa+ MCP Toolkit is not public, so the voice demo uses [alexa-skill-mcp-bridge](https://github.com/KayLerch/alexa-skill-mcp-bridge): an Alexa Skill plus an agent on Amazon Bedrock AgentCore (Nova 2 Lite) that plays the Alexa+ orchestrator. We run one bridge per business, the way each business would install its own Alexa+ add-on. Our [fork](https://github.com/Raul99Alejandro/alexa-skill-mcp-bridge/tree/counterpart) adds what that needs: `BRIDGE_STACK_NAME` and `BRIDGE_INVOCATION_NAME` in `.env` (several Skills in one account), a refresh of the agent's tools on `tools/list_changed`, a clean history per Alexa session, a reconnect when the server forgets a session, `BRIDGE_TOOL_INTENTS=false` (every phrase reaches the agent whole) and `BRIDGE_KEEP_SESSION_OPEN=true` (follow-ups after a statement stay in the Skill).
 
 `.env` for the auto shop (one clone per business):
 
@@ -174,8 +178,9 @@ src/domain/     pure business rules
 src/store/      store interface, in-memory and DynamoDB implementations
 src/speech/     spoken English phrasing
 src/tools/      the nine MCP tools and the MCP Apps resources
+src/setup/      the setup assistant: three setup tools, Nova 2 Lite drafting, validation and repair
 src/http/       Express app, auth, sessions, request context
-ui/             the two MCP Apps UIs (built with Vite into single HTML files)
+ui/             the three MCP Apps UIs (built with Vite into single HTML files)
 seed/           business packages (seed/businesses/), deterministic seeding and the business CLI
 infra/          token CLI, smoke check, build helpers
 test/           unit, integration, contract and golden-phrase tests
@@ -183,11 +188,11 @@ test/           unit, integration, contract and golden-phrase tests
 
 ## Status
 
-Done: the server, both profiles, the nine tools, token auth with per-business sessions, DynamoDB persistence, structured logs, the two MCP Apps UIs, the container image, and the tests.
+Done: the server, both profiles, the nine tools, the setup assistant (a new business set up by voice with Nova 2 Lite), token auth with per-business sessions, DynamoDB persistence, structured logs, the three MCP Apps UIs, the container image, and the tests.
 
 Deployed on AWS: ECS Express Mode behind HTTPS, DynamoDB, Secrets Manager and CloudWatch Logs ([docs/aws-builder.md](docs/aws-builder.md)). The remote smoke test passes 6 of 6 checks.
 
-Voice: one Alexa Skill per business ("open oak street auto", "open sweet crumb bakery") through the bridge described above, tested in the Alexa developer console simulator. Every phrase of the demo script passes. The Alexa+ MCP Toolkit is not publicly available (`@alexa-ai/cli` is served from a private registry), so the bridge's agent on Bedrock AgentCore emulates the Alexa+ orchestrator. See [docs/friction-log.md](docs/friction-log.md).
+Voice: one Alexa Skill per business ("open oak street auto", "open sweet crumb bakery", "open petal and stem" for the business set up by voice) through the bridge described above, tested in the Alexa developer console simulator. Every phrase of the demo script passes. The Alexa+ MCP Toolkit is not publicly available (`@alexa-ai/cli` is served from a private registry), so the bridge's agent on Bedrock AgentCore emulates the Alexa+ orchestrator. See [docs/friction-log.md](docs/friction-log.md).
 
 Tool choice, measured with the golden phrases in `test/golden/` against Amazon Nova 2 Lite (`npm run golden -- <profile>`): auto shop 22/22, bakery 23/23.
 
