@@ -21,7 +21,7 @@ export function registerReorder(server: McpServer, ctx: ToolContext): void {
     {
       title: spec.title, description: spec.description,
       inputSchema: itemQueryInput(ctx.profile), outputSchema: output,
-      annotations: { idempotentHint: true }
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false }
     },
     guard(async (args: { item?: string }) => {
       const [items, orders, openPOs] = await Promise.all([

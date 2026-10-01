@@ -26,7 +26,7 @@ export function registerSnapshot(server: McpServer, ctx: ToolContext): void {
     {
       title: spec.title, description: spec.description,
       inputSchema: z.object({}), outputSchema: output,
-      annotations: { readOnlyHint: true, idempotentHint: true },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       _meta: { ui: { resourceUri: UI.snapshot } }
     },
     guard(async () => {

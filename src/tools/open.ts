@@ -21,7 +21,9 @@ export function registerOpen(server: McpServer, ctx: ToolContext): void {
 
   server.registerTool(
     spec.name,
-    { title: spec.title, description: spec.description, inputSchema: openInput(ctx.profile), outputSchema: output },
+    { title: spec.title, description: spec.description, inputSchema: openInput(ctx.profile), outputSchema: output,
+      // A repeat within two minutes returns the same order, but later it opens another one.
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false } },
     guard(async (args: Record<string, unknown>) => {
       const now = ctx.now();
       const customerName = String(args.customerName);

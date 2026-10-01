@@ -22,7 +22,7 @@ export function registerCloseOut(server: McpServer, ctx: ToolContext): void {
     {
       title: spec.title, description: spec.description,
       inputSchema: closeOutInput(ctx.profile), outputSchema: output,
-      annotations: { idempotentHint: true }
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false }
     },
     guard(async (args: Record<string, unknown>) => {
       const orderQuery = String(args.order);

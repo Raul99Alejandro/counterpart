@@ -21,7 +21,7 @@ export function registerStock(server: McpServer, ctx: ToolContext): void {
     {
       title: spec.title, description: spec.description,
       inputSchema: itemQueryInput(ctx.profile), outputSchema: output,
-      annotations: { readOnlyHint: true, idempotentHint: true }
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false }
     },
     guard(async (args: { item?: string }) => {
       const items = await ctx.store.listItems(ctx.business.id);

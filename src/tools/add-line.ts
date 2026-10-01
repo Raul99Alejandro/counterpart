@@ -18,7 +18,8 @@ export function registerAddLine(server: McpServer, ctx: ToolContext): void {
 
   server.registerTool(
     spec.name,
-    { title: spec.title, description: spec.description, inputSchema: addLineInput(ctx.profile), outputSchema: output },
+    { title: spec.title, description: spec.description, inputSchema: addLineInput(ctx.profile), outputSchema: output,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false } },
     guard(async (args: Record<string, unknown>) => {
       const order = String(args.order);
       const item = String(args.item);

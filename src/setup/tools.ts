@@ -72,7 +72,8 @@ export function registerSetupTools(server: McpServer, ctx: SetupToolContext): Re
         description: z.string().min(3).describe('What the business does and sells, and the steps an order goes through, in the user\'s words.')
       }),
       // The bridge passes Nova the JSON, not the text: the phrase goes here too.
-      outputSchema: z.object({ status: z.enum(['started', 'busy', 'limited', 'already_active']), message: z.string() })
+      outputSchema: z.object({ status: z.enum(['started', 'busy', 'limited', 'already_active']), message: z.string() }),
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false }
     },
     guard(async ({ description }: { description: string }) => {
       const status = await ctx.setup.start(bizId, description);
@@ -88,7 +89,7 @@ export function registerSetupTools(server: McpServer, ctx: SetupToolContext): Re
       description: 'Tell the user what setup was drafted for their business and ask whether to turn it on. Use this when the user asks what you came up with, how the setup looks, or whether it is ready, never in the same turn as set_up_my_business.',
       inputSchema: z.object({}),
       outputSchema: setupViewSchema,
-      annotations: { readOnlyHint: true, idempotentHint: true },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       _meta: { ui: { resourceUri: UI.setup } }
     },
     guard(async () => {
@@ -109,7 +110,9 @@ export function registerSetupTools(server: McpServer, ctx: SetupToolContext): Re
       inputSchema: z.object({
         confirm: z.boolean().describe('True only if the user clearly said yes to turning the setup on; false if they said no or want to start over.')
       }),
-      outputSchema: z.object({ status: z.enum(['activated', 'discarded', 'none', 'not_ready', 'conflict', 'needs_confirmation']), message: z.string() })
+      outputSchema: z.object({ status: z.enum(['activated', 'discarded', 'none', 'not_ready', 'conflict', 'needs_confirmation']), message: z.string() }),
+      // confirm: false throws the draft away, and turning a business on deserves a host's confirmation.
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false }
     },
     guard(async ({ confirm }: { confirm: boolean }) => {
       const result = await ctx.setup.activate(bizId, confirm);

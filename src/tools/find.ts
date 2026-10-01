@@ -23,7 +23,7 @@ export function registerFind(server: McpServer, ctx: ToolContext): void {
     {
       title: spec.title, description: spec.description,
       inputSchema: findInput(ctx.profile), outputSchema: output,
-      annotations: { readOnlyHint: true, idempotentHint: true }
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false }
     },
     guard(async (args: { query?: string; stage?: string; due?: string }) => {
       let refs = openOnly(ctx, await loadRefs(ctx));

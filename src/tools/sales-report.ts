@@ -25,7 +25,7 @@ export function registerSalesReport(server: McpServer, ctx: ToolContext): void {
     {
       title: spec.title, description: spec.description,
       inputSchema: salesReportInput, outputSchema: output,
-      annotations: { readOnlyHint: true, idempotentHint: true },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       _meta: { ui: { resourceUri: UI.salesReport } }
     },
     guard(async (args: { period: Period; compare?: boolean }) => {
