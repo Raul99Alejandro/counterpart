@@ -47,7 +47,7 @@ Start the server with AWS credentials in the environment and connect with `demo-
 
 | Part | Status |
 |---|---|
-| MCP server (spec 2025-11-25, Streamable HTTP), nine tools per business, three MCP Apps | **Real.** Deployed on AWS (ECS Express Mode, DynamoDB, Secrets Manager) and covered by 335 automated tests |
+| MCP server (spec 2025-11-25, Streamable HTTP), nine tools per business, three MCP Apps | **Real.** Deployed on AWS (ECS Express Mode, DynamoDB, Secrets Manager) and covered by 338 automated tests |
 | Voice | **Real Alexa:** speech recognition and text-to-speech in the Alexa developer console simulator, through an Alexa Skill per business |
 | The agent that picks the tool | **Stand-in for Alexa+:** the Alexa+ MCP Toolkit is not public, so a Strands agent on Bedrock AgentCore (Nova 2 Lite) plays the Alexa+ orchestrator through our fork of [alexa-skill-mcp-bridge](https://github.com/Raul99Alejandro/alexa-skill-mcp-bridge/tree/counterpart) |
 | Setting up a business by voice | **Real:** Nova 2 Lite on Bedrock drafts it, the server validates it, and nothing activates without the owner's yes |
@@ -56,7 +56,7 @@ Start the server with AWS credentials in the environment and connect with `demo-
 | Businesses, customers and sales history | **Demo data**, seeded deterministically |
 | Demo video | The product footage was recorded live and only trimmed; the B-roll scenes, the narration voices and the music are AI-generated |
 
-Also: the [friction log](docs/friction-log.md) (24 entries), the [AWS architecture](docs/aws-builder.md), and tool choice measured against Nova 2 Lite with the golden phrases in `test/golden/` (auto shop 22/22, bakery 23/23).
+Also: the [Agent Skill](skills/counterpart/SKILL.md), the [friction log](docs/friction-log.md) (24 entries), the [AWS architecture](docs/aws-builder.md), and tool choice measured against Nova 2 Lite with the golden phrases in `test/golden/` (auto shop 22/22, bakery 23/23).
 
 ## The idea
 
@@ -83,6 +83,10 @@ A business that isn't in the box can be **set up by voice**. A blank business st
 Every reply is one or two plain English sentences meant to be spoken. People say "the blue sedan" or "Dana's", not "order 4821", so every tool accepts spoken references and asks "which one?" when two orders match. Voice assistants retry, so the writes that can safely repeat are idempotent: opening the same order again within two minutes returns the one already open, moving an order to the stage it is already in changes nothing, reordering skips items already on order, and closing out an order that was already closed today reports it without charging again. Adding parts or labor is deliberately not deduplicated, because adding the same item twice can be intended. The two reporting tools also return an [MCP Apps](https://github.com/modelcontextprotocol/ext-apps) UI for screen devices.
 
 A blank business has three setup tools instead: `set_up_my_business` (starts a draft in the background, since drafting takes longer than one Alexa turn), `review_business_setup` (speaks the draft and shows it as an MCP App) and `activate_business_setup` (turns it on or throws it away, only after the owner answers).
+
+### Agent Skill
+
+[`skills/counterpart/SKILL.md`](skills/counterpart/SKILL.md) is an [Agent Skill](https://agentskills.io) that teaches any agent how to use these tools by voice: pass the owner's words as they were said, never ask for an order number, ask "which one?" when the server does, close out only with the payment method the owner gave, and run the setup flow one step per turn with the owner's yes in between. A test (`test/unit/agent-skill.test.ts`) fails if the skill names a tool the server doesn't expose, and its example answers are the demo shop's real replies.
 
 ## Architecture
 
@@ -231,6 +235,7 @@ src/store/      store interface, in-memory and DynamoDB implementations
 src/speech/     spoken English phrasing
 src/tools/      the nine MCP tools and the MCP Apps resources
 src/setup/      the setup assistant: three setup tools, Nova 2 Lite drafting, validation and repair
+skills/         the Agent Skill: how an agent should use Counterpart's tools by voice
 src/http/       Express app, auth, sessions, request context
 ui/             the three MCP Apps UIs (built with Vite into single HTML files)
 seed/           business packages (seed/businesses/), deterministic seeding and the business CLI

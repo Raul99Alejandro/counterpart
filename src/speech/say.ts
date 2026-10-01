@@ -11,6 +11,11 @@ function list(parts: string[]): string {
   return `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`;
 }
 
+/** A catalog name mid-sentence: "Front brake pads" → "front brake pads"; acronyms such as "ABS sensor" stay. */
+function itemName(name: string): string {
+  return /^[A-Z][a-z]/.test(name) ? name[0]!.toLowerCase() + name.slice(1) : name;
+}
+
 function date(dateIso: string): string {
   const formatter = new Intl.DateTimeFormat('en-US', {
     weekday: 'long',
@@ -42,17 +47,20 @@ export const say = {
   },
 
   moved(profile: Profile, ref: OrderRef, stageLabel: string): string {
-    return `${say.orderPhrase(profile, ref)} is now ${stageLabel}.`;
+    // "work order 41, Dana Lee's blue sedan" as the subject needs the closing comma.
+    const subject = say.orderPhrase(profile, ref);
+    return `${subject}${subject.includes(', ') ? ',' : ''} is now ${stageLabel}.`;
   },
 
   lineAdded(profile: Profile, ref: OrderRef, line: OrderLine, totalCents: number): string {
     const orderName = say.orderName(profile, ref.order.number);
     const total = `The total is now ${formatMoney(totalCents)}.`;
-    if (line.backordered === 0) return `Added ${line.quantity} ${line.name} to ${orderName}. ${total}`;
+    const what = line.quantity === 1 ? itemName(line.name) : `${line.quantity} ${itemName(line.name)}`;
+    if (line.backordered === 0) return `Added ${what} to ${orderName}. ${total}`;
 
     const inStock = line.quantity - line.backordered;
     const stock = inStock <= 0 ? 'none were in stock' : `only ${inStock} ${inStock === 1 ? 'was' : 'were'} in stock`;
-    return `Added ${line.quantity} ${line.name} to ${orderName}, but ${stock}, `
+    return `Added ${what} to ${orderName}, but ${stock}, `
       + `so ${line.backordered} ${line.backordered === 1 ? 'is' : 'are'} backordered. ${total}`;
   },
 

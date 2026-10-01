@@ -32,13 +32,18 @@ export type ToolResult = {
   isError?: boolean;
 };
 
+/** Spoken text starts a sentence, even when it opens with "work order 41". */
+function sentence(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 export function ok(text: string, structuredContent: unknown): ToolResult {
-  return { content: [{ type: 'text', text }], structuredContent };
+  return { content: [{ type: 'text', text: sentence(text) }], structuredContent };
 }
 
 /** Domain error: text only. The SDK does not validate outputSchema when isError is true. */
 export function fail(text: string): ToolResult {
-  return { content: [{ type: 'text', text }], isError: true };
+  return { content: [{ type: 'text', text: sentence(text) }], isError: true };
 }
 
 const INTERNAL_TEXT = 'Something went wrong on my end. Nothing was changed.';
