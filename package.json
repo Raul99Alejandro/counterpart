@@ -34,6 +34,7 @@
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1141.0",
     "@aws-sdk/client-dynamodb": "^3.1133.0",
+    "@aws-sdk/client-polly": "^3.1145.0",
     "@aws-sdk/lib-dynamodb": "^3.1133.0",
     "@modelcontextprotocol/express": "2.0.0",
     "@modelcontextprotocol/ext-apps": "2.0.0",

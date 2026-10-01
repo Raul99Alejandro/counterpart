@@ -21,8 +21,9 @@ const converse: ConverseFn = async () => {
 beforeAll(async () => {
   const store = new MemoryStore();
   await seedAll(store);
-  const limits = new DemoLimits({ sandboxesPerIpPerHour: 3, sandboxesPerDay: 10, turnsPerSandboxPerDay: 4, turnsPerDay: 50 });
-  server = createApp({ store, host: '127.0.0.1', demo: { converse, limits } }).listen(0, '127.0.0.1');
+  const limits = new DemoLimits({ sandboxesPerIpPerHour: 3, sandboxesPerDay: 10, turnsPerSandboxPerDay: 4, turnsPerDay: 50, speechPerSandboxPerDay: 20, speechPerDay: 100 });
+  const speak = async (text: string) => new TextEncoder().encode(`mp3:${text}`);
+  server = createApp({ store, host: '127.0.0.1', demo: { converse, limits, speak } }).listen(0, '127.0.0.1');
   await new Promise<void>(resolve => server.once('listening', () => resolve()));
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 });
@@ -59,6 +60,16 @@ describe('demo routes', () => {
     expect(page.status).toBe(200);
     expect(page.headers.get('content-type')).toContain('text/html');
     expect(await page.text()).toContain('<html');
+  });
+
+  it('speaks a reply with Amazon Polly for a demo sandbox', async () => {
+    const token = (await newSandbox('10.0.0.5')).businesses[0]!.token;
+    const res = await post('/demo/api/speech', { token, text: 'Closed work order 47.' });
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toBe('audio/mpeg');
+    expect(await res.text()).toBe('mp3:Closed work order 47.');
+    expect((await post('/demo/api/speech', { token, text: 'x'.repeat(701) })).status).toBe(400);
+    expect((await post('/demo/api/speech', { token: DEMO_TOKENS.shop, text: 'Hi' })).status).toBe(401);
   });
 
   it('refuses tokens that are not from a demo sandbox', async () => {

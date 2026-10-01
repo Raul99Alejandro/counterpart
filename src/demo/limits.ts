@@ -1,16 +1,20 @@
 /**
  * Fixed-window counters for the public demo. In memory: the service runs one task, and a restart
- * only resets the windows early. The daily turn cap bounds the Nova spend (about $0.0027 a turn).
+ * only resets the windows early. The daily turn cap bounds the Nova spend (about $0.0027 a turn), and the
+ * speech cap the Polly spend (a reply is about 120 characters).
  */
 export interface DemoLimitConfig {
   sandboxesPerIpPerHour: number;
   sandboxesPerDay: number;
   turnsPerSandboxPerDay: number;
   turnsPerDay: number;
+  speechPerSandboxPerDay: number;
+  speechPerDay: number;
 }
 
 export const DEFAULT_DEMO_LIMITS: DemoLimitConfig = {
-  sandboxesPerIpPerHour: 5, sandboxesPerDay: 100, turnsPerSandboxPerDay: 80, turnsPerDay: 400
+  sandboxesPerIpPerHour: 5, sandboxesPerDay: 100, turnsPerSandboxPerDay: 80, turnsPerDay: 400,
+  speechPerSandboxPerDay: 160, speechPerDay: 800
 };
 
 const HOUR = 3600_000;
@@ -59,6 +63,15 @@ export class DemoLimits {
     if (this.daily.count('turns', now) >= this.config.turnsPerDay) return false;
     this.daily.add(`turns:${sandboxId}`, now);
     this.daily.add('turns', now);
+    return true;
+  }
+
+  /** Takes one spoken reply for a sandbox. Replaying a reply speaks it again, so this is apart from turns. */
+  takeSpeech(sandboxId: string, now: number = Date.now()): boolean {
+    if (this.daily.count(`speech:${sandboxId}`, now) >= this.config.speechPerSandboxPerDay) return false;
+    if (this.daily.count('speech', now) >= this.config.speechPerDay) return false;
+    this.daily.add(`speech:${sandboxId}`, now);
+    this.daily.add('speech', now);
     return true;
   }
 }

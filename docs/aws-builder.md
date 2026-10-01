@@ -18,6 +18,10 @@ Alexa developer console simulator (voice)
             └───────────────┬───────────────────────────────────────────┬──────────────────────┘
                             ▼                                           ▼
              Amazon DynamoDB (one table, on demand)        Amazon CloudWatch Logs (JSON lines)
+
+Judges' demo (browser, /demo on the same service)
+   page ─► agent in the server (Amazon Nova 2 Lite, Agent Skill as instructions) ─► in-process MCP ─► the same tools
+        ◄─ reply spoken by Amazon Polly · MCP Apps shown on the page
 ```
 
 | Service | What it does here | Why |
@@ -27,9 +31,11 @@ Alexa developer console simulator (voice)
 | **Amazon DynamoDB** | Single table for businesses, customers, orders, items, purchase orders and payments. | On-demand billing costs almost nothing for a demo, and transactions keep "add a line" and "close out" atomic. |
 | **AWS Secrets Manager** | Holds each business's bearer token (`counterpart/<business>/token`). The bridge reads it at startup; DynamoDB keeps only the token's SHA-256. | The repo is public, so no token lives in code or configuration. |
 | **Amazon CloudWatch Logs** | One JSON line per request and per tool call, with request id, session, business, tool, duration and error code. 14-day retention. | Enough to trace a failed spoken request during a recording. |
-| **AWS IAM** | Three roles: task execution, task (read and write on one table, and invoke Nova 2 Lite for the setup assistant), and the Express Mode infrastructure role. | Least privilege for the running code. |
-| **Amazon Bedrock (Nova 2 Lite)** | The model that picks a tool and fills its arguments from what the user said. Measured with our golden phrases: 22/22 for the auto shop, 21/23 for the bakery. | The model the Alexa+ track suggests for emulating Alexa+. |
+| **AWS IAM** | Three roles: task execution, task (read and write on one table, invoke Nova 2 Lite, and synthesize speech with Polly), and the Express Mode infrastructure role. | Least privilege for the running code. |
+| **Amazon Bedrock (Nova 2 Lite)** | The model that picks a tool and fills its arguments from what the user said. Measured with our golden phrases: 22/22 for the auto shop, 23/23 for the bakery ([evidence](evidence.md)). | The model the Alexa+ track suggests for emulating Alexa+. |
 | **Amazon Bedrock (Nova 2 Lite), from the server** | The setup assistant drafts a blank business's profile and catalog with forced tool use; the JSON schema comes from the same zod schemas the server validates with. The task role may call only `bedrock:InvokeModel` on the Nova 2 Lite inference profile. | A new business by voice, with no code: the draft runs in the background because it takes longer than one Alexa turn. |
+| **Amazon Bedrock (Nova 2 Lite), the judges' demo** | At `/demo`, an agent in the server plays the Alexa+ orchestrator: it reads the [Agent Skill](../skills/counterpart/SKILL.md) as its instructions and calls the business's MCP tools over an in-process MCP connection. Each visitor gets a 24-hour sandbox; daily caps bound the spend at about $1. | Judges can try the product in a browser, with nothing to install. |
+| **Amazon Polly** | Speaks the demo's replies (neural voice, about 0.45 s per reply). | It sounds like an assistant, the same on every browser, and fast enough for a spoken turn. |
 | **Amazon Bedrock AgentCore** | Runtime for the agent that emulates the Alexa+ orchestrator, plus Memory for conversation context across turns. | Billed only while it works; no server to keep running. |
 | **AWS Lambda** | The Alexa Skill endpoint of each bridge. It only accepts calls from its own Skill. | The standard Alexa Skill backend. |
 | **AWS CloudFormation / CDK** | Deploys each bridge stack. | The bridge ships as a CDK app. |

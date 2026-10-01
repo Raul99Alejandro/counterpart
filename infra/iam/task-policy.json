@@ -18,6 +18,12 @@
         "arn:aws:bedrock:__REGION__:__ACCOUNT__:inference-profile/us.amazon.nova-2-lite-v1:0",
         "arn:aws:bedrock:*::foundation-model/amazon.nova-2-lite-v1:0"
       ]
+    },
+    {
+      "Sid": "PollyForTheJudgesDemo",
+      "Effect": "Allow",
+      "Action": ["polly:SynthesizeSpeech"],
+      "Resource": "*"
     }
   ]
 }

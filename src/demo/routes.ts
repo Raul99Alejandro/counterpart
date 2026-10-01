@@ -12,10 +12,13 @@ import { packageRoot } from '../tools/ui-assets.js';
 import { runTurn } from './agent.js';
 import { DemoLimits } from './limits.js';
 import { createSandbox } from './sandbox.js';
+import type { Speaker } from './speech.js';
 
 export interface DemoDeps {
   converse: ConverseFn;
   limits?: DemoLimits;
+  /** Alexa's voice for the page; without it the page falls back to the browser's speech. */
+  speak?: Speaker;
 }
 
 const PAGE = path.join(packageRoot(), 'build', 'ui', 'demo', 'index.html');
@@ -30,6 +33,7 @@ const turnBody = z.object({
     })).max(5).optional()
   })).max(40).default([])
 });
+const speechBody = z.object({ token: z.string().min(1).max(200), text: z.string().trim().min(1).max(700) });
 const LIMIT_MESSAGE = 'The demo is busy right now. Please try again in a little while.';
 
 /**
@@ -89,6 +93,20 @@ export function demoRouter(deps: DemoDeps & {
     } finally {
       await close();
     }
+  });
+
+  router.post('/api/speech', async (req: Request, res: Response) => {
+    const parsed = speechBody.safeParse(req.body);
+    if (!parsed.success) { res.status(400).json({ error: 'bad request' }); return; }
+    if (!deps.speak) { res.status(404).json({ error: 'not available' }); return; }
+    const business = await demoBusiness(parsed.data.token);
+    if (!business) { res.status(401).json({ error: 'unauthorized' }); return; }
+    if (!limits.takeSpeech(business.id.replace(/-[a-z]+$/, ''), deps.now().getTime())) {
+      res.status(429).json({ error: 'limit', message: LIMIT_MESSAGE });
+      return;
+    }
+    const audio = await deps.speak(parsed.data.text);
+    res.type('audio/mpeg').set('cache-control', 'no-store').send(Buffer.from(audio));
   });
 
   router.get('/api/ui', async (req: Request, res: Response) => {

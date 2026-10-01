@@ -1,4 +1,5 @@
 import { BedrockRuntimeClient } from '@aws-sdk/client-bedrock-runtime';
+import { PollyClient } from '@aws-sdk/client-polly';
 import { createApp } from './http/app.js';
 import { hostPolicy } from './http/hosts.js';
 import type { Sessions } from './http/sessions.js';
@@ -7,6 +8,7 @@ import { openStore, storeConfig } from './store/from-env.js';
 import { ensureTable } from './store/table.js';
 import { bedrockConverse, novaDraftGenerator } from './setup/generate.js';
 import { agentConverse } from './demo/agent.js';
+import { pollySpeaker } from './demo/speech.js';
 import { seedAll, seedLocalBlank } from '../seed/run.js';
 
 const port = Number(process.env.PORT ?? 3000);
@@ -31,7 +33,17 @@ const setupModel = process.env.COUNTERPART_SETUP_MODEL_ID ?? 'us.amazon.nova-2-l
 const bedrock = new BedrockRuntimeClient({ region: cfg.region });
 const generate = novaDraftGenerator(bedrockConverse(bedrock, setupModel));
 // The judges' demo at /demo: a Nova agent stands in for the Alexa+ orchestrator (docs: demo-for-judges).
-const demo = process.env.COUNTERPART_DEMO === '1' ? { converse: agentConverse(bedrock, setupModel) } : undefined;
+// Alexa's voice in the demo comes from Amazon Polly. The neural engine answers in about a third of a second;
+// the generative one sounds a little richer but adds about two seconds to every reply.
+const demo = process.env.COUNTERPART_DEMO === '1'
+  ? {
+      converse: agentConverse(bedrock, setupModel),
+      speak: pollySpeaker(
+        new PollyClient({ region: cfg.region }),
+        process.env.COUNTERPART_DEMO_VOICE ?? 'Joanna', process.env.COUNTERPART_DEMO_VOICE_ENGINE ?? 'neural'
+      )
+    }
+  : undefined;
 const app = createApp({ store, host, devBusinessId, hosts, generate, demo });
 const httpServer = app.listen(port, host, () => {
   log({ level: 'info', msg: 'listening', port, host, store: cfg.kind, hosts: hosts.kind });

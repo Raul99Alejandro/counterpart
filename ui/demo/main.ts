@@ -336,7 +336,7 @@ function renderAll(): void {
 function switchTo(kind: Kind): void {
   if (kind === current) return;
   current = kind;
-  speechSynthesis?.cancel();
+  stopSpeaking();
   save();
   renderAll();
   const ui = threads[kind].lastUi;
@@ -397,7 +397,7 @@ async function send(raw: string): Promise<void> {
       ? { role: e.role, text: e.text, calls: (e.calls ?? []).slice(0, MAX_CALLS_PER_ENTRY) }
       : { role: e.role, text: e.text });
 
-  speechSynthesis?.cancel();
+  stopSpeaking();
   thread.entries.push({ role: 'user', text });
   els.text.value = '';
   hint('');
@@ -446,7 +446,7 @@ async function send(raw: string): Promise<void> {
     thread.lastUi = turn.ui;
     if (kind === current) {
       if (turn.ui) void showApp(kind, turn.ui); else hideApp();
-      speak(turn.reply);
+      speak(turn.reply, b.token);
     }
   } catch {
     thread.entries.push({ role: 'system', text: 'Could not reach the server. Check your connection and try again.' });
@@ -471,7 +471,40 @@ if ('speechSynthesis' in window) {
   speechSynthesis.addEventListener?.('voiceschanged', pickVoice);
 }
 
-function speak(text: string): void {
+let playing: HTMLAudioElement | null = null;
+
+/** Stops whatever is speaking: Polly's audio or the browser's voice. */
+function stopSpeaking(): void {
+  playing?.pause();
+  playing = null;
+  speechSynthesis?.cancel();
+}
+
+/** Alexa's voice: Amazon Polly through the server, or the browser's own voice if that fails. */
+async function speak(text: string, token: string): Promise<void> {
+  if (muted) return;
+  stopSpeaking();
+  try {
+    const res = await fetch('/demo/api/speech', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token, text })
+    });
+    if (!res.ok) throw new Error(`speech ${res.status}`);
+    const url = URL.createObjectURL(await res.blob());
+    const audio = new Audio(url);
+    playing = audio;
+    audio.onplay = () => setState('speaking');
+    audio.onended = audio.onerror = () => {
+      URL.revokeObjectURL(url);
+      if (playing === audio) playing = null;
+      if (els.screen.dataset.state === 'speaking') setState('idle');
+    };
+    await audio.play();
+  } catch {
+    browserSpeak(text);
+  }
+}
+
+function browserSpeak(text: string): void {
   if (muted || !('speechSynthesis' in window)) return;
   speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
@@ -492,7 +525,7 @@ function renderMute(): void {
 els.mute.addEventListener('click', () => {
   muted = !muted;
   writeMuted(muted);
-  if (muted && 'speechSynthesis' in window) { speechSynthesis.cancel(); setState('idle'); }
+  if (muted) { stopSpeaking(); setState('idle'); }
   renderMute();
 });
 
@@ -517,7 +550,7 @@ let pressStart = 0;
 
 function startListening(): void {
   if (!Recognition || listening || busy) return;
-  speechSynthesis?.cancel();
+  stopSpeaking();
   heardText = '';
   const r = new Recognition();
   r.lang = 'en-US';

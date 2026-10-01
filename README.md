@@ -10,7 +10,7 @@ Counterpart is a self-hosted [MCP](https://modelcontextprotocol.io) server that 
 
 ### Try it in your browser, nothing to install
 
-**[Open the live demo](https://co-f6a3fa860d024761ad6cc6f9e0e4dace.ecs.us-east-1.on.aws/demo)** (Chrome recommended for the microphone). It looks like an Echo Show: talk or type to the auto shop, the bakery, or a blank business you set up by voice, hear the answer, and see the MCP Apps on screen. Each visitor gets their own copy of the businesses for 24 hours, so you can't break anyone else's. It is a simulated Alexa+ experience: an Amazon Nova 2 Lite agent on Bedrock plays the Alexa+ orchestrator, reads the [Agent Skill](skills/counterpart/SKILL.md) as its instructions, and calls Counterpart's real MCP tools on AWS. The page also gives you three tokens to call the deployed `/mcp` yourself with the MCP Inspector.
+**[Open the live demo](https://co-f6a3fa860d024761ad6cc6f9e0e4dace.ecs.us-east-1.on.aws/demo)** (Chrome recommended for the microphone). It looks like an Echo Show: talk or type to the auto shop, the bakery, or a blank business you set up by voice, hear the answer, and see the MCP Apps on screen. Each visitor gets their own copy of the businesses for 24 hours, so you can't break anyone else's. It is a simulated Alexa+ experience: an Amazon Nova 2 Lite agent on Bedrock plays the Alexa+ orchestrator, reads the [Agent Skill](skills/counterpart/SKILL.md) as its instructions, and calls Counterpart's real MCP tools on AWS; Amazon Polly speaks the replies. The page also gives you three tokens to call the deployed `/mcp` yourself with the MCP Inspector.
 
 ### Run it yourself in two minutes (no AWS account needed)
 
@@ -51,7 +51,7 @@ Start the server with AWS credentials in the environment and connect with `demo-
 
 | Part | Status |
 |---|---|
-| MCP server (spec 2025-11-25, Streamable HTTP), nine tools per business, three MCP Apps | **Real.** Deployed on AWS (ECS Express Mode, DynamoDB, Secrets Manager) and covered by 383 automated tests |
+| MCP server (spec 2025-11-25, Streamable HTTP), nine tools per business, three MCP Apps | **Real.** Deployed on AWS (ECS Express Mode, DynamoDB, Secrets Manager) and covered by 385 automated tests |
 | Voice | **Real Alexa:** speech recognition and text-to-speech in the Alexa developer console simulator, through an Alexa Skill per business |
 | The agent that picks the tool | **Stand-in for Alexa+:** the Alexa+ MCP Toolkit is not public, so a Strands agent on Bedrock AgentCore (Nova 2 Lite) plays the Alexa+ orchestrator through our fork of [alexa-skill-mcp-bridge](https://github.com/Raul99Alejandro/alexa-skill-mcp-bridge/tree/counterpart) |
 | Setting up a business by voice | **Real:** Nova 2 Lite on Bedrock drafts it, the server validates it, and nothing activates without the owner's yes |
