@@ -148,6 +148,10 @@ describe('spoken reply', () => {
     expect(spokenReply(raw, 'fallback')).toBe("$3825.21 from 18 sales, averaging $212.51. That's down from $4842.14 the period before, and the best seller was Diagnostic.");
   });
 
+  it('never reads out the model talking about the user instead of to them', () => {
+    expect(spokenReply('Okay, the user said "Actually, no." They probably changed their mind.', 'x')).toBe('Okay.');
+  });
+
   it('keeps at most three sentences', () => {
     expect(spokenReply('One. Two. Three. Four.', 'x')).toBe('One. Two. Three.');
   });

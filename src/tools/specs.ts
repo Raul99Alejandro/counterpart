@@ -81,7 +81,7 @@ export function toolSpecs(profile: Profile): Record<ToolKey, ToolSpec> {
     closeOut: {
       name: profile.toolNames.closeOut,
       title: `Close out a ${order}`,
-      description: `Close out a finished ${order}, record how the ${customer} paid, and report the amount. Use this when the user says the ${order} was picked up, finished, or paid for.`
+      description: `Close out a finished ${order} and record how the ${customer} paid. Use this when the user says the ${order} was picked up, finished, or paid for. It takes two steps: the first call only reads the amount back and asks; call it again with confirm: true only after the user says yes, in a later turn.`
     },
     salesReport: {
       name: profile.toolNames.salesReport,
@@ -170,7 +170,8 @@ export function itemQueryInput(profile: Profile): z.ZodObject<z.ZodRawShape> {
 export function closeOutInput(profile: Profile): z.ZodObject<z.ZodRawShape> {
   return z.object({
     order: z.string().min(1).describe(orderReference(profile)),
-    paymentMethod: z.enum(['cash', 'card', 'check']).describe(`How the ${profile.nouns.customer} paid.`)
+    paymentMethod: z.enum(['cash', 'card', 'check']).describe(`How the ${profile.nouns.customer} paid.`),
+    confirm: z.boolean().optional().describe('True only after the user heard the amount and said yes.')
   });
 }
 

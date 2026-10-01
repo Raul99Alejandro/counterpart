@@ -58,7 +58,7 @@
         "query": "Dana Lee"
       },
       "pass": true,
-      "reply": "I found one work order for Dana Lee: work order 41, Dana Lee's 2019 blue sedan."
+      "reply": "I found 1 work order for Dana Lee: work order 41, Dana Lee's 2019 blue sedan."
     },
     {
       "say": "Open a work order for Jordan Diaz's 2019 Honda Accord, front brakes",
@@ -146,7 +146,7 @@
         "quantity": 2
       },
       "pass": true,
-      "reply": "I've added two hours of diagnostic work to the gray coupe. The total is now $202.99."
+      "reply": "I've added 2 hours of diagnostic work to the gray coupe. The total is now $202.99."
     },
     {
       "say": "Add an oil change to Sam's truck",
@@ -200,22 +200,23 @@
       "expected": "close_out_work_order",
       "got": "close_out_work_order",
       "gotArgs": {
-        "paymentMethod": "card",
-        "order": "silver crossover"
+        "order": "silver crossover",
+        "paymentMethod": "card"
       },
       "pass": true,
-      "reply": "Work order 47, Nina Patel's 2020 silver crossover, has been closed out. They paid $110.00 by card."
+      "reply": "Work order 47, Nina Patel's 2020 silver crossover, comes to $110.00. Should I go ahead and close it out by card?"
     },
     {
       "say": "Owen paid cash for the black pickup, close it out",
       "expected": "close_out_work_order",
       "got": "close_out_work_order",
       "gotArgs": {
+        "confirm": true,
         "paymentMethod": "cash",
         "order": "black pickup"
       },
       "pass": true,
-      "reply": "Work order 48, Owen Clark's 2014 black pickup, has been closed out. They paid $25.98 by cash."
+      "reply": "Work order 48, Owen Clark's 2014 black pickup, comes to $25.98. Should I close it out by cash now?"
     },
     {
       "say": "How did we do this week compared to last week?",
@@ -226,7 +227,7 @@
         "compare": true
       },
       "pass": true,
-      "reply": "This week you took in $2,738.25 from 13 sales, averaging $210.63 per sale. That's up from $1,691.56 the previous period, and your best seller was brake job labor."
+      "reply": "This week you took in $2602.27 from 11 sales, averaging $236.57 per sale. That's up from $1691.56 the period before, and your best seller was brake job labor."
     },
     {
       "say": "What were yesterday's sales?",
@@ -236,7 +237,7 @@
         "period": "yesterday"
       },
       "pass": true,
-      "reply": "Yesterday you had sales of $435.17 from 2 sales, averaging $217.59 per sale. That's down from $670.68 the period before, and your best seller was batteries."
+      "reply": "Yesterday you took in $435.17 from 2 sales, averaging $217.59 per sale. That's down from $670.68 the period before, and your best seller was batteries."
     }
   ]
 }

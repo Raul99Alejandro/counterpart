@@ -13,7 +13,7 @@ async function connect(bizId: string): Promise<{ client: Client; store: MemorySt
   await seedAll(store, NOW);
   const server = new McpServer({ name: 'counterpart', version: '0.1.0' });
   let n = 0;
-  const ctx = await toolContext(store, bizId, { now: () => NOW, newId: p => `${p}-${++n}` });
+  const ctx = await toolContext(store, bizId, { now: () => clock, newId: p => `${p}-${++n}` });
   registerTools(server, ctx);
 
   const [clientEnd, serverEnd] = InMemoryTransport.createLinkedPair();
@@ -21,6 +21,15 @@ async function connect(bizId: string): Promise<{ client: Client; store: MemorySt
   await server.server.connect(serverEnd);
   await client.connect(clientEnd);
   return { client, store };
+}
+
+let clock = NOW;
+const tick = (ms = 5000): void => { clock = new Date(clock.getTime() + ms); };
+/** Closing out takes two steps: the amount is read back, and the yes comes in a later turn. */
+async function closeOut(client: Client, args: Record<string, unknown>, name = 'close_out_work_order') {
+  await client.callTool({ name, arguments: args });
+  tick();
+  return client.callTool({ name, arguments: { ...args, confirm: true } });
 }
 
 const text = (r: { content: unknown[] }): string => (r.content[0] as { text: string }).text;
@@ -49,9 +58,7 @@ describe('full flow', () => {
     });
     expect(text(moved)).toContain('ready for pickup');
 
-    const closed = await client.callTool({
-      name: 'close_out_work_order', arguments: { order: 'the F-150', paymentMethod: 'card' }
-    });
+    const closed = await closeOut(client, { order: 'the F-150', paymentMethod: 'card' });
     expect(text(closed)).toContain('They paid');
     const closedData = closed.structuredContent as { amountCents: number; alreadyClosed: boolean };
     expect(closedData.alreadyClosed).toBe(false);

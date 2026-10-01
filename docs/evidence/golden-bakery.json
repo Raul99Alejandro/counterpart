@@ -210,7 +210,7 @@
         "order": "Ada Silva"
       },
       "pass": true,
-      "reply": "Cake order 16 for Ada Silva has been closed. They paid $48.71 by cash."
+      "reply": "Cake order 16 for Ada Silva comes to $48.71. Should I close it out by cash?"
     },
     {
       "say": "Close out Ben's chocolate cake, card",
@@ -221,7 +221,7 @@
         "order": "Ben Haddad"
       },
       "pass": true,
-      "reply": "Cake order 17 for Ben Haddad has been closed. They paid $89.85 by card."
+      "reply": "Cake order 17 for Ben Haddad comes to $89.85. Should I close it out by card?"
     },
     {
       "say": "How were sales this month?",
@@ -231,7 +231,7 @@
         "period": "this_month"
       },
       "pass": true,
-      "reply": "This month you made $567.44 from 4 sales, averaging $141.86. The best seller was 10-inch round cake."
+      "reply": "This month you made $428.88 from 2 sales, averaging $214.44. The best seller was 10-inch round cake."
     },
     {
       "say": "What did we sell yesterday?",

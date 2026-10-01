@@ -26,7 +26,8 @@ export interface TurnResult {
 const SKILL_PATH = path.join(packageRoot(), 'skills', 'counterpart', 'SKILL.md');
 const DEMO_NOTE = '\n\n## In this demo\n\nYou are Alexa on an Echo Show, talking with the owner of the business the tools belong to. '
   + 'Your words are spoken aloud: one or two short sentences, no lists, no markdown. '
-  + 'Act only through the tools: never say an order was opened, changed, closed or reordered unless a tool did it in this turn.';
+  + 'Act only through the tools: never say an order was opened, changed, closed or reordered unless a tool did it in this turn. '
+  + 'Speak to the owner directly; never describe the user or your own reasoning.';
 
 let cachedPrompt: string | undefined;
 
@@ -114,6 +115,8 @@ export async function runTurn(opts: {
  * to the next one, keep at most three sentences, and fall back to the tool's sentence if nothing is left.
  */
 export function spokenReply(text: string, fallback: string): string {
+  // Nova sometimes narrates instead of answering ("Okay, the user said…"): a plain acknowledgement is better.
+  if (/\bthe user\b/i.test(text)) return 'Okay.';
   let reply = text.split(/[{[]/)[0]!;
   const glued = /[.!?](?=[A-Z])/.exec(reply);
   if (glued) reply = reply.slice(0, glued.index + 1);

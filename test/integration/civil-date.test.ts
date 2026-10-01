@@ -33,7 +33,7 @@ async function connect(): Promise<Client> {
   let n = 0;
   const ctx: ToolContext = {
     business, profile: loadTemplate('auto-repair'), store,
-    now: () => EVENING, newId: p => `${p}-${++n}`
+    now: () => clock, newId: p => `${p}-${++n}`
   };
   const server = new McpServer({ name: 'counterpart', version: '0.1.0' });
   registerTools(server, ctx);
@@ -44,14 +44,21 @@ async function connect(): Promise<Client> {
   return client;
 }
 
+let clock = EVENING;
+const tick = (ms = 5000): void => { clock = new Date(clock.getTime() + ms); };
+/** Closing out takes two steps: the amount is read back, and the yes comes in a later turn. */
+async function closeOut(client: Client, args: Record<string, unknown>, name = 'close_out_work_order') {
+  await client.callTool({ name, arguments: args });
+  tick();
+  return client.callTool({ name, arguments: { ...args, confirm: true } });
+}
+
 const text = (r: { content: unknown[] }): string => (r.content[0] as { text: string }).text;
 
 describe('civil date of the payment', () => {
   it('an evening payment counts on the business day, not the UTC day', async () => {
     const client = await connect();
-    const closed = await client.callTool({
-      name: 'close_out_work_order', arguments: { order: 'the Civic', paymentMethod: 'card' }
-    });
+    const closed = await closeOut(client, { order: 'the Civic', paymentMethod: 'card' });
     expect(closed.isError).toBeFalsy();
 
     const report = await client.callTool({ name: 'sales_report', arguments: { period: 'today' } });
@@ -64,7 +71,7 @@ describe('civil date of the payment', () => {
 
   it('repeating the evening close-out is still idempotent', async () => {
     const client = await connect();
-    await client.callTool({ name: 'close_out_work_order', arguments: { order: 'the Civic', paymentMethod: 'card' } });
+    await closeOut(client, { order: 'the Civic', paymentMethod: 'card' });
     const again = await client.callTool({
       name: 'close_out_work_order', arguments: { order: 'the Civic', paymentMethod: 'card' }
     });

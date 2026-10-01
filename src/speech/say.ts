@@ -64,6 +64,11 @@ export const say = {
       + `so ${line.backordered} ${line.backordered === 1 ? 'is' : 'are'} backordered. ${total}`;
   },
 
+  confirmClose(profile: Profile, ref: OrderRef, amountCents: number, method: Payment['method']): string {
+    const subject = say.orderPhrase(profile, ref);
+    return `${subject}${subject.includes(', ') ? ',' : ''} comes to ${formatMoney(amountCents)}. Should I close it out by ${method}?`;
+  },
+
   closed(profile: Profile, ref: OrderRef, payment: Payment): string {
     return `Closed ${say.orderPhrase(profile, ref)}. They paid ${formatMoney(payment.amountCents)} by ${payment.method}.`;
   },

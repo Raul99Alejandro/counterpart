@@ -28,24 +28,24 @@ const uiOf = (tool: { _meta?: unknown }): string | undefined =>
   (tool._meta as { ui?: { resourceUri?: string } } | undefined)?.ui?.resourceUri;
 
 describe('MCP Apps', () => {
-  it('only the snapshot and the sales report carry a UI', async () => {
+  it('the snapshot, the sales report and the order search carry a UI', async () => {
     const client = await connect('shop');
     const { tools } = await client.listTools();
     const withUi = Object.fromEntries(tools.filter(t => uiOf(t)).map(t => [t.name, uiOf(t)]));
-    expect(withUi).toEqual({ get_shop_snapshot: UI.snapshot, sales_report: UI.salesReport });
+    expect(withUi).toEqual({ get_shop_snapshot: UI.snapshot, sales_report: UI.salesReport, find_work_orders: UI.orders });
     await client.close();
   });
 
-  it('publishes the two ui:// resources', async () => {
+  it('publishes the three ui:// resources', async () => {
     const client = await connect('bakery');
     const { resources } = await client.listResources();
-    expect(resources.map(r => r.uri).sort()).toEqual([UI.salesReport, UI.snapshot].sort());
+    expect(resources.map(r => r.uri).sort()).toEqual([UI.orders, UI.salesReport, UI.snapshot].sort());
     await client.close();
   });
 
   it('serves each UI as a single HTML file, with no external resources', async () => {
     const client = await connect('shop');
-    for (const uri of [UI.snapshot, UI.salesReport]) {
+    for (const uri of [UI.snapshot, UI.salesReport, UI.orders]) {
       const { contents } = await client.readResource({ uri });
       const page = contents[0] as { text: string; mimeType: string };
       expect(page.mimeType).toBe(RESOURCE_MIME_TYPE);
@@ -53,6 +53,18 @@ describe('MCP Apps', () => {
       expect(page.text).not.toMatch(/<script[^>]+src=/);
       expect(page.text).not.toMatch(/<link[^>]+href=/);
     }
+    await client.close();
+  });
+
+  it('the order search says what the cards show', async () => {
+    const client = await connect('shop');
+    const r = await client.callTool({ name: 'find_work_orders', arguments: { stage: 'waiting_on_parts' } });
+    const data = r.structuredContent as { heading: string; total: number; orders: Array<{ label: string; customer: string }> };
+    expect(data.heading).toBe('Work orders waiting on parts');
+    expect(data.total).toBe(data.orders.length);
+    expect(data.orders[0]).toMatchObject({ label: expect.any(String), customer: expect.any(String) });
+    const due = await client.callTool({ name: 'find_work_orders', arguments: { query: 'blue sedan' } });
+    expect((due.structuredContent as { heading: string }).heading).toBe('Work orders matching "blue sedan"');
     await client.close();
   });
 

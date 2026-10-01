@@ -51,7 +51,7 @@ Start the server with AWS credentials in the environment and connect with `demo-
 
 | Part | Status |
 |---|---|
-| MCP server (spec 2025-11-25, Streamable HTTP), nine tools per business, three MCP Apps | **Real.** Deployed on AWS (ECS Express Mode, DynamoDB, Secrets Manager) and covered by 374 automated tests |
+| MCP server (spec 2025-11-25, Streamable HTTP), nine tools per business, three MCP Apps | **Real.** Deployed on AWS (ECS Express Mode, DynamoDB, Secrets Manager) and covered by 383 automated tests |
 | Voice | **Real Alexa:** speech recognition and text-to-speech in the Alexa developer console simulator, through an Alexa Skill per business |
 | The agent that picks the tool | **Stand-in for Alexa+:** the Alexa+ MCP Toolkit is not public, so a Strands agent on Bedrock AgentCore (Nova 2 Lite) plays the Alexa+ orchestrator through our fork of [alexa-skill-mcp-bridge](https://github.com/Raul99Alejandro/alexa-skill-mcp-bridge/tree/counterpart) |
 | Setting up a business by voice | **Real:** Nova 2 Lite on Bedrock drafts it, the server validates it, and nothing activates without the owner's yes |

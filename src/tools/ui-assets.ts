@@ -7,7 +7,8 @@ import { registerAppResource, RESOURCE_MIME_TYPE } from '@modelcontextprotocol/e
 export const UI = {
   snapshot: 'ui://counterpart/snapshot.html',
   salesReport: 'ui://counterpart/sales-report.html',
-  setup: 'ui://counterpart/setup.html'
+  setup: 'ui://counterpart/setup.html',
+  orders: 'ui://counterpart/orders.html'
 } as const;
 
 /** Package root: walks up until it finds package.json. Works the same from src/ as from dist/. */
@@ -21,9 +22,9 @@ export function packageRoot(from: string = import.meta.dirname): string {
   return dir;
 }
 
-export type UiName = 'snapshot' | 'sales-report' | 'setup';
+export type UiName = 'snapshot' | 'sales-report' | 'setup' | 'orders';
 
-const URI: Record<UiName, string> = { snapshot: UI.snapshot, 'sales-report': UI.salesReport, setup: UI.setup };
+const URI: Record<UiName, string> = { snapshot: UI.snapshot, 'sales-report': UI.salesReport, setup: UI.setup, orders: UI.orders };
 
 export function uiBundlePath(name: UiName): string {
   return path.join(packageRoot(), 'build', 'ui', name, 'index.html');

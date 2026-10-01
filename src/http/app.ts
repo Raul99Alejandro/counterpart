@@ -55,7 +55,7 @@ export function createApp(deps: {
       return;
     }
     // Before connecting: the pages the profile will use once activated must already exist (Step 3b).
-    registerUiResources(server, ['snapshot', 'sales-report']);
+    registerUiResources(server, ['snapshot', 'sales-report', 'orders']);
     const setupTools = registerSetupTools(server, {
       business, setup,
       onActivated: (active, profile) => {

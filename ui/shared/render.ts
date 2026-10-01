@@ -155,3 +155,39 @@ export function setupHtml(v: SetupView): string {
     + `<section><h2>Catalog</h2><table><thead><tr><th>Name</th><th>Kind</th><th class="num">Price</th><th class="num">On hand</th></tr></thead>`
     + `<tbody>${rows}</tbody></table></section>`;
 }
+
+export interface OrdersView {
+  heading: string;
+  total: number;
+  orders: Array<{
+    orderId: string; number: number; label: string; customer: string;
+    stage: string; stageLabel: string; dueOn?: string; totalCents: number;
+  }>;
+}
+
+/** The cards a screen shows at once; a voice answer names at most five too. */
+const MAX_CARDS = 5;
+
+function shortDate(dateIso: string): string {
+  return new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
+    .format(new Date(`${dateIso}T12:00:00Z`));
+}
+
+/** Search results as a row of cards: what each order is, whose, where it stands, when it is due and its total. */
+export function ordersHtml(v: OrdersView): string {
+  const header = `<header class="orders-head"><h1>${escapeHtml(v.heading)}</h1>`
+    + `<span class="muted">${v.total} found</span></header>`;
+  if (v.orders.length === 0) return `${header}<p class="empty">Nothing matches.</p>`;
+
+  const cards = v.orders.slice(0, MAX_CARDS).map(o =>
+    `<article class="order-card">`
+    + `<div class="order-top"><span class="order-number">#${o.number}</span>`
+    + `<span class="stage-pill">${escapeHtml(o.stageLabel)}</span></div>`
+    + `<h2>${escapeHtml(o.label)}</h2>`
+    + `<p class="order-customer">${escapeHtml(o.customer)}</p>`
+    + `<div class="order-bottom"><span class="muted">${o.dueOn ? `Due ${shortDate(o.dueOn)}` : 'No due date'}</span>`
+    + `<span class="order-total">${money(o.totalCents)}</span></div>`
+    + `</article>`).join('');
+  const more = v.total > MAX_CARDS ? `<p class="muted orders-more">and ${v.total - MAX_CARDS} more</p>` : '';
+  return `${header}<div class="carousel">${cards}</div>${more}`;
+}

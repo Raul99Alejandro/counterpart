@@ -19,6 +19,8 @@ const bakery: Business = {
 };
 
 let idCounter = 0;
+let clock = NOW;
+const tick = (ms = 5000): void => { clock = new Date(clock.getTime() + ms); };
 
 /** Connects an MCP client to a server with the tools of the given context. */
 async function connect(ctx: ToolContext): Promise<Client> {
@@ -32,22 +34,31 @@ async function connect(ctx: ToolContext): Promise<Client> {
   return client;
 }
 
+/** Closing out takes two steps: the amount is read back, and the yes comes in a later turn. */
+async function closeOut(client: Client, args: Record<string, unknown>, name = 'close_out_work_order') {
+  await client.callTool({ name, arguments: args });
+  tick();
+  return client.callTool({ name, arguments: { ...args, confirm: true } });
+}
+
 /** Bakery: profile with no asset, so the duplicate key depends on the fields. */
 async function bakeryFixture(): Promise<{ client: Client; store: MemoryStore }> {
   idCounter = 0;
+  clock = NOW;
   const store = new MemoryStore();
   await store.putBusiness(bakery);
   await store.putCustomer('b2', { id: 'bc1', name: 'Grace Kim', nameNormalized: 'grace kim' });
 
   const client = await connect({
     business: bakery, profile: loadTemplate('bakery'), store,
-    now: () => NOW, newId: p => `${p}-${++idCounter}`
+    now: () => clock, newId: p => `${p}-${++idCounter}`
   });
   return { client, store };
 }
 
 async function fixture(store: MemoryStore = new MemoryStore()): Promise<{ client: Client; store: MemoryStore }> {
   idCounter = 0;
+  clock = NOW;
   await store.putBusiness(business);
   await store.putCustomer('b1', { id: 'c1', name: 'Dana Lee', nameNormalized: 'dana lee' });
   await store.putAsset('b1', { id: 'a1', customerId: 'c1', fields: { year: 2019, make: 'Honda', model: 'Civic' }, spokenLabel: '2019 Honda Civic' });
@@ -68,7 +79,7 @@ async function fixture(store: MemoryStore = new MemoryStore()): Promise<{ client
 
   const client = await connect({
     business, profile: loadTemplate('auto-repair'), store,
-    now: () => NOW, newId: p => `${p}-${++idCounter}`
+    now: () => clock, newId: p => `${p}-${++idCounter}`
   });
   return { client, store };
 }
@@ -139,9 +150,52 @@ describe('write tools', () => {
     expect(text(bad)).toContain('close it out');
   });
 
+  it('reads the amount back before closing, and closes after a yes in a later turn', async () => {
+    const { client, store } = await fixture();
+    const asked = await client.callTool({ name: 'close_out_work_order', arguments: { order: 'the Civic', paymentMethod: 'card' } });
+    expect(asked.isError).toBeFalsy();
+    expect(text(asked)).toBe("Work order 41, Dana Lee's 2019 Honda Civic, comes to $0.00. Should I close it out by card?");
+    expect(asked.structuredContent).toMatchObject({ status: 'needs_confirmation', amountCents: 0, method: 'card' });
+    expect(await store.listPayments('b1', '2026-09-01', '2026-09-30')).toHaveLength(0);
+
+    tick();
+    const closed = await client.callTool({ name: 'close_out_work_order', arguments: { order: 'the Civic', paymentMethod: 'card', confirm: true } });
+    expect(closed.structuredContent).toMatchObject({ status: 'closed', alreadyClosed: false });
+    expect(await store.listPayments('b1', '2026-09-01', '2026-09-30')).toHaveLength(1);
+  });
+
+  it('does not take a yes that comes right after the question, in the same turn', async () => {
+    const { client, store } = await fixture();
+    await client.callTool({ name: 'close_out_work_order', arguments: { order: 'the Civic', paymentMethod: 'card' } });
+    tick(1000);
+    const tooSoon = await client.callTool({ name: 'close_out_work_order', arguments: { order: 'the Civic', paymentMethod: 'card', confirm: true } });
+    expect(tooSoon.structuredContent).toMatchObject({ status: 'needs_confirmation' });
+    expect(await store.listPayments('b1', '2026-09-01', '2026-09-30')).toHaveLength(0);
+  });
+
+  it('asks first when a confirmation comes without a question, or for another payment method', async () => {
+    const { client, store } = await fixture();
+    const unasked = await client.callTool({ name: 'close_out_work_order', arguments: { order: 'the Civic', paymentMethod: 'card', confirm: true } });
+    expect(unasked.structuredContent).toMatchObject({ status: 'needs_confirmation' });
+    tick();
+    const otherMethod = await client.callTool({ name: 'close_out_work_order', arguments: { order: 'the Civic', paymentMethod: 'cash', confirm: true } });
+    expect(otherMethod.structuredContent).toMatchObject({ status: 'needs_confirmation', method: 'cash' });
+    expect(await store.listPayments('b1', '2026-09-01', '2026-09-30')).toHaveLength(0);
+  });
+
+  it('asks again if the total changed after the question', async () => {
+    const { client, store } = await fixture();
+    await client.callTool({ name: 'close_out_work_order', arguments: { order: 'the Civic', paymentMethod: 'card' } });
+    await client.callTool({ name: 'add_parts_or_labor', arguments: { order: 'the Civic', item: 'brake pads' } });
+    tick();
+    const stale = await client.callTool({ name: 'close_out_work_order', arguments: { order: 'the Civic', paymentMethod: 'card', confirm: true } });
+    expect(stale.structuredContent).toMatchObject({ status: 'needs_confirmation' });
+    expect(await store.listPayments('b1', '2026-09-01', '2026-09-30')).toHaveLength(0);
+  });
+
   it('closes out with payment and is idempotent on repeat', async () => {
     const { client, store } = await fixture();
-    const first = await client.callTool({ name: 'close_out_work_order', arguments: { order: 'the Civic', paymentMethod: 'card' } });
+    const first = await closeOut(client, { order: 'the Civic', paymentMethod: 'card' });
     expect(first.isError).toBeFalsy();
     const second = await client.callTool({ name: 'close_out_work_order', arguments: { order: 'the Civic', paymentMethod: 'card' } });
     expect(text(second)).toContain('already closed');
@@ -210,7 +264,7 @@ describe('write tools', () => {
   });
   it('repeating a close-out reports the payment method that was recorded', async () => {
     const { client } = await fixture();
-    await client.callTool({ name: 'close_out_work_order', arguments: { order: 'the Civic', paymentMethod: 'card' } });
+    await closeOut(client, { order: 'the Civic', paymentMethod: 'card' });
     const again = await client.callTool({ name: 'close_out_work_order', arguments: { order: 'the Civic', paymentMethod: 'cash' } });
     expect(again.structuredContent).toMatchObject({ alreadyClosed: true, method: 'card' });
   });

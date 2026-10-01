@@ -8,8 +8,10 @@ import { ConflictError } from '../store/store.js';
 import { closeOutInput, toolSpecs } from './specs.js';
 import { fail, guard, loadRefs, ok, stageLabel, type ToolContext } from './context.js';
 import type { Payment } from '../domain/types.js';
+import { askToConfirm, takeConfirmation } from './confirmations.js';
 
 const output = z.object({
+  status: z.enum(['needs_confirmation', 'closed', 'already_closed']),
   orderId: z.string(), number: z.number(), amountCents: z.number(),
   method: z.string(), alreadyClosed: z.boolean()
 });
@@ -27,6 +29,7 @@ export function registerCloseOut(server: McpServer, ctx: ToolContext): void {
     guard(async (args: Record<string, unknown>) => {
       const orderQuery = String(args.order);
       const paymentMethod = args.paymentMethod as Payment['method'];
+      const confirm = args.confirm === true;
 
       const today = businessToday(ctx.business.timezone, ctx.now());
       const refs = await loadRefs(ctx);
@@ -49,7 +52,7 @@ export function registerCloseOut(server: McpServer, ctx: ToolContext): void {
         const paidOn = businessToday(ctx.business.timezone, new Date(order.closedAt ?? ctx.now()));
         const recorded = (await ctx.store.listPayments(ctx.business.id, paidOn, paidOn)).find(p => p.orderId === order.id);
         return ok(say.alreadyClosed(ctx.profile, found.ref, order.totalCents), {
-          orderId: order.id, number: order.number, amountCents: order.totalCents,
+          status: 'already_closed', orderId: order.id, number: order.number, amountCents: order.totalCents,
           method: recorded?.method ?? paymentMethod, alreadyClosed: true
         });
       }
@@ -60,6 +63,17 @@ export function registerCloseOut(server: McpServer, ctx: ToolContext): void {
           + `Move it to ${stageLabel(ctx.profile, ctx.profile.closeFrom[0]!)} first.`);
       }
 
+      // Money moves only after the owner hears the amount and says yes, in a later turn. A yes for
+      // another amount or method, or too soon to be a person's, asks again.
+      const key = `${ctx.business.id}:${order.id}`;
+      if (!confirm || !takeConfirmation(ctx.store, key, order.totalCents, paymentMethod, ctx.now())) {
+        askToConfirm(ctx.store, key, order.totalCents, paymentMethod, ctx.now());
+        return ok(say.confirmClose(ctx.profile, found.ref, order.totalCents, paymentMethod), {
+          status: 'needs_confirmation', orderId: order.id, number: order.number,
+          amountCents: order.totalCents, method: paymentMethod, alreadyClosed: false
+        });
+      }
+
       try {
         await ctx.store.commitClose(ctx.business.id, result.order, result.payment);
       } catch (err) {
@@ -68,7 +82,7 @@ export function registerCloseOut(server: McpServer, ctx: ToolContext): void {
       }
 
       return ok(say.closed(ctx.profile, { ...found.ref, order: result.order }, result.payment), {
-        orderId: result.order.id, number: result.order.number,
+        status: 'closed', orderId: result.order.id, number: result.order.number,
         amountCents: result.payment.amountCents, method: result.payment.method, alreadyClosed: false
       });
     })

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { escapeHtml, money, salesChartSvg, salesReportHtml, setupHtml, snapshotHtml } from '../../ui/shared/render.js';
+import { escapeHtml, money, ordersHtml, salesChartSvg, salesReportHtml, setupHtml, snapshotHtml } from '../../ui/shared/render.js';
 
 const emptySnapshot = { todayRevenueCents: 0, sameDayLastWeekCents: 0, byStage: [], dueToday: [], low: [] };
 
@@ -78,5 +78,34 @@ describe('UI rendering', () => {
     const svg = salesChartSvg([{ date: '2026-09-28', cents: 1000 }], [{ date: '2026-09-21', cents: 800 }]);
     const widths = [...svg.matchAll(/width="(\d+)"/g)].map(m => Number(m[1]));
     expect(Math.max(...widths)).toBeLessThanOrEqual(64);
+  });
+});
+
+describe('order cards', () => {
+  const order = (n: number) => ({
+    orderId: `o${n}`, number: 40 + n, label: `2019 blue sedan ${n}`, customer: `Dana <Lee> ${n}`,
+    stage: 'waiting_on_parts', stageLabel: 'waiting on parts', dueOn: '2026-10-02', totalCents: 25371
+  });
+
+  it('draws one card per order with its customer, stage, due date and total', () => {
+    const html = ordersHtml({ heading: 'Work orders waiting on parts', total: 2, orders: [order(1), order(2)] });
+    expect(html).toContain('Work orders waiting on parts');
+    expect(html.match(/class="order-card"/g)).toHaveLength(2);
+    expect(html).toContain('#41');
+    expect(html).toContain('waiting on parts');
+    expect(html).toContain('$253.71');
+    expect(html).toContain('Fri, Oct 2');
+    expect(html).toContain('Dana &lt;Lee&gt; 1');
+  });
+
+  it('says how many more there are beyond the cards', () => {
+    const orders = Array.from({ length: 7 }, (_, i) => order(i + 1));
+    const html = ordersHtml({ heading: 'Open work orders', total: 12, orders });
+    expect(html.match(/class="order-card"/g)).toHaveLength(5);
+    expect(html).toContain('and 7 more');
+  });
+
+  it('shows an empty state', () => {
+    expect(ordersHtml({ heading: 'Work orders matching "x"', total: 0, orders: [] })).toContain('Nothing matches.');
   });
 });

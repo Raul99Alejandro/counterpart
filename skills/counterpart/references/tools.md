@@ -11,7 +11,7 @@ Every active business has the same nine intents. The tool names come from its pr
 | Add to an order | `add_parts_or_labor` | `add_to_cake_order` | `order` (as said), `item`, `quantity` |
 | Check stock | `check_parts_stock` | `check_ingredients` | `item` (optional: everything low) |
 | Reorder | `reorder_parts` | `reorder_ingredients` | `item` (optional: everything low) |
-| Close out and charge | `close_out_work_order` | `close_out_cake_order` | `order` (as said), `paymentMethod`: `cash`, `card` or `check` |
+| Close out and charge | `close_out_work_order` | `close_out_cake_order` | `order` (as said), `paymentMethod`: `cash`, `card` or `check`; `confirm: true` only on the second call, after the user's yes |
 | Sales report, with a screen | `sales_report` | `sales_report` | `period`: `today`, `yesterday`, `this_week`, `last_week`, `this_month`, `last_month`; `compare` |
 
 A blank business exposes only the setup tools:

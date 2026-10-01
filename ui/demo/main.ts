@@ -57,6 +57,7 @@ const PHRASES: Record<Kind, string[]> = {
     'Add front brake pads to the blue sedan.',
     'Move the blue sedan into the bay.',
     'Close out the silver crossover, they paid by card.',
+    'Yes, close it out.',
     'How did last week go?'
   ],
   bakery: [
@@ -70,7 +71,7 @@ const PHRASES: Record<Kind, string[]> = {
     'Yes, go ahead and turn it on.'
   ]
 };
-const PHRASES_AFTER_ACTIVATION = ['Take an order for Maria Lopez, a dozen roses for Friday.'];
+const PHRASES_AFTER_ACTIVATION = ['Take an order for Maria Lopez, a dozen roses for Friday.', 'What bouquet orders are due Friday?'];
 
 const GREETING: Record<Kind, [string, string]> = {
   shop: ['Ask about the shop.', 'Tap the mic and talk, type below, or pick a phrase.'],
