@@ -10,8 +10,12 @@ import { fail, guard, loadRefs, ok, stageLabel, type ToolContext, spoken } from 
 import type { Payment } from '../domain/types.js';
 import { askToConfirm, takeConfirmation } from './confirmations.js';
 
+/** For the model, not the person: the bridge shows it the JSON, and it kept confirming in the same turn. */
+const ASK_FIRST = 'End the turn now and wait for the owner to answer. Call this tool again with confirm: true only after the owner says yes in their next turn.';
+
 const output = spoken({
   status: z.enum(['needs_confirmation', 'closed', 'already_closed']),
+  next: z.string().optional(),
   orderId: z.string(), number: z.number(), amountCents: z.number(),
   method: z.string(), alreadyClosed: z.boolean()
 });
@@ -69,7 +73,7 @@ export function registerCloseOut(server: McpServer, ctx: ToolContext): void {
       if (!confirm || !takeConfirmation(ctx.store, key, order.totalCents, paymentMethod, ctx.now())) {
         askToConfirm(ctx.store, key, order.totalCents, paymentMethod, ctx.now());
         return ok(say.confirmClose(ctx.profile, found.ref, order.totalCents, paymentMethod), {
-          status: 'needs_confirmation', orderId: order.id, number: order.number,
+          status: 'needs_confirmation', next: ASK_FIRST, orderId: order.id, number: order.number,
           amountCents: order.totalCents, method: paymentMethod, alreadyClosed: false
         });
       }

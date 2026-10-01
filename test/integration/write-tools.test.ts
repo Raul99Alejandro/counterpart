@@ -156,11 +156,14 @@ describe('write tools', () => {
     expect(asked.isError).toBeFalsy();
     expect(text(asked)).toBe("Work order 41, Dana Lee's 2019 Honda Civic, comes to $0.00. Should I close it out by card?");
     expect(asked.structuredContent).toMatchObject({ status: 'needs_confirmation', amountCents: 0, method: 'card' });
+    // For the model, which the bridge shows the JSON: stop and ask, and confirm only after the owner's yes.
+    expect((asked.structuredContent as { next: string }).next).toMatch(/End the turn now/);
     expect(await store.listPayments('b1', '2026-09-01', '2026-09-30')).toHaveLength(0);
 
     tick();
     const closed = await client.callTool({ name: 'close_out_work_order', arguments: { order: 'the Civic', paymentMethod: 'card', confirm: true } });
     expect(closed.structuredContent).toMatchObject({ status: 'closed', alreadyClosed: false });
+    expect((closed.structuredContent as { next?: string }).next).toBeUndefined();
     expect(await store.listPayments('b1', '2026-09-01', '2026-09-30')).toHaveLength(1);
   });
 
