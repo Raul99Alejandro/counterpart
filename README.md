@@ -56,7 +56,7 @@ Start the server with AWS credentials in the environment and connect with `demo-
 | Businesses, customers and sales history | **Demo data**, seeded deterministically |
 | Demo video | The product footage was recorded live and only trimmed; the B-roll scenes, the narration voices and the music are AI-generated |
 
-Also: the [Agent Skill](skills/counterpart/SKILL.md), the [friction log](docs/friction-log.md) (24 entries), the [AWS architecture](docs/aws-builder.md), and tool choice measured against Nova 2 Lite with the golden phrases in `test/golden/` (auto shop 22/22, bakery 23/23).
+Also: [measured latency, cost and tool choice](docs/evidence.md) (business tools p95 294 ms on AWS, about $0.0027 of Nova 2 Lite per voice turn), the [Agent Skill](skills/counterpart/SKILL.md), the [friction log](docs/friction-log.md) (24 entries), the [AWS architecture](docs/aws-builder.md), and tool choice measured against Nova 2 Lite with the golden phrases in `test/golden/` (auto shop 22/22, bakery 23/23).
 
 ## The idea
 

@@ -54,4 +54,4 @@ Both are covered in the [README](../README.md#deploy-to-aws). The bridge stacks 
 
 ## Cost
 
-About $1 a day while the service runs: the load balancer and its public IPs are most of it, plus a small Fargate task. DynamoDB, ECR, logs, secrets, Lambda and AgentCore add cents, and Nova 2 Lite costs cents per hundred requests. The whole hackathon fits in the $150 of hackathon credits; the stack comes down right after the submission deadline.
+About $1.65 a day while the service runs, measured in [evidence.md](evidence.md): the load balancer and its public IPv4 addresses are most of it, plus a small Fargate task. DynamoDB, ECR, logs, secrets, Lambda and AgentCore add cents, and Nova 2 Lite costs about $0.0027 per voice turn. The whole hackathon fits in the $150 of hackathon credits; `npm run teardown` removes the stack when it ends.

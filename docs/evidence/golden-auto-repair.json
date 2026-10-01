@@ -1,0 +1,242 @@
+{
+  "modelId": "us.amazon.nova-2-lite-v1:0",
+  "mode": "converse",
+  "passed": 22,
+  "total": 22,
+  "results": [
+    {
+      "say": "How's the shop looking today?",
+      "expected": "get_shop_snapshot",
+      "got": "get_shop_snapshot",
+      "gotArgs": {},
+      "pass": true,
+      "reply": "Today you've taken in $920.43. You have 1 estimate, 1 approved, 2 jobs in the bay, 2 waiting on parts, and 2 ready for pickup. Also, 4 parts are running low."
+    },
+    {
+      "say": "Give me the rundown for today",
+      "expected": "get_shop_snapshot",
+      "got": "get_shop_snapshot",
+      "gotArgs": {},
+      "pass": true,
+      "reply": "Today you've taken in $920.43. You have 1 estimate, 1 approved, 2 jobs in the bay, 2 waiting on parts, and 2 ready for pickup. Also, 4 parts are running low."
+    },
+    {
+      "say": "What's waiting on parts?",
+      "expected": "find_work_orders",
+      "got": "find_work_orders",
+      "gotArgs": {
+        "stage": "waiting_on_parts"
+      },
+      "pass": true,
+      "reply": "There are 2 work orders waiting on parts: work order 45, Rosa Medina's 2021 red SUV, and work order 46, Tom Becker's 2017 gray coupe."
+    },
+    {
+      "say": "What's in the bay right now?",
+      "expected": "find_work_orders",
+      "got": "find_work_orders",
+      "gotArgs": {
+        "stage": "in_bay"
+      },
+      "pass": true,
+      "reply": "Two work orders are currently in the bay: work order 43, Priya Shah's 2018 white minivan, and work order 44, Alex Nowak's 2015 green wagon."
+    },
+    {
+      "say": "Anything ready for pickup?",
+      "expected": "find_work_orders",
+      "got": "find_work_orders",
+      "gotArgs": {
+        "stage": "ready_for_pickup"
+      },
+      "pass": true,
+      "reply": "Yes, two work orders are ready for pickup: work order 47, Nina Patel's 2020 silver crossover, and work order 48, Owen Clark's 2014 black pickup."
+    },
+    {
+      "say": "Pull up Dana Lee's job",
+      "expected": "find_work_orders",
+      "got": "find_work_orders",
+      "gotArgs": {
+        "query": "Dana Lee"
+      },
+      "pass": true,
+      "reply": "I found one work order for Dana Lee: work order 41, Dana Lee's 2019 blue sedan."
+    },
+    {
+      "say": "Open a work order for Jordan Diaz's 2019 Honda Accord, front brakes",
+      "expected": "open_work_order",
+      "got": "open_work_order",
+      "gotArgs": {
+        "description": "front brakes",
+        "asset": {
+          "year": 2019,
+          "make": "Honda",
+          "model": "Accord"
+        },
+        "customerName": "Jordan Diaz"
+      },
+      "pass": true,
+      "reply": "I've opened work order 49 for Jordan Diaz's 2019 Honda Accord for front brakes."
+    },
+    {
+      "say": "Start a new RO for Sam Reyes, 2020 Ford F-150, oil change",
+      "expected": "open_work_order",
+      "got": "open_work_order",
+      "gotArgs": {
+        "asset": {
+          "year": 2020,
+          "make": "Ford",
+          "model": "F-150"
+        },
+        "description": "oil change",
+        "customerName": "Sam Reyes"
+      },
+      "pass": true,
+      "reply": "I've opened work order 50 for Sam Reyes's 2020 Ford F-150 for an oil change."
+    },
+    {
+      "say": "Move the blue sedan into the bay",
+      "expected": "move_work_order_stage",
+      "got": "move_work_order_stage",
+      "gotArgs": {
+        "stage": "in_bay",
+        "order": "blue sedan"
+      },
+      "pass": true,
+      "reply": "Work order 41, Dana Lee's 2019 blue sedan, is now in the bay."
+    },
+    {
+      "say": "The green wagon is waiting on parts",
+      "expected": "move_work_order_stage",
+      "got": "move_work_order_stage",
+      "gotArgs": {
+        "stage": "waiting_on_parts",
+        "order": "green wagon"
+      },
+      "pass": true,
+      "reply": "Work order 44, Alex Nowak's 2015 green wagon, is now waiting on parts."
+    },
+    {
+      "say": "Mark order 44 ready for pickup",
+      "expected": "move_work_order_stage",
+      "got": "move_work_order_stage",
+      "gotArgs": {
+        "stage": "ready_for_pickup",
+        "order": "order 44"
+      },
+      "pass": true,
+      "reply": "Work order 44, Alex Nowak's 2015 green wagon, is now ready for pickup."
+    },
+    {
+      "say": "Add front brake pads to the blue sedan",
+      "expected": "add_parts_or_labor",
+      "got": "add_parts_or_labor",
+      "gotArgs": {
+        "item": "front brake pads",
+        "order": "blue sedan"
+      },
+      "pass": true,
+      "reply": "I've added front brake pads to the blue sedan. The total is now $253.71."
+    },
+    {
+      "say": "Put two hours of diagnostic on the gray coupe",
+      "expected": "add_parts_or_labor",
+      "got": "add_parts_or_labor",
+      "gotArgs": {
+        "item": "diagnostic",
+        "order": "gray coupe",
+        "quantity": 2
+      },
+      "pass": true,
+      "reply": "I've added two hours of diagnostic work to the gray coupe. The total is now $202.99."
+    },
+    {
+      "say": "Add an oil change to Sam's truck",
+      "expected": "add_parts_or_labor",
+      "got": "add_parts_or_labor",
+      "gotArgs": {
+        "item": "oil change",
+        "order": "Sam's truck"
+      },
+      "pass": true,
+      "reply": "I've added an oil change to Sam's truck. The total is now $60.00."
+    },
+    {
+      "say": "Do we have 5W-30?",
+      "expected": "check_parts_stock",
+      "got": "check_parts_stock",
+      "gotArgs": {
+        "item": "5W-30"
+      },
+      "pass": true,
+      "reply": "Yes, you have 19 quarts of 5W-30 on hand."
+    },
+    {
+      "say": "What parts are running low?",
+      "expected": "check_parts_stock",
+      "got": "check_parts_stock",
+      "gotArgs": {},
+      "pass": true,
+      "reply": "Four parts are running low: front brake pads (0 left), brake rotors (2 left), oil filters (2 left), and batteries (2 left)."
+    },
+    {
+      "say": "Reorder whatever's low",
+      "expected": "reorder_parts",
+      "got": "reorder_parts",
+      "gotArgs": {},
+      "pass": true,
+      "reply": "I've ordered more of everything that's low: 12 front brake pads, 12 brake rotors, 12 oil filters, and 12 batteries."
+    },
+    {
+      "say": "Order more brake rotors",
+      "expected": "reorder_parts",
+      "got": "reorder_parts",
+      "gotArgs": {
+        "item": "Brake rotor"
+      },
+      "pass": true,
+      "reply": "Brake rotors are already on order, so nothing additional was placed."
+    },
+    {
+      "say": "Close out the silver crossover, they paid by card",
+      "expected": "close_out_work_order",
+      "got": "close_out_work_order",
+      "gotArgs": {
+        "paymentMethod": "card",
+        "order": "silver crossover"
+      },
+      "pass": true,
+      "reply": "Work order 47, Nina Patel's 2020 silver crossover, has been closed out. They paid $110.00 by card."
+    },
+    {
+      "say": "Owen paid cash for the black pickup, close it out",
+      "expected": "close_out_work_order",
+      "got": "close_out_work_order",
+      "gotArgs": {
+        "paymentMethod": "cash",
+        "order": "black pickup"
+      },
+      "pass": true,
+      "reply": "Work order 48, Owen Clark's 2014 black pickup, has been closed out. They paid $25.98 by cash."
+    },
+    {
+      "say": "How did we do this week compared to last week?",
+      "expected": "sales_report",
+      "got": "sales_report",
+      "gotArgs": {
+        "period": "this_week",
+        "compare": true
+      },
+      "pass": true,
+      "reply": "This week you took in $2,738.25 from 13 sales, averaging $210.63 per sale. That's up from $1,691.56 the previous period, and your best seller was brake job labor."
+    },
+    {
+      "say": "What were yesterday's sales?",
+      "expected": "sales_report",
+      "got": "sales_report",
+      "gotArgs": {
+        "period": "yesterday"
+      },
+      "pass": true,
+      "reply": "Yesterday you had sales of $435.17 from 2 sales, averaging $217.59 per sale. That's down from $670.68 the period before, and your best seller was batteries."
+    }
+  ]
+}

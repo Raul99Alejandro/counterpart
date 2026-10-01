@@ -1,0 +1,247 @@
+{
+  "modelId": "us.amazon.nova-2-lite-v1:0",
+  "mode": "converse",
+  "passed": 23,
+  "total": 23,
+  "results": [
+    {
+      "say": "How's the bakery doing today?",
+      "expected": "get_bakery_snapshot",
+      "got": "get_bakery_snapshot",
+      "gotArgs": {},
+      "pass": true,
+      "reply": "Today you've taken in $428.88. You have 2 ordered, 1 baking, 1 decorating and 2 ready. Also, 4 ingredients are running low."
+    },
+    {
+      "say": "What's on the board today?",
+      "expected": "get_bakery_snapshot",
+      "got": "get_bakery_snapshot",
+      "gotArgs": {},
+      "pass": true,
+      "reply": "Today you've taken in $428.88, with 2 ordered, 1 baking, 1 decorating and 2 ready. Also, 4 ingredients are running low."
+    },
+    {
+      "say": "How many cakes are due Saturday?",
+      "expected": "find_cake_orders",
+      "got": "find_cake_orders",
+      "gotArgs": {
+        "due": "Saturday"
+      },
+      "pass": true,
+      "reply": "There are 3 cake orders due Saturday: cake order 13 for Luis Romero, cake order 14 for Emma Wright and cake order 15 for Jonas Meyer."
+    },
+    {
+      "say": "What's due tomorrow?",
+      "expected": "find_cake_orders",
+      "got": "find_cake_orders",
+      "gotArgs": {
+        "due": "tomorrow"
+      },
+      "pass": true,
+      "reply": "There are no cake orders due tomorrow."
+    },
+    {
+      "say": "What's in the oven?",
+      "expected": "find_cake_orders",
+      "got": "find_cake_orders",
+      "gotArgs": {
+        "stage": "baking"
+      },
+      "pass": true,
+      "reply": "One cake is in the oven: cake order 14 for Emma Wright."
+    },
+    {
+      "say": "Which cakes are ready?",
+      "expected": "find_cake_orders",
+      "got": "find_cake_orders",
+      "gotArgs": {
+        "stage": "ready"
+      },
+      "pass": true,
+      "reply": "Two cakes are ready: cake order 16 for Ada Silva and cake order 17 for Ben Haddad."
+    },
+    {
+      "say": "Find Luis Romero's order",
+      "expected": "find_cake_orders",
+      "got": "find_cake_orders",
+      "gotArgs": {
+        "query": "Luis Romero"
+      },
+      "pass": true,
+      "reply": "I found one cake order for Luis Romero: cake order 13."
+    },
+    {
+      "say": "Take a cake order for Priya Shah, a 10-inch chocolate cake, due Saturday",
+      "expected": "take_cake_order",
+      "got": "take_cake_order",
+      "gotArgs": {
+        "flavor": "chocolate",
+        "size": "10-inch",
+        "due": "Saturday",
+        "customerName": "Priya Shah"
+      },
+      "pass": true,
+      "reply": "I've opened cake order 18 for Priya Shah for a 10-inch chocolate cake due Saturday, October 3."
+    },
+    {
+      "say": "New order for Grace Kim, 8-inch vanilla, due Friday, write Happy Birthday",
+      "expected": "take_cake_order",
+      "got": "take_cake_order",
+      "gotArgs": {
+        "flavor": "vanilla",
+        "size": "8-inch",
+        "due": "Friday",
+        "customerName": "Grace Kim",
+        "inscription": "Happy Birthday"
+      },
+      "pass": true,
+      "reply": "I've opened cake order 19 for Grace Kim for an 8-inch vanilla cake with Happy Birthday due Friday, October 2."
+    },
+    {
+      "say": "Order for Tom, lemon, 8-inch, pickup tomorrow",
+      "expected": "take_cake_order",
+      "got": "take_cake_order",
+      "gotArgs": {
+        "flavor": "lemon",
+        "size": "8-inch",
+        "due": "tomorrow",
+        "customerName": "Tom"
+      },
+      "pass": true,
+      "reply": "I've opened cake order 20 for Tom for an 8-inch lemon cake due Friday, October 2."
+    },
+    {
+      "say": "Emma's red velvet is being decorated now",
+      "expected": "move_cake_order_stage",
+      "got": "move_cake_order_stage",
+      "gotArgs": {
+        "stage": "decorating",
+        "order": "Emma"
+      },
+      "pass": true,
+      "reply": "Cake order 14 for Emma Wright is now decorating."
+    },
+    {
+      "say": "Start baking Luis's cake",
+      "expected": "move_cake_order_stage",
+      "got": "move_cake_order_stage",
+      "gotArgs": {
+        "stage": "baking",
+        "order": "Luis Romero"
+      },
+      "pass": true,
+      "reply": "Cake order 13 for Luis Romero is now baking."
+    },
+    {
+      "say": "Jonas's carrot cake is ready",
+      "expected": "move_cake_order_stage",
+      "got": "move_cake_order_stage",
+      "gotArgs": {
+        "stage": "ready",
+        "order": "Jonas Meyer"
+      },
+      "pass": true,
+      "reply": "Cake order 15 for Jonas Meyer is now ready."
+    },
+    {
+      "say": "Add custom filling to Ben's order",
+      "expected": "add_to_cake_order",
+      "got": "add_to_cake_order",
+      "gotArgs": {
+        "item": "custom filling",
+        "order": "Ben Haddad"
+      },
+      "pass": true,
+      "reply": "I've added custom filling to cake order 17 for Ben Haddad. The total is now $89.85."
+    },
+    {
+      "say": "Add delivery to Luis's chocolate cake",
+      "expected": "add_to_cake_order",
+      "got": "add_to_cake_order",
+      "gotArgs": {
+        "item": "delivery",
+        "order": "Luis Romero"
+      },
+      "pass": true,
+      "reply": "I've added delivery to cake order 13 for Luis Romero. The total is now $95.36."
+    },
+    {
+      "say": "How much butter do we have?",
+      "expected": "check_ingredients",
+      "got": "check_ingredients",
+      "gotArgs": {
+        "item": "butter"
+      },
+      "pass": true,
+      "reply": "You have 14 butter on hand. That is at or below the reorder point."
+    },
+    {
+      "say": "What ingredients are running low?",
+      "expected": "check_ingredients",
+      "got": "check_ingredients",
+      "gotArgs": {},
+      "pass": true,
+      "reply": "Four ingredients are running low: 10-inch cake box (10 left), 10-inch cake board (8 left), Butter (14 left) and Cocoa powder (6 left)."
+    },
+    {
+      "say": "Reorder whatever's low",
+      "expected": "reorder_ingredients",
+      "got": "reorder_ingredients",
+      "gotArgs": {},
+      "pass": true,
+      "reply": "I've ordered 100 10-inch cake box, 100 10-inch cake board, 40 Butter and 20 Cocoa powder."
+    },
+    {
+      "say": "Order more 10-inch cake boxes",
+      "expected": "reorder_ingredients",
+      "got": "reorder_ingredients",
+      "gotArgs": {
+        "item": "10-inch cake box"
+      },
+      "pass": true,
+      "reply": "10-inch cake box is already on order."
+    },
+    {
+      "say": "Ada picked up her lemon cake and paid cash",
+      "expected": "close_out_cake_order",
+      "got": "close_out_cake_order",
+      "gotArgs": {
+        "paymentMethod": "cash",
+        "order": "Ada Silva"
+      },
+      "pass": true,
+      "reply": "Cake order 16 for Ada Silva has been closed. They paid $48.71 by cash."
+    },
+    {
+      "say": "Close out Ben's chocolate cake, card",
+      "expected": "close_out_cake_order",
+      "got": "close_out_cake_order",
+      "gotArgs": {
+        "paymentMethod": "card",
+        "order": "Ben Haddad"
+      },
+      "pass": true,
+      "reply": "Cake order 17 for Ben Haddad has been closed. They paid $89.85 by card."
+    },
+    {
+      "say": "How were sales this month?",
+      "expected": "sales_report",
+      "got": "sales_report",
+      "gotArgs": {
+        "period": "this_month"
+      },
+      "pass": true,
+      "reply": "This month you made $567.44 from 4 sales, averaging $141.86. The best seller was 10-inch round cake."
+    },
+    {
+      "say": "What did we sell yesterday?",
+      "expected": "sales_report",
+      "got": "sales_report",
+      "gotArgs": {
+        "period": "yesterday"
+      },
+      "pass": true,
+      "reply": "Yesterday you made $473.37 from 4 sales, averaging $118.34. That's up from $382.64 the period before, and the best seller was 10-inch round cake."
+    }
+  ]
+}
