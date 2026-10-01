@@ -8,9 +8,9 @@ import type { Profile } from '../profiles/schema.js';
 import { say } from '../speech/say.js';
 import { ConflictError } from '../store/store.js';
 import { openInput, toolSpecs } from './specs.js';
-import { fail, guard, loadRefs, ok, type ToolContext } from './context.js';
+import { fail, guard, loadRefs, ok, type ToolContext, spoken } from './context.js';
 
-const output = z.object({
+const output = spoken({
   orderId: z.string(), number: z.number(), stage: z.string(), label: z.string(), dueOn: z.string().optional()
 });
 

@@ -6,9 +6,9 @@ import { MATCH_THRESHOLD, normalizeQuery, scoreOrder } from '../domain/resolver.
 import { say } from '../speech/say.js';
 import { findInput, toolSpecs } from './specs.js';
 import { UI } from './ui-assets.js';
-import { guard, loadRefs, ok, openOnly, stageLabel, type ToolContext } from './context.js';
+import { guard, loadRefs, ok, openOnly, stageLabel, type ToolContext, spoken } from './context.js';
 
-const output = z.object({
+const output = spoken({
   /** What the cards on screen show, e.g. "Work orders waiting on parts". */
   heading: z.string(),
   total: z.number(),

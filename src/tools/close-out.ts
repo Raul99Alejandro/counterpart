@@ -6,11 +6,11 @@ import { resolveOrder } from '../domain/resolver.js';
 import { say } from '../speech/say.js';
 import { ConflictError } from '../store/store.js';
 import { closeOutInput, toolSpecs } from './specs.js';
-import { fail, guard, loadRefs, ok, stageLabel, type ToolContext } from './context.js';
+import { fail, guard, loadRefs, ok, stageLabel, type ToolContext, spoken } from './context.js';
 import type { Payment } from '../domain/types.js';
 import { askToConfirm, takeConfirmation } from './confirmations.js';
 
-const output = z.object({
+const output = spoken({
   status: z.enum(['needs_confirmation', 'closed', 'already_closed']),
   orderId: z.string(), number: z.number(), amountCents: z.number(),
   method: z.string(), alreadyClosed: z.boolean()

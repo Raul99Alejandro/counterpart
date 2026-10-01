@@ -6,10 +6,10 @@ import { formatMoney } from '../domain/money.js';
 import { buildSnapshot } from '../domain/reports.js';
 import { say } from '../speech/say.js';
 import { toolSpecs } from './specs.js';
-import { guard, loadRefs, ok, type ToolContext } from './context.js';
+import { guard, loadRefs, ok, type ToolContext, spoken } from './context.js';
 import { UI } from './ui-assets.js';
 
-const output = z.object({
+const output = spoken({
   todayRevenueCents: z.number(),
   sameDayLastWeekCents: z.number(),
   byStage: z.array(z.object({ stage: z.string(), label: z.string(), count: z.number() })),

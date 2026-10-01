@@ -5,9 +5,9 @@ import { resolveOrder } from '../domain/resolver.js';
 import { say } from '../speech/say.js';
 import { ConflictError } from '../store/store.js';
 import { moveInput, toolSpecs } from './specs.js';
-import { fail, guard, loadRefs, ok, openOnly, stageLabel, type ToolContext } from './context.js';
+import { fail, guard, loadRefs, ok, openOnly, stageLabel, type ToolContext, spoken } from './context.js';
 
-const output = z.object({ orderId: z.string(), number: z.number(), stage: z.string(), stageLabel: z.string() });
+const output = spoken({ orderId: z.string(), number: z.number(), stage: z.string(), stageLabel: z.string() });
 
 export function registerMove(server: McpServer, ctx: ToolContext): void {
   const spec = toolSpecs(ctx.profile).move;

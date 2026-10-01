@@ -1,3 +1,4 @@
+import * as z from 'zod/v4';
 import { randomUUID } from 'node:crypto';
 import type { McpServer } from '@modelcontextprotocol/server';
 import type { Profile } from '../profiles/schema.js';
@@ -37,8 +38,20 @@ function sentence(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
+/**
+ * A tool's output schema with the spoken sentence in it. The bridge hands the model the JSON, not the
+ * text, so the sentence has to be there too: with only amountCents, Nova said "eleven dollars" for $110.
+ */
+export function spoken<S extends z.ZodRawShape>(shape: S) {
+  return z.object({ message: z.string(), ...shape });
+}
+
 export function ok(text: string, structuredContent: unknown): ToolResult {
-  return { content: [{ type: 'text', text: sentence(text) }], structuredContent };
+  const spokenText = sentence(text);
+  const data = structuredContent && typeof structuredContent === 'object' && !Array.isArray(structuredContent)
+    ? { ...(structuredContent as Record<string, unknown>), message: spokenText }
+    : structuredContent;
+  return { content: [{ type: 'text', text: spokenText }], structuredContent: data };
 }
 
 /** Domain error: text only. The SDK does not validate outputSchema when isError is true. */

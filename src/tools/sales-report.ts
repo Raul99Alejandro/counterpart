@@ -5,10 +5,10 @@ import { periodRange, type Period } from '../domain/dates.js';
 import { formatMoney } from '../domain/money.js';
 import { buildSalesReport } from '../domain/reports.js';
 import { salesReportInput, toolSpecs } from './specs.js';
-import { guard, ok, type ToolContext } from './context.js';
+import { guard, ok, type ToolContext, spoken } from './context.js';
 import { UI } from './ui-assets.js';
 
-const output = z.object({
+const output = spoken({
   from: z.string(), to: z.string(), prevFrom: z.string(), prevTo: z.string(),
   totalCents: z.number(), prevTotalCents: z.number(), count: z.number(), averageTicketCents: z.number(),
   daily: z.array(z.object({ date: z.string(), cents: z.number() })),

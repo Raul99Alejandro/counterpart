@@ -66,6 +66,30 @@ describe('tool contract', () => {
   }
 });
 
+describe('spoken sentence in the data', () => {
+  // The bridge gives the model the tool's JSON, not its text: without the sentence there, Nova turned
+  // amountCents 11000 into "eleven dollars".
+  it('every business tool puts what it says in its JSON as message, and declares it', async () => {
+    const fetchWithToken = (input: URL | RequestInfo, init: RequestInit = {}) => {
+      const headers = new Headers(init.headers);
+      headers.set('authorization', `Bearer ${DEMO_TOKENS.shop}`);
+      return fetch(input, { ...init, headers });
+    };
+    const client = new Client({ name: 'contract', version: '0' });
+    await client.connect(new StreamableHTTPClientTransport(new URL(url), { fetch: fetchWithToken }));
+    const { tools } = await client.listTools();
+    for (const tool of tools) {
+      const props = (tool.outputSchema as { properties?: Record<string, unknown> }).properties ?? {};
+      expect(props.message, tool.name).toBeDefined();
+    }
+    const close = await client.callTool({ name: 'close_out_work_order', arguments: { order: 'the silver crossover', paymentMethod: 'card' } });
+    const text = (close.content as Array<{ text: string }>)[0]!.text;
+    expect((close.structuredContent as { message: string }).message).toBe(text);
+    expect(text).toContain('$110.00');
+    await client.close();
+  });
+});
+
 describe('protocol version', () => {
   it('answers 2025-11-25 when asked for it', async () => {
     expect(await negotiate('2025-11-25')).toBe('2025-11-25');

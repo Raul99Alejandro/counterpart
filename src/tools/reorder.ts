@@ -4,10 +4,10 @@ import { findItem, planReorder } from '../domain/inventory.js';
 import { say } from '../speech/say.js';
 import { ConflictError } from '../store/store.js';
 import { itemQueryInput, toolSpecs } from './specs.js';
-import { fail, guard, ok, type ToolContext } from './context.js';
+import { fail, guard, ok, type ToolContext, spoken } from './context.js';
 import type { PurchaseOrder } from '../domain/types.js';
 
-const output = z.object({
+const output = spoken({
   ordered: z.array(z.object({ itemId: z.string(), name: z.string(), qty: z.number() })),
   skipped: z.array(z.object({ itemId: z.string(), name: z.string() })),
   purchaseOrderIds: z.array(z.string())

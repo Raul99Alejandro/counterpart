@@ -4,9 +4,9 @@ import { findItem, lowStock } from '../domain/inventory.js';
 import type { CatalogItem } from '../domain/types.js';
 import { say } from '../speech/say.js';
 import { itemQueryInput, toolSpecs } from './specs.js';
-import { fail, guard, ok, type ToolContext } from './context.js';
+import { fail, guard, ok, type ToolContext, spoken } from './context.js';
 
-const output = z.object({
+const output = spoken({
   items: z.array(z.object({
     itemId: z.string(), name: z.string(), unit: z.string(),
     onHand: z.number(), reorderPoint: z.number(), low: z.boolean()
