@@ -27,21 +27,21 @@ phrases:
   - say: "Start a new RO for Sam Reyes, 2020 Ford F-150, oil change"
     tool: open_work_order
     args: { customerName: "Sam Reyes", asset: { year: 2020, make: "Ford", model: "F-150" }, description: "oil change" }
-  - say: "Move the Civic into the bay"
+  - say: "Move the blue sedan into the bay"
     tool: move_work_order_stage
-    args: { order: "the Civic", stage: in_bay }
-  - say: "The Outback is waiting on parts"
+    args: { order: "the blue sedan", stage: in_bay }
+  - say: "The green wagon is waiting on parts"
     tool: move_work_order_stage
-    args: { order: "the Outback", stage: waiting_on_parts }
+    args: { order: "the green wagon", stage: waiting_on_parts }
   - say: "Mark order 44 ready for pickup"
     tool: move_work_order_stage
     args: { order: "order 44", stage: ready_for_pickup }
-  - say: "Add front brake pads to the Civic"
+  - say: "Add front brake pads to the blue sedan"
     tool: add_parts_or_labor
-    args: { order: "the Civic", item: "front brake pads" }
-  - say: "Put two hours of diagnostic on the Malibu"
+    args: { order: "the blue sedan", item: "front brake pads" }
+  - say: "Put two hours of diagnostic on the gray coupe"
     tool: add_parts_or_labor
-    args: { order: "the Malibu", item: "diagnostic", quantity: 2 }
+    args: { order: "the gray coupe", item: "diagnostic", quantity: 2 }
   - say: "Add an oil change to Sam's truck"
     tool: add_parts_or_labor
     args: { order: "Sam's truck", item: "oil change" }
@@ -57,12 +57,12 @@ phrases:
   - say: "Order more brake rotors"
     tool: reorder_parts
     args: { item: "brake rotors" }
-  - say: "Close out the CX-5, they paid by card"
+  - say: "Close out the silver crossover, they paid by card"
     tool: close_out_work_order
-    args: { order: "the CX-5", paymentMethod: card }
-  - say: "Owen paid cash for the Ram, close it out"
+    args: { order: "the silver crossover", paymentMethod: card }
+  - say: "Owen paid cash for the black pickup, close it out"
     tool: close_out_work_order
-    args: { order: "the Ram", paymentMethod: cash }
+    args: { order: "the black pickup", paymentMethod: cash }
   - say: "How did we do this week compared to last week?"
     tool: sales_report
     args: { period: this_week }

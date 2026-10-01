@@ -1,10 +1,11 @@
+# Vehículos genéricos (color y tipo en make/model): el video y el demo no muestran marcas de terceros.
 historySeed: 1234
 customers:
   - name: Dana Lee
     asset:
       year: 2019
-      make: Honda
-      model: Civic
+      make: blue
+      model: sedan
       plate: JHK 4821
     order:
       stage: estimate
@@ -15,8 +16,8 @@ customers:
   - name: Mark Ortiz
     asset:
       year: 2016
-      make: Toyota
-      model: Camry
+      make: white
+      model: minivan
     order:
       stage: approved
       lines:
@@ -26,8 +27,8 @@ customers:
   - name: Priya Shah
     asset:
       year: 2018
-      make: Toyota
-      model: Camry
+      make: white
+      model: minivan
     order:
       stage: in_bay
       lines:
@@ -37,8 +38,8 @@ customers:
   - name: Alex Nowak
     asset:
       year: 2015
-      make: Subaru
-      model: Outback
+      make: green
+      model: wagon
     order:
       stage: in_bay
       lines:
@@ -47,8 +48,8 @@ customers:
   - name: Rosa Medina
     asset:
       year: 2021
-      make: Kia
-      model: Sorento
+      make: red
+      model: SUV
     order:
       stage: waiting_on_parts
       lines:
@@ -58,8 +59,8 @@ customers:
   - name: Tom Becker
     asset:
       year: 2017
-      make: Chevrolet
-      model: Malibu
+      make: gray
+      model: coupe
     order:
       stage: waiting_on_parts
       lines:
@@ -68,8 +69,8 @@ customers:
   - name: Nina Patel
     asset:
       year: 2020
-      make: Mazda
-      model: CX-5
+      make: silver
+      model: crossover
     order:
       stage: ready_for_pickup
       lines:
@@ -78,8 +79,8 @@ customers:
   - name: Owen Clark
     asset:
       year: 2014
-      make: Ram
-      model: "1500"
+      make: black
+      model: pickup
     order:
       stage: ready_for_pickup
       lines:

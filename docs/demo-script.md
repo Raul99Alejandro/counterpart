@@ -18,9 +18,9 @@ Las frases habladas van en inglés, tal como se dicen. Todas están en `test/gol
 1. **0:00–0:20 · El problema.** Un mecánico debajo de un auto, con las manos ocupadas; el sistema está en una PC al fondo del taller.
 2. **0:20–1:30 · El taller por voz.**
    - *"What's waiting on parts?"*
-   - *"Add front brake pads to the Civic"*
-   - *"Move the Civic into the bay"*
-   - *"Close out the CX-5, they paid by card"* — se usa la CX-5 de Nina Patel, que ya está sembrada lista para entregar.
+   - *"Add front brake pads to the blue sedan"*
+   - *"Move the blue sedan into the bay"*
+   - *"Close out the silver crossover, they paid by card"* — se usa el crossover de Nina Patel, que ya está sembrada lista para entregar.
 3. **1:30–1:55 · Lo visual.** *"How's the shop looking today?"* y *"How did we do this week compared to last week?"*, mostrando las dos UIs de MCP Apps. Se presentan como la interfaz que Alexa+ muestra en dispositivos con pantalla, sin hacerlas pasar por una captura de Alexa+.
 4. **1:55–2:35 · Un negocio nuevo, configurado hablando.** "Petal and Stem" empieza en blanco (`npm run business:new -- florist "Petal and Stem" --reset` antes de grabar).
    - *"Open petal and stem"* → *"I run a flower shop. We take orders for bouquets and centerpieces, arrange them, and they're ready for pickup or delivery."*

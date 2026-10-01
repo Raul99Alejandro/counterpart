@@ -3,14 +3,14 @@
 exports[`siembra del demo > siembra exactamente lo mismo que antes de mudarse a paquetes 1`] = `
 {
   "assets": [
-    "shop-asset-1:shop-cust-1:2019 Honda Civic:{"year":2019,"make":"Honda","model":"Civic","plate":"JHK 4821"}",
-    "shop-asset-2:shop-cust-2:2016 Toyota Camry:{"year":2016,"make":"Toyota","model":"Camry"}",
-    "shop-asset-3:shop-cust-3:2018 Toyota Camry:{"year":2018,"make":"Toyota","model":"Camry"}",
-    "shop-asset-4:shop-cust-4:2015 Subaru Outback:{"year":2015,"make":"Subaru","model":"Outback"}",
-    "shop-asset-5:shop-cust-5:2021 Kia Sorento:{"year":2021,"make":"Kia","model":"Sorento"}",
-    "shop-asset-6:shop-cust-6:2017 Chevrolet Malibu:{"year":2017,"make":"Chevrolet","model":"Malibu"}",
-    "shop-asset-7:shop-cust-7:2020 Mazda CX-5:{"year":2020,"make":"Mazda","model":"CX-5"}",
-    "shop-asset-8:shop-cust-8:2014 Ram 1500:{"year":2014,"make":"Ram","model":"1500"}",
+    "shop-asset-1:shop-cust-1:2019 blue sedan:{"year":2019,"make":"blue","model":"sedan","plate":"JHK 4821"}",
+    "shop-asset-2:shop-cust-2:2016 white minivan:{"year":2016,"make":"white","model":"minivan"}",
+    "shop-asset-3:shop-cust-3:2018 white minivan:{"year":2018,"make":"white","model":"minivan"}",
+    "shop-asset-4:shop-cust-4:2015 green wagon:{"year":2015,"make":"green","model":"wagon"}",
+    "shop-asset-5:shop-cust-5:2021 red SUV:{"year":2021,"make":"red","model":"SUV"}",
+    "shop-asset-6:shop-cust-6:2017 gray coupe:{"year":2017,"make":"gray","model":"coupe"}",
+    "shop-asset-7:shop-cust-7:2020 silver crossover:{"year":2020,"make":"silver","model":"crossover"}",
+    "shop-asset-8:shop-cust-8:2014 black pickup:{"year":2014,"make":"black","model":"pickup"}",
   ],
   "business": {
     "id": "shop",
