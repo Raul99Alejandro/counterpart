@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-/** Escribe un paquete de negocio en una carpeta temporal y devuelve su ruta. */
+/** Writes a business package to a temporary folder and returns its path. */
 export function writePackage(files: Record<string, string>, folder = 'test-shop'): string {
   const dir = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'counterpart-pkg-')), folder);
   fs.mkdirSync(dir);

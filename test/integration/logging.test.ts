@@ -39,8 +39,8 @@ async function connectOverHttp(token: string): Promise<Client> {
   return client;
 }
 
-describe('logs estructurados', () => {
-  it('registra la petición y la tool con la misma requestId, y nunca el token', async () => {
+describe('structured logs', () => {
+  it('logs the request and the tool with the same requestId, and never the token', async () => {
     const cap = captureLogs();
     try {
       const client = await connectOverHttp(DEMO_TOKENS.shop);
@@ -55,7 +55,7 @@ describe('logs estructurados', () => {
 
       const http = lines.filter(l => l.msg === 'http');
       expect(http.some(l => l.businessId === 'shop' && typeof l.sessionId === 'string')).toBe(true);
-      // La línea de la tool comparte requestId con la petición HTTP que la originó.
+      // The tool line shares its requestId with the HTTP request that triggered it.
       expect(http.map(l => l.requestId)).toContain(tool!.requestId);
 
       expect(JSON.stringify(lines)).not.toContain(DEMO_TOKENS.shop);
@@ -64,7 +64,7 @@ describe('logs estructurados', () => {
     }
   });
 
-  it('una petición sin token queda registrada como 401 y sin negocio', async () => {
+  it('a request without a token is logged as 401 with no business', async () => {
     const cap = captureLogs();
     try {
       await fetch(`${base}/mcp`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
@@ -77,7 +77,7 @@ describe('logs estructurados', () => {
     }
   });
 
-  it('una excepción inesperada queda registrada como INTERNAL', async () => {
+  it('an unexpected exception is logged as INTERNAL', async () => {
     class BrokenStore extends MemoryStore {
       override async listItems(): Promise<never> { throw new TypeError('boom'); }
     }
@@ -106,10 +106,10 @@ describe('logs estructurados', () => {
     }
   });
 
-  it('un error fuera de las tools responde 500 y queda en una línea INTERNAL, sin el token', async () => {
-    // DynamoDB caído: la búsqueda del token lanza antes de llegar a cualquier tool.
+  it('an error outside the tools answers 500 and lands in an INTERNAL line, without the token', async () => {
+    // DynamoDB down: the token lookup throws before reaching any tool.
     class DownStore extends MemoryStore {
-      override async getBusinessByTokenHash(): Promise<never> { throw new Error('store caído'); }
+      override async getBusinessByTokenHash(): Promise<never> { throw new Error('store down'); }
     }
     const broken = createApp({ store: new DownStore(), host: '127.0.0.1' }).listen(0, '127.0.0.1');
     await new Promise<void>(resolve => broken.once('listening', () => resolve()));
@@ -133,9 +133,9 @@ describe('logs estructurados', () => {
 
       const lines = cap.lines();
       const internal = lines.find(l => l.msg === 'internal');
-      expect(internal).toMatchObject({ level: 'error', code: 'INTERNAL', error: 'Error: store caído' });
+      expect(internal).toMatchObject({ level: 'error', code: 'INTERNAL', error: 'Error: store down' });
       expect(typeof internal!.stack).toBe('string');
-      // Correlacionada con la línea http de la misma petición.
+      // Correlated with the http line of the same request.
       expect(lines.find(l => l.msg === 'http')).toMatchObject({ status: 500, requestId: internal!.requestId });
       expect(JSON.stringify(lines)).not.toContain(DEMO_TOKENS.shop);
     } finally {
@@ -144,7 +144,7 @@ describe('logs estructurados', () => {
     }
   });
 
-  it('un JSON mal formado es error del cliente: 400 con su línea http, no INTERNAL', async () => {
+  it('malformed JSON is a client error: 400 with its http line, not INTERNAL', async () => {
     const cap = captureLogs();
     try {
       const r = await fetch(`${base}/mcp`, {
@@ -171,8 +171,8 @@ describe('logs estructurados', () => {
     }
   });
 
-  it('una petición que el cliente abandona también deja su línea http', async () => {
-    // Sesión a mano, sin el cliente del SDK: así el único stream SSE (GET) es el de esta prueba.
+  it('a request the client abandons also leaves its http line', async () => {
+    // Session by hand, without the SDK client: this way the only SSE stream (GET) is this test's.
     const headers = {
       'content-type': 'application/json',
       accept: 'application/json, text/event-stream',
@@ -192,7 +192,7 @@ describe('logs estructurados', () => {
     const controller = new AbortController();
     const cap = captureLogs();
     try {
-      // El servidor nunca termina el stream SSE: solo lo corta el cliente.
+      // The server never ends the SSE stream: only the client cuts it.
       const stream = await fetch(`${base}/mcp`, {
         method: 'GET',
         headers: { ...headers, accept: 'text/event-stream', 'mcp-session-id': sessionId },

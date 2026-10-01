@@ -19,23 +19,23 @@ beforeAll(async () => {
 
 afterAll(() => { server.close(); });
 
-describe('humo', () => {
-  it('pasa todos los chequeos contra un servidor sano, con aislamiento entre negocios', async () => {
+describe('smoke', () => {
+  it('passes every check against a healthy server, with isolation between businesses', async () => {
     const results = await runSmoke({ url, token: DEMO_TOKENS.shop, otherToken: DEMO_TOKENS.bakery });
     expect(results.map(r => r.name)).toEqual([
-      'ping', 'sin token → 401', 'versión 2025-11-25', 'nueve tools', 'resumen hablable', 'sesión ajena → 404'
+      'ping', 'no token → 401', 'version 2025-11-25', 'nine tools', 'speakable snapshot', 'another business session → 404'
     ]);
     expect(results.filter(r => !r.ok)).toEqual([]);
   });
 
-  it('marca como fallido un token inválido', async () => {
-    const results = await runSmoke({ url, token: 'no-existe' });
-    expect(results.find(r => r.name === 'versión 2025-11-25')?.ok).toBe(false);
+  it('marks an invalid token as failed', async () => {
+    const results = await runSmoke({ url, token: 'does-not-exist' });
+    expect(results.find(r => r.name === 'version 2025-11-25')?.ok).toBe(false);
   });
 });
 
-describe('humo sin fugas de sesiones', () => {
-  it('cierra sus sesiones: corre varias veces seguidas bajo un tope de 2 sesiones', async () => {
+describe('smoke without session leaks', () => {
+  it('closes its sessions: runs several times in a row under a cap of 2 sessions', async () => {
     const store = new MemoryStore();
     await seedAll(store);
     const capped = createApp({ store, host: '127.0.0.1', maxSessionsPerBusiness: 2 }).listen(0, '127.0.0.1');

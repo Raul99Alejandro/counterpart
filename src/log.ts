@@ -5,12 +5,12 @@ type Sink = (line: string) => void;
 const stdout: Sink = line => { process.stdout.write(`${line}\n`); };
 let sink: Sink = stdout;
 
-/** Una línea JSON por evento en stdout (§7.10). Nunca pases tokens aquí. */
+/** One JSON line per event on stdout (§7.10). Never pass tokens here. */
 export function log(event: LogEvent): void {
   sink(JSON.stringify({ ts: new Date().toISOString(), ...event }));
 }
 
-/** Para pruebas: captura los logs y devuelve cómo restaurar la salida anterior. */
+/** For tests: captures the logs and returns a way to restore the previous output. */
 export function captureLogs(): { lines: () => Array<Record<string, unknown>>; restore: () => void } {
   const captured: string[] = [];
   const previous = sink;

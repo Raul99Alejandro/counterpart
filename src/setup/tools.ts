@@ -15,7 +15,7 @@ import { setupView, setupViewSchema } from './view.js';
 export interface SetupToolContext {
   business: Business;
   setup: SetupService;
-  /** Lo llama la activación: la sesión cambia las tools de alta por las nueve del perfil. */
+  /** Called on activation: the session swaps the setup tools for the profile's nine. */
   onActivated: (business: Business, profile: Profile) => void;
 }
 
@@ -28,7 +28,7 @@ const START_TEXT: Record<StartResult, string> = {
   already_active: 'Your business is already set up. Open me again to use it.'
 };
 
-/** Cuánto espera la revisión a un borrador en curso. El bridge deja una tool corriendo más allá del turno. */
+/** How long review waits for an in-flight draft. The bridge lets a tool keep running past the turn. */
 export const REVIEW_WAIT_MS = 20_000;
 
 const NO_DRAFT = "There's no setup in progress. Tell me about your business, like: I run a flower shop that takes orders for bouquets.";
@@ -41,7 +41,7 @@ export function draftSummary(profile: Profile, itemCount: number): string {
     + `with ${things} in your catalog. Should I turn it on?`;
 }
 
-/** La sesión cambia sus tools y avisa con tools/list_changed; el fork del bridge las toma en el siguiente turno. */
+/** The session swaps its tools and notifies with tools/list_changed; the bridge fork picks them up on the next turn. */
 export function readyText(business: Business, profile: Profile): string {
   const tryIt = profile.due === 'none' ? `what ${profile.nouns.orders} are open?` : `what ${profile.nouns.orders} are due today?`;
   return `${business.name} is ready. Try: ${tryIt}`;
@@ -58,7 +58,7 @@ function activateText(result: ActivateResult): string {
   }
 }
 
-/** Las tres tools de un negocio en blanco (spec B2 §5.2). Solo escriben en el negocio del token. */
+/** The three tools of a blank business (spec B2 §5.2). They only write to the token's business. */
 export function registerSetupTools(server: McpServer, ctx: SetupToolContext): RegisteredTool[] {
   const s = instrument(server, ctx);
   const bizId = ctx.business.id;
@@ -71,7 +71,7 @@ export function registerSetupTools(server: McpServer, ctx: SetupToolContext): Re
       inputSchema: z.object({
         description: z.string().min(3).describe('What the business does and sells, and the steps an order goes through, in the user\'s words.')
       }),
-      // El bridge le pasa a Nova el JSON y no el texto: la frase va también aquí.
+      // The bridge passes Nova the JSON, not the text: the phrase goes here too.
       outputSchema: z.object({ status: z.enum(['started', 'busy', 'limited', 'already_active']), message: z.string() })
     },
     guard(async ({ description }: { description: string }) => {
@@ -114,8 +114,8 @@ export function registerSetupTools(server: McpServer, ctx: SetupToolContext): Re
     guard(async ({ confirm }: { confirm: boolean }) => {
       const result = await ctx.setup.activate(bizId, confirm);
       if (result.status === 'activated') {
-        // La activación ya quedó escrita: si el cambio de tools de la sesión falla, el negocio igual
-        // está listo y la sesión nueva lo ve. Nunca "no cambié nada".
+        // The activation is already written: if the session's tool swap fails, the business is still
+        // ready and a new session sees it. Never "I changed nothing".
         try {
           ctx.onActivated(result.business, result.profile);
         } catch (err) {

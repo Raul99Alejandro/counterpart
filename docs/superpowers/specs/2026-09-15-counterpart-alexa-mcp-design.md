@@ -1,148 +1,148 @@
-# Counterpart — Diseño técnico (track Alexa+)
+# Counterpart — Technical design (Alexa+ track)
 
-- **Fecha:** 2026-09-15
-- **Estado:** borrador para revisión
-- **Hackathon:** Build, Ship, Shape: Amazon Developer Hackathon — track **Alexa+**, mini-retos **AWS Builder** y **Open Source**
-- **Cierre de submissions:** 23 oct 2026, 12:00 PM PT · **Entrega objetivo de este proyecto:** 26 sep 2026
-
----
-
-## 1. Resumen
-
-Counterpart es un servidor MCP self-hosted que le permite a Alexa+ operar el día a día de un negocio pequeño que trabaja con órdenes: abrir y avanzar órdenes, agregar partidas, consultar y reordenar inventario, cobrar y ver cómo va el día.
-
-Un **núcleo genérico** se configura con **perfiles de negocio**. Cada perfil genera tools con el vocabulario de ese negocio, para que el modelo elija la tool correcta. Se entrega con dos perfiles sobre el mismo motor: **taller mecánico** y **pastelería de pedidos**.
+- **Date:** 2026-09-15
+- **Status:** draft for review
+- **Hackathon:** Build, Ship, Shape: Amazon Developer Hackathon — **Alexa+** track, **AWS Builder** and **Open Source** mini-challenges
+- **Submission deadline:** 23 Oct 2026, 12:00 PM PT · **Target delivery for this project:** 26 Sep 2026
 
 ---
 
-## 2. Contexto y restricciones
+## 1. Summary
 
-### 2.1 Lo que exige el track
+Counterpart is a self-hosted MCP server that lets Alexa+ run the day-to-day of a small business that works with orders: open and advance orders, add line items, check and reorder inventory, take payment and see how the day is going.
 
-- Regla: *"Build a working Agent Skill or a self-hosted MCP server, implementing MCP spec version (minimum acceptable version is 2025-11-25)."*
-- El video debe mostrar el proyecto funcionando. *"Judges are not required to test the Project"*: pueden juzgar solo con la descripción, las imágenes y el video.
-- Cuatro criterios con igual peso: Tech Implementation, Design, Potential Impact, Quality of Idea. El rubro distingue implementaciones obvias de innovadoras.
-
-### 2.2 El MCP Toolkit de Alexa+ no está disponible
-
-- `npm view @alexa-ai/cli` → **404 en npm público** (verificado 2026-09-15). La guía oficial de instalación lo sirve desde CodeArtifact (us-west-2), un registro privado.
-- Otro participante del hackathon documenta en su repo que el Toolkit y el CLI están *"limited to select partners"*.
-- Aun con acceso: disponible solo en EE.UU., sin soporte para Windows y con Node 24+ obligatorio.
-
-**Consecuencia de diseño:** el servidor cumple los requisitos de Alexa+ (spec 2025-11-25, Streamable HTTP, requisitos funcionales de add-ons, MCP Apps), pero el demo usa una superficie que no depende del Toolkit (§10).
-
-### 2.3 Requisitos funcionales de add-ons de Alexa+ que se adoptan
-
-- Toda tool en `tools/list` funciona al invocarla (requisito 13). Nada a medio construir se publica.
-- `inputSchema` válido con todos los parámetros requeridos declarados.
-- Descripciones claras, **una intención distinta por tool**, con sinónimos, abreviaturas y variantes; sin jerga técnica ni nombres internos.
-- Identificadores estables en las respuestas para encadenar pasos.
-- Errores por el contrato MCP (`isError: true`); nunca payloads malformados ni caídas del proceso.
-
-### 2.4 Restricciones propias
-
-- **Código, esquema y datos 100% nuevos y propios.** No se reutiliza nada de proyectos de clientes. Repo público con licencia MIT.
-- Demo en inglés (en-US) con negocios ficticios de EE.UU.
-- Presupuesto de AWS: los $150 en créditos del hackathon.
+A **generic core** is configured with **business profiles**. Each profile generates tools with that business's vocabulary, so the model picks the right tool. It ships with two profiles on the same engine: **auto repair shop** and **custom-order bakery**.
 
 ---
 
-## 3. Objetivos y no-objetivos
+## 2. Context and constraints
 
-**Objetivos**
+### 2.1 What the track requires
 
-1. Nueve tools funcionales por perfil, con dos perfiles sobre el mismo núcleo.
-2. Demo por voz en una superficie Alexa real (Echo o simulador de la consola) y visuales con MCP Apps.
-3. Despliegue en AWS documentado para calificar al mini-reto AWS Builder.
-4. Robustez en vivo: referencias habladas, errores que se pueden decir en voz alta, escrituras idempotentes.
+- Rule: *"Build a working Agent Skill or a self-hosted MCP server, implementing MCP spec version (minimum acceptable version is 2025-11-25)."*
+- The video must show the project working. *"Judges are not required to test the Project"*: they may judge only from the description, the images and the video.
+- Four equally weighted criteria: Tech Implementation, Design, Potential Impact, Quality of Idea. The rubric distinguishes obvious implementations from innovative ones.
 
-**No-objetivos del MVP**
+### 2.2 The Alexa+ MCP Toolkit is not available
 
-- OAuth / account linking (diseño documentado en §14, no se construye).
+- `npm view @alexa-ai/cli` → **404 on public npm** (verified 2026-09-15). The official install guide serves it from CodeArtifact (us-west-2), a private registry.
+- Another hackathon participant documents in their repo that the Toolkit and the CLI are *"limited to select partners"*.
+- Even with access: US only, no Windows support, and Node 24+ required.
+
+**Design consequence:** the server meets the Alexa+ requirements (spec 2025-11-25, Streamable HTTP, add-on functional requirements, MCP Apps), but the demo uses a surface that does not depend on the Toolkit (§10).
+
+### 2.3 Alexa+ add-on functional requirements adopted
+
+- Every tool in `tools/list` works when invoked (requirement 13). Nothing half-built is published.
+- Valid `inputSchema` with all required parameters declared.
+- Clear descriptions, **one distinct intent per tool**, with synonyms, abbreviations and variants; no technical jargon or internal names.
+- Stable identifiers in responses to chain steps.
+- Errors through the MCP contract (`isError: true`); never malformed payloads or process crashes.
+
+### 2.4 Our own constraints
+
+- **100% new, original code, schema and data.** Nothing is reused from client projects. Public repo under the MIT license.
+- Demo in English (en-US) with fictional US businesses.
+- AWS budget: the hackathon's $150 in credits.
+
+---
+
+## 3. Goals and non-goals
+
+**Goals**
+
+1. Nine working tools per profile, with two profiles on the same core.
+2. Voice demo on a real Alexa surface (Echo or the console simulator) and visuals with MCP Apps.
+3. Documented AWS deployment to qualify for the AWS Builder mini-challenge.
+4. Live robustness: spoken references, errors that can be said out loud, idempotent writes.
+
+**MVP non-goals**
+
+- OAuth / account linking (design documented in §14, not built).
 - Elicitation.
-- Editar o quitar partidas; reabrir órdenes cerradas.
-- Avisos a clientes (SMS, email), múltiples sucursales, roles de empleados.
-- Integraciones con POS o pagos reales; idiomas distintos del inglés.
-- Recetas de varios niveles (solo `consumes` de un nivel, §7.4).
+- Editing or removing line items; reopening closed orders.
+- Customer notifications (SMS, email), multiple locations, employee roles.
+- Integrations with POS or real payments; languages other than English.
+- Multi-level recipes (only one-level `consumes`, §7.4).
 
 ---
 
-## 4. Producto
+## 4. Product
 
-### 4.1 Perfiles del demo
+### 4.1 Demo profiles
 
-| | Taller | Pastelería |
+| | Shop | Bakery |
 |---|---|---|
-| Negocio ficticio | Oak Street Auto | Sweet Crumb Bakery |
-| Orden | work order | cake order |
-| Activo | vehicle: year, make, model (obligatorios), plate (opcional) | — |
-| Campos propios de la orden | — | flavor y size (obligatorios), inscription (opcional) |
-| Fecha de entrega (`due`) | opcional | obligatoria |
-| Etapas | estimate → approved → in_bay → waiting_on_parts → ready_for_pickup → picked_up | ordered → baking → decorating → ready → picked_up |
-| Se cierra desde | ready_for_pickup | ready |
-| Inventario | parts & fluids | ingredients & supplies |
+| Fictional business | Oak Street Auto | Sweet Crumb Bakery |
+| Order | work order | cake order |
+| Asset | vehicle: year, make, model (required), plate (optional) | — |
+| Order-specific fields | — | flavor and size (required), inscription (optional) |
+| Due date (`due`) | optional | required |
+| Stages | estimate → approved → in_bay → waiting_on_parts → ready_for_pickup → picked_up | ordered → baking → decorating → ready → picked_up |
+| Closed from | ready_for_pickup | ready |
+| Inventory | parts & fluids | ingredients & supplies |
 
-### 4.2 Las nueve tools
+### 4.2 The nine tools
 
-| # | Intención | Taller | Pastelería | Frase ejemplo (taller) | Tipo |
+| # | Intent | Shop | Bakery | Example phrase (shop) | Type |
 |---|---|---|---|---|---|
-| 1 | Resumen del día | `get_shop_snapshot` | `get_bakery_snapshot` | "How's the shop looking today?" | lectura · UI |
-| 2 | Buscar órdenes | `find_work_orders` | `find_cake_orders` | "What's waiting on parts?" | lectura |
-| 3 | Abrir orden | `open_work_order` | `take_cake_order` | "Open a work order for Dana Lee's 2019 Civic, front brakes" | escritura |
-| 4 | Cambiar etapa | `move_work_order_stage` | `move_cake_order_stage` | "Move the Civic to in the bay" | escritura |
-| 5 | Agregar partida | `add_parts_or_labor` | `add_to_cake_order` | "Add front brake pads to the Civic" | escritura |
-| 6 | Consultar inventario | `check_parts_stock` | `check_ingredients` | "Do we have 5W-30?" | lectura |
-| 7 | Reordenar | `reorder_parts` | `reorder_ingredients` | "Reorder whatever's low" | escritura |
-| 8 | Cobrar y cerrar | `close_out_work_order` | `close_out_cake_order` | "Close out the F-150, they paid by card" | escritura |
-| 9 | Reporte de ventas | `sales_report` | `sales_report` | "How did we do this week compared to last week?" | lectura · UI |
+| 1 | Daily summary | `get_shop_snapshot` | `get_bakery_snapshot` | "How's the shop looking today?" | read · UI |
+| 2 | Find orders | `find_work_orders` | `find_cake_orders` | "What's waiting on parts?" | read |
+| 3 | Open order | `open_work_order` | `take_cake_order` | "Open a work order for Dana Lee's 2019 Civic, front brakes" | write |
+| 4 | Change stage | `move_work_order_stage` | `move_cake_order_stage` | "Move the Civic to in the bay" | write |
+| 5 | Add line item | `add_parts_or_labor` | `add_to_cake_order` | "Add front brake pads to the Civic" | write |
+| 6 | Check inventory | `check_parts_stock` | `check_ingredients` | "Do we have 5W-30?" | read |
+| 7 | Reorder | `reorder_parts` | `reorder_ingredients` | "Reorder whatever's low" | write |
+| 8 | Take payment and close | `close_out_work_order` | `close_out_cake_order` | "Close out the F-150, they paid by card" | write |
+| 9 | Sales report | `sales_report` | `sales_report` | "How did we do this week compared to last week?" | read · UI |
 
-### 4.3 Guion del demo (≤ 3 min, borrador)
+### 4.3 Demo script (≤ 3 min, draft)
 
-1. **0:00–0:20** — El problema: el mecánico tiene las manos ocupadas y el sistema está en una PC al fondo del taller.
-2. **0:20–1:30** — Taller por voz: *"What's waiting on parts?"* → *"Add front brake pads to the Civic"* → *"Move the Civic to in the bay"* → *"Close out the F-150, they paid by card."*
-3. **1:30–1:55** — Visual: dashboard del día y gráfica de ventas (MCP Apps).
-4. **1:55–2:35** — Mismo servidor, otro perfil: *"How many cakes are due Saturday?"* → *"Take a cake order for Priya Shah, a 10-inch chocolate cake, due Saturday"* → *"Reorder whatever's low."*
-5. **2:35–3:00** — Arquitectura en AWS y cierre.
+1. **0:00–0:20** — The problem: the mechanic's hands are busy and the system is on a PC at the back of the shop.
+2. **0:20–1:30** — Shop by voice: *"What's waiting on parts?"* → *"Add front brake pads to the Civic"* → *"Move the Civic to in the bay"* → *"Close out the F-150, they paid by card."*
+3. **1:30–1:55** — Visual: daily dashboard and sales chart (MCP Apps).
+4. **1:55–2:35** — Same server, another profile: *"How many cakes are due Saturday?"* → *"Take a cake order for Priya Shah, a 10-inch chocolate cake, due Saturday"* → *"Reorder whatever's low."*
+5. **2:35–3:00** — AWS architecture and close.
 
 ---
 
-## 5. Arquitectura
+## 5. Architecture
 
 ```
-  Echo o simulador de la consola de Alexa
-          │ voz
+  Echo or Alexa console simulator
+          │ voice
           ▼
-  Alexa Skill (bridge) ──► agente Strands en Bedrock AgentCore (Nova 2 Lite)
+  Alexa Skill (bridge) ──► Strands agent on Bedrock AgentCore (Nova 2 Lite)
                                    │ MCP · Streamable HTTP · Authorization: Bearer
                                    ▼
           ┌────────────────── Counterpart (ECS Express Mode) ──────────────────┐
-          │ http/    /ping · /mcp · auth por token · sesión por negocio         │
-          │ tools/   registra las 9 tools del perfil del negocio en su sesión   │
-          │ domain/  reglas puras: órdenes · inventario · referencias · reportes│
+          │ http/    /ping · /mcp · token auth · per-business session          │
+          │ tools/   registers the business profile's 9 tools in its session   │
+          │ domain/  pure rules: orders · inventory · references · reports     │
           │ ui/      MCP Apps: snapshot · sales report                          │
           │ store/   DynamoStore ─────────────────────────► DynamoDB            │
           └─────────────────────────────────────────────────────────────────────┘
 
-  Visuales en el video: basic-host de ext-apps ──► mismo /mcp
+  Visuals in the video: ext-apps basic-host ──► same /mcp
 ```
 
-### 5.1 Unidades
+### 5.1 Units
 
-Cada unidad tiene una responsabilidad, una interfaz y dependencias explícitas. `domain/` no hace I/O y se prueba sin mocks.
+Each unit has one responsibility, one interface and explicit dependencies. `domain/` does no I/O and is tested without mocks.
 
-| Unidad | Responsabilidad | Interfaz principal | Depende de |
+| Unit | Responsibility | Main interface | Depends on |
 |---|---|---|---|
-| `profiles/` | Cargar y validar perfiles YAML | `loadProfile(id): Profile` | zod, yaml |
-| `domain/` | Reglas de negocio puras | funciones puras sobre tipos | tipos de `profiles` |
-| `store/` | Persistencia | interfaz `Store`; `DynamoStore`, `MemoryStore` | AWS SDK v3 |
-| `speech/` | Texto hablable en inglés | funciones `say` que devuelven `string` | tipos de `profiles` |
-| `tools/` | Registrar las 9 tools de un perfil en un `McpServer` | `registerTools(server, ctx)` | domain, store, speech, ui |
-| `ui/` | Dos MCP Apps en HTML de un solo archivo | recursos `ui://counterpart/*.html` | ext-apps |
-| `http/` | Express: `/ping`, `/mcp`, autenticación, sesiones | `createApp(deps)` | `@modelcontextprotocol/node` |
-| `seed/` | Datos ficticios deterministas por perfil | `seed(store, profileId)` | domain, store |
-| `infra/` | Imagen, tabla, despliegue, tokens | scripts | Docker, AWS CLI |
+| `profiles/` | Load and validate YAML profiles | `loadProfile(id): Profile` | zod, yaml |
+| `domain/` | Pure business rules | pure functions over types | `profiles` types |
+| `store/` | Persistence | `Store` interface; `DynamoStore`, `MemoryStore` | AWS SDK v3 |
+| `speech/` | Speakable English text | `say` functions that return `string` | `profiles` types |
+| `tools/` | Register a profile's 9 tools on an `McpServer` | `registerTools(server, ctx)` | domain, store, speech, ui |
+| `ui/` | Two MCP Apps as single-file HTML | `ui://counterpart/*.html` resources | ext-apps |
+| `http/` | Express: `/ping`, `/mcp`, authentication, sessions | `createApp(deps)` | `@modelcontextprotocol/node` |
+| `seed/` | Deterministic fictional data per profile | `seed(store, profileId)` | domain, store |
+| `infra/` | Image, table, deployment, tokens | scripts | Docker, AWS CLI |
 
-### 5.2 Estructura del repo
+### 5.2 Repo structure
 
 ```
 counterpart/
@@ -165,41 +165,41 @@ counterpart/
 
 ## 6. Stack
 
-| Pieza | Elección | Motivo |
+| Piece | Choice | Reason |
 |---|---|---|
-| Runtime | Node.js 24 LTS (imagen `node:24-slim`) | LTS vigente |
-| Lenguaje | TypeScript, ESM, `strict` | El SDK de MCP Apps es TypeScript |
-| MCP | `@modelcontextprotocol/server` y `@modelcontextprotocol/node` **2.0.0** | ext-apps 2.0.0 exige el SDK v2 |
-| MCP Apps | `@modelcontextprotocol/ext-apps` **2.0.0** | UI dentro de la conversación |
-| Validación | zod ^4.2 (`zod/v4`) | Peer de ext-apps; Standard Schema en el SDK v2 |
-| HTTP | Express | Patrón de los ejemplos oficiales del SDK |
-| Datos | DynamoDB on-demand; DynamoDB Local en Docker para pruebas | Serverless, capa gratuita |
-| UI | Vite, empaquetado en un solo HTML; gráficas en SVG propio | Sin librería de charts |
-| Pruebas | vitest | — |
+| Runtime | Node.js 24 LTS (`node:24-slim` image) | Current LTS |
+| Language | TypeScript, ESM, `strict` | The MCP Apps SDK is TypeScript |
+| MCP | `@modelcontextprotocol/server` and `@modelcontextprotocol/node` **2.0.0** | ext-apps 2.0.0 requires SDK v2 |
+| MCP Apps | `@modelcontextprotocol/ext-apps` **2.0.0** | UI inside the conversation |
+| Validation | zod ^4.2 (`zod/v4`) | ext-apps peer; Standard Schema in SDK v2 |
+| HTTP | Express | Pattern of the official SDK examples |
+| Data | DynamoDB on-demand; DynamoDB Local in Docker for tests | Serverless, free tier |
+| UI | Vite, bundled into a single HTML; hand-made SVG charts | No chart library |
+| Tests | vitest | — |
 
-**Versiones exactas** (sin `^`) en `package.json` para los paquetes de MCP: el SDK v2 acaba de salir.
+**Exact versions** (no `^`) in `package.json` for the MCP packages: SDK v2 has just come out.
 
-**Plan B de versiones (verificado en npm el 2026-09-15):** `@modelcontextprotocol/sdk` 1.30.0 (`LATEST_PROTOCOL_VERSION = "2025-11-25"`) + `@modelcontextprotocol/ext-apps` 1.7.5 (peer `@modelcontextprotocol/sdk ^1.29.0`). Se activa si el spike 2 o el 3 encuentran un bloqueo en v2.
+**Version Plan B (verified on npm on 2026-09-15):** `@modelcontextprotocol/sdk` 1.30.0 (`LATEST_PROTOCOL_VERSION = "2025-11-25"`) + `@modelcontextprotocol/ext-apps` 1.7.5 (peer `@modelcontextprotocol/sdk ^1.29.0`). It kicks in if spike 2 or 3 hits a blocker in v2.
 
 ---
 
-## 7. Diseño detallado
+## 7. Detailed design
 
-### 7.1 Sesiones y autenticación
+### 7.1 Sessions and authentication
 
-1. El cliente envía `POST /mcp` con `Authorization: Bearer <token>` y un `initialize`.
-2. `auth.ts` calcula el SHA-256 del token y busca `TOKEN#<hash>` → `businessId`. Si falta el token o no existe → **HTTP 401**, sin crear sesión.
-3. Se cargan el negocio y su perfil; se crea un `McpServer`, se registran las tools del perfil y se conecta un `NodeStreamableHTTPServerTransport` con `sessionIdGenerator: randomUUID`.
-4. Las peticiones con `mcp-session-id` se enrutan a su transporte. **Cada petición revalida el token y exige que pertenezca al mismo negocio que la sesión**: un session id sin su token no sirve.
-5. Las sesiones inactivas por más de 30 minutos se cierran. El mapa de sesiones vive en memoria, por eso el servicio corre con **una sola tarea** (§8).
+1. The client sends `POST /mcp` with `Authorization: Bearer <token>` and an `initialize`.
+2. `auth.ts` computes the token's SHA-256 and looks up `TOKEN#<hash>` → `businessId`. If the token is missing or does not exist → **HTTP 401**, with no session created.
+3. The business and its profile are loaded; an `McpServer` is created, the profile's tools are registered, and a `NodeStreamableHTTPServerTransport` with `sessionIdGenerator: randomUUID` is connected.
+4. Requests with `mcp-session-id` are routed to their transport. **Every request revalidates the token and requires it to belong to the same business as the session**: a session id without its token is useless.
+5. Sessions idle for more than 30 minutes are closed. The session map lives in memory, so the service runs with **a single task** (§8).
 
-**Tokens:** 32 bytes aleatorios en base64url generados por `infra/create-token.ts`. En DynamoDB solo se guarda el hash. El valor en claro se muestra una vez y se guarda en Secrets Manager para el bridge.
+**Tokens:** 32 random bytes in base64url generated by `infra/create-token.ts`. Only the hash is stored in DynamoDB. The plain value is shown once and stored in Secrets Manager for the bridge.
 
-**Modo local sin token** (por si basic-host no permite enviar headers): `COUNTERPART_DEV_BUSINESS=<bizId>` solo se acepta si el servidor escucha en `127.0.0.1`. Si se combina con cualquier otra interfaz, el proceso se niega a arrancar.
+**Local mode without token** (in case basic-host cannot send headers): `COUNTERPART_DEV_BUSINESS=<bizId>` is only accepted if the server listens on `127.0.0.1`. If combined with any other interface, the process refuses to start.
 
-### 7.2 Perfiles
+### 7.2 Profiles
 
-Archivos YAML validados con zod al arrancar. Un perfil inválido detiene el arranque con el error exacto. Un perfil define la **forma** del negocio; precios, inventario y clientes son **datos** y viven en DynamoDB.
+YAML files validated with zod at startup. An invalid profile stops startup with the exact error. A profile defines the business's **shape**; prices, inventory and customers are **data** and live in DynamoDB.
 
 ```yaml
 id: auto-repair
@@ -238,246 +238,246 @@ orderFields: []
 due: optional
 ```
 
-**Reglas de validación**
+**Validation rules**
 
-- `toolNames` únicos dentro del perfil y con formato `^[a-z][a-z0-9_]{2,63}$`.
-- `closedStage` pertenece a `stages`; `closeFrom` es subconjunto de `stages` sin `closedStage`.
-- Los marcadores de `spokenAs` son ids de `asset.fields`.
-- `due: required` hace obligatorio `due` en la tool de abrir orden.
+- `toolNames` unique within the profile and matching `^[a-z][a-z0-9_]{2,63}$`.
+- `closedStage` belongs to `stages`; `closeFrom` is a subset of `stages` without `closedStage`.
+- The `spokenAs` placeholders are ids from `asset.fields`.
+- `due: required` makes `due` mandatory in the open-order tool.
 
-**Generación de tools:** los `inputSchema` se construyen desde el perfil (campos del activo, `orderFields`, `stages` como enum). Los nombres salen de `toolNames`. Las descripciones se generan con plantillas en inglés a partir de `nouns` y `synonyms`; por ejemplo, para abrir orden: *"Open a new work order (also called a repair order, RO, ticket or job) for a customer and their vehicle. Use this when the user wants to start a new job."*
+**Tool generation:** the `inputSchema`s are built from the profile (asset fields, `orderFields`, `stages` as an enum). Names come from `toolNames`. Descriptions are generated from English templates using `nouns` and `synonyms`; for example, for opening an order: *"Open a new work order (also called a repair order, RO, ticket or job) for a customer and their vehicle. Use this when the user wants to start a new job."*
 
-### 7.3 Modelo de datos (DynamoDB, tabla única `counterpart`)
+### 7.3 Data model (DynamoDB, single table `counterpart`)
 
-| Entidad | PK | SK | Atributos principales |
+| Entity | PK | SK | Main attributes |
 |---|---|---|---|
 | Token | `TOKEN#<sha256>` | `TOKEN` | businessId, createdAt |
-| Negocio | `BIZ#<bizId>` | `META` | name, profileId, timezone, currency, taxRate, nextOrderNumber, version |
-| Cliente | `BIZ#<bizId>` | `CUST#<custId>` | name, nameNormalized, phone? |
-| Activo | `BIZ#<bizId>` | `ASSET#<assetId>` | customerId, fields{}, spokenLabel |
-| Orden | `BIZ#<bizId>` | `ORD#<orderId>` | number, customerId, assetId?, stage, fields{}, dueOn?, description?, lines[], subtotalCents, taxCents, totalCents, stageHistory[], createdAt, closedAt?, version |
-| Ítem | `BIZ#<bizId>` | `ITEM#<itemId>` | name, synonyms[], kind (part · labor · product · ingredient · supply), unit, priceCents, taxable, stocked, onHand, reorderPoint, reorderQty, supplierId?, consumes{itemId: qty}, version |
-| Proveedor | `BIZ#<bizId>` | `SUP#<supId>` | name |
-| Orden de compra | `BIZ#<bizId>` | `PO#<poId>` | supplierId, lines[{itemId, qty}], status (open · received), createdAt |
-| Cobro | `BIZ#<bizId>` | `PAY#<YYYY-MM-DD>#<payId>` | orderId, amountCents, method, paidAt |
+| Business | `BIZ#<bizId>` | `META` | name, profileId, timezone, currency, taxRate, nextOrderNumber, version |
+| Customer | `BIZ#<bizId>` | `CUST#<custId>` | name, nameNormalized, phone? |
+| Asset | `BIZ#<bizId>` | `ASSET#<assetId>` | customerId, fields{}, spokenLabel |
+| Order | `BIZ#<bizId>` | `ORD#<orderId>` | number, customerId, assetId?, stage, fields{}, dueOn?, description?, lines[], subtotalCents, taxCents, totalCents, stageHistory[], createdAt, closedAt?, version |
+| Item | `BIZ#<bizId>` | `ITEM#<itemId>` | name, synonyms[], kind (part · labor · product · ingredient · supply), unit, priceCents, taxable, stocked, onHand, reorderPoint, reorderQty, supplierId?, consumes{itemId: qty}, version |
+| Supplier | `BIZ#<bizId>` | `SUP#<supId>` | name |
+| Purchase order | `BIZ#<bizId>` | `PO#<poId>` | supplierId, lines[{itemId, qty}], status (open · received), createdAt |
+| Payment | `BIZ#<bizId>` | `PAY#<YYYY-MM-DD>#<payId>` | orderId, amountCents, method, paidAt |
 
-- **Sin índices secundarios.** Órdenes: `Query PK = BIZ#<id> AND begins_with(SK, "ORD#")` y filtro en memoria (un negocio pequeño tiene cientos de órdenes). Cobros por rango: `SK BETWEEN "PAY#<desde>" AND "PAY#<hasta>~"`, con la fecha en la zona horaria del negocio.
-- **Concurrencia:** negocio, órdenes e ítems llevan `version`; escrituras condicionales (`version = :expected`) con un reintento ante conflicto.
-- **Número de orden:** `nextOrderNumber` se incrementa con escritura condicional sobre `META`.
-- **Toda escritura que toca varios registros es transaccional** (`TransactWriteItems`): agregar partida (orden + ítems descontados) y cerrar (orden + cobro). Así el mensaje de error interno ("Nothing was changed") siempre es verdad.
-- `lines[]` vive dentro de la orden, con un tope de 50 partidas, muy por debajo del límite de 400 KB por registro.
+- **No secondary indexes.** Orders: `Query PK = BIZ#<id> AND begins_with(SK, "ORD#")` and in-memory filtering (a small business has hundreds of orders). Payments by range: `SK BETWEEN "PAY#<from>" AND "PAY#<to>~"`, with the date in the business's time zone.
+- **Concurrency:** business, orders and items carry `version`; conditional writes (`version = :expected`) with one retry on conflict.
+- **Order number:** `nextOrderNumber` is incremented with a conditional write on `META`.
+- **Every write that touches several records is transactional** (`TransactWriteItems`): adding a line item (order + decremented items) and closing (order + payment). That way the internal error message ("Nothing was changed") is always true.
+- `lines[]` lives inside the order, capped at 50 line items, well below the 400 KB per-record limit.
 
-### 7.4 Reglas de dominio
+### 7.4 Domain rules
 
-- **Clientes y activos:** al abrir una orden, el cliente se busca por `nameNormalized` exacto y se crea si no existe. El activo se busca por cliente + campos obligatorios y se crea si no existe. Si el perfil tiene activo, el activo es obligatorio.
-- **Etapas:** mover acepta cualquier etapa excepto `closedStage`, a la que solo se llega cerrando. Una orden cerrada no se mueve. Retroceder está permitido a propósito, para corregir por voz ("back to in the bay").
-- **Partidas:** precio del catálogo × cantidad (en mano de obra, la cantidad son horas). Si el ítem es `stocked`, descuenta `onHand`; lo que no alcance queda como `backordered` en la partida y la respuesta lo dice ("only 1 in stock, 1 backordered"). `onHand` nunca es negativo. El ítem se identifica con el algoritmo de §7.5 aplicado a nombre y sinónimos del catálogo.
-- **`consumes` (un nivel):** agregar "Oil change" descuenta 1 oil filter y 5 qt de 5W-30; agregar "10-inch round cake" descuenta 1 cake box y 1 cake board.
-- **Impuestos:** `taxRate` del negocio sobre el subtotal de partidas `taxable`, redondeado half-up una sola vez por orden.
-- **Reorden:** sin ítem, toma todos los `stocked` con `onHand <= reorderPoint`. Cantidad = `reorderQty` + suma de `backordered` en órdenes abiertas. Agrupa por proveedor en órdenes de compra. Los ítems con orden de compra abierta se omiten y se reportan.
-- **Cierre:** solo desde `closeFrom`. Registra un cobro por el total con método `cash`, `card` o `check`, y mueve la orden a `closedStage`.
-- **Dinero:** centavos enteros en todo el sistema; formato "$412.50" solo al hablar o mostrar.
-- **Fechas:** `due` acepta `today`, `tomorrow`, un día de la semana (su próxima ocurrencia, incluyendo hoy) o `YYYY-MM-DD`, resuelto en la zona horaria del negocio. Periodos del reporte: `today`, `yesterday`, `this_week`, `last_week`, `this_month`, `last_month`; semanas de lunes a domingo.
+- **Customers and assets:** when opening an order, the customer is looked up by exact `nameNormalized` and created if it does not exist. The asset is looked up by customer + required fields and created if it does not exist. If the profile has an asset, the asset is required.
+- **Stages:** move accepts any stage except `closedStage`, which is reached only by closing. A closed order cannot be moved. Going backward is allowed on purpose, to correct by voice ("back to in the bay").
+- **Line items:** catalog price × quantity (for labor, quantity is hours). If the item is `stocked`, it decrements `onHand`; whatever falls short stays as `backordered` on the line item and the response says so ("only 1 in stock, 1 backordered"). `onHand` is never negative. The item is identified with the §7.5 algorithm applied to the catalog's name and synonyms.
+- **`consumes` (one level):** adding "Oil change" decrements 1 oil filter and 5 qt of 5W-30; adding "10-inch round cake" decrements 1 cake box and 1 cake board.
+- **Taxes:** the business's `taxRate` on the subtotal of `taxable` line items, rounded half-up once per order.
+- **Reorder:** with no item, it takes all `stocked` items with `onHand <= reorderPoint`. Quantity = `reorderQty` + sum of `backordered` on open orders. Groups by supplier into purchase orders. Items with an open purchase order are skipped and reported.
+- **Close:** only from `closeFrom`. Records a payment for the total with method `cash`, `card` or `check`, and moves the order to `closedStage`.
+- **Money:** integer cents throughout the system; "$412.50" format only when speaking or displaying.
+- **Dates:** `due` accepts `today`, `tomorrow`, a weekday (its next occurrence, including today) or `YYYY-MM-DD`, resolved in the business's time zone. Report periods: `today`, `yesterday`, `this_week`, `last_week`, `this_month`, `last_month`; weeks run Monday to Sunday.
 
-### 7.5 Referencias habladas (`domain/resolver.ts`)
+### 7.5 Spoken references (`domain/resolver.ts`)
 
-Entrada: texto libre ("the Civic", "Dana's", "order 42"). Candidatas: órdenes no cerradas + órdenes cerradas hoy (para que cerrar dos veces sea idempotente).
+Input: free text ("the Civic", "Dana's", "order 42"). Candidates: non-closed orders + orders closed today (so closing twice is idempotent).
 
-1. **Normalizar:** minúsculas; quitar puntuación y `'s`; quitar palabras vacías (`the, a, an, mr, mrs, ms, number, no`) y los sustantivos del perfil (`work`, `order`, `cake`, etc.).
-2. **Número:** si queda un número que coincide con `number` de una candidata, se elige esa.
-3. **Puntaje** por candidata = tokens de la consulta que aparecen en nombre del cliente, `spokenLabel`, placa, campos de la orden o descripción ÷ tokens de la consulta. Los tokens de 5 o más letras toleran distancia de edición 1 ("camery" → "camry").
-4. **Decisión:** si la consulta queda vacía o el mejor puntaje es menor a 0.5 → `NOT_FOUND`. Si el segundo está a 0.15 o menos del primero → `AMBIGUOUS` con hasta 5 candidatas. Si no → la mejor.
+1. **Normalize:** lowercase; strip punctuation and `'s`; strip stop words (`the, a, an, mr, mrs, ms, number, no`) and the profile's nouns (`work`, `order`, `cake`, etc.).
+2. **Number:** if a number remains that matches a candidate's `number`, that one is picked.
+3. **Score** per candidate = query tokens that appear in the customer name, `spokenLabel`, plate, order fields or description ÷ query tokens. Tokens of 5 or more letters tolerate edit distance 1 ("camery" → "camry").
+4. **Decision:** if the query ends up empty or the best score is below 0.5 → `NOT_FOUND`. If the second is within 0.15 of the first → `AMBIGUOUS` with up to 5 candidates. Otherwise → the best one.
 
-### 7.6 Entradas por tool
+### 7.6 Inputs per tool
 
-| Tool | Entradas |
+| Tool | Inputs |
 |---|---|
-| snapshot | ninguna |
-| find | `query?` (texto libre), `stage?` (enum de etapas), `due?` (§7.4). Sin filtros: órdenes abiertas. Lista de máximo 10, pero `structuredContent.total` siempre trae el conteo completo |
-| open | `customerName`, `customerPhone?`, `asset` (campos del perfil; solo si el perfil tiene activo), campos de `orderFields`, `due` (según el perfil), `description?` |
-| move | `order` (referencia hablada), `stage` (enum) |
-| addLine | `order`, `item` (nombre o sinónimo), `quantity?` (1 por defecto) |
-| stock | `item?`; sin ítem, lista lo que está bajo |
-| reorder | `item?`; sin ítem, reordena todo lo que está bajo |
+| snapshot | none |
+| find | `query?` (free text), `stage?` (stage enum), `due?` (§7.4). No filters: open orders. List of at most 10, but `structuredContent.total` always carries the full count |
+| open | `customerName`, `customerPhone?`, `asset` (profile fields; only if the profile has an asset), `orderFields` fields, `due` (per the profile), `description?` |
+| move | `order` (spoken reference), `stage` (enum) |
+| addLine | `order`, `item` (name or synonym), `quantity?` (1 by default) |
+| stock | `item?`; with no item, lists what is low |
+| reorder | `item?`; with no item, reorders everything that is low |
 | closeOut | `order`, `paymentMethod` (`cash` · `card` · `check`) |
-| salesReport | `period` (enum de §7.4), `compare?` (`true` por defecto: contra el periodo anterior) |
+| salesReport | `period` (enum from §7.4), `compare?` (`true` by default: against the previous period) |
 
-### 7.7 Contrato de respuesta
+### 7.7 Response contract
 
-- **`content[0].text`:** una o dos oraciones en inglés, sin markdown, que se puedan decir en voz alta. Dinero como "$412.50". Las órdenes se mencionan por número ("work order 42"), que es su identificador hablable.
-- **`structuredContent`** con `outputSchema` declarado en cada tool: ids estables (`orderId`, `number`) y los datos que usan las UIs.
-- **Anotaciones MCP:** las lecturas llevan `readOnlyHint: true`; mover, cerrar y reordenar llevan `idempotentHint: true`.
-- **Errores de dominio:** `isError: true` con **solo texto** (sin `structuredContent`), que dice qué pasó y qué hacer. Las candidatas se enumeran por número (hasta 5) para que el usuario elija hablando.
+- **`content[0].text`:** one or two English sentences, no markdown, that can be said out loud. Money as "$412.50". Orders are referred to by number ("work order 42"), which is their speakable identifier.
+- **`structuredContent`** with an `outputSchema` declared on each tool: stable ids (`orderId`, `number`) and the data the UIs use.
+- **MCP annotations:** reads carry `readOnlyHint: true`; move, close and reorder carry `idempotentHint: true`.
+- **Domain errors:** `isError: true` with **text only** (no `structuredContent`), saying what happened and what to do. Candidates are listed by number (up to 5) so the user can choose by speaking.
 
-| Código | Cuándo | Texto de ejemplo |
+| Code | When | Example text |
 |---|---|---|
-| `NOT_FOUND` | referencia sin coincidencia | "I couldn't find an open work order for 'Accord'. Open ones are work orders 41, 44 and 47." |
+| `NOT_FOUND` | reference with no match | "I couldn't find an open work order for 'Accord'. Open ones are work orders 41, 44 and 47." |
 | `AMBIGUOUS` | §7.5 | "I found two Camrys: work order 41 for Dana Lee and work order 57 for Mark Ortiz. Which one?" |
-| `UNKNOWN_ITEM` | el ítem no está en el catálogo | "I don't have 'blinker fluid' in the parts list. Closest matches are brake fluid and washer fluid." |
-| `INVALID_STAGE` | orden cerrada, o intento de mover a la etapa de cierre | "Work order 42 is already picked up, so it can't be moved." / "To finish a work order, close it out instead." |
-| `CANNOT_CLOSE` | la etapa actual no está en `closeFrom` | "Work order 42 is still in the bay. Move it to ready for pickup first." |
-| `CONFLICT` | conflicto de versión tras el reintento | "Someone else just updated that work order. Please try again." |
-| `INTERNAL` | cualquier otra excepción (se registra con `requestId`) | "Something went wrong on my end. Nothing was changed." |
+| `UNKNOWN_ITEM` | the item is not in the catalog | "I don't have 'blinker fluid' in the parts list. Closest matches are brake fluid and washer fluid." |
+| `INVALID_STAGE` | closed order, or attempt to move to the closing stage | "Work order 42 is already picked up, so it can't be moved." / "To finish a work order, close it out instead." |
+| `CANNOT_CLOSE` | the current stage is not in `closeFrom` | "Work order 42 is still in the bay. Move it to ready for pickup first." |
+| `CONFLICT` | version conflict after the retry | "Someone else just updated that work order. Please try again." |
+| `INTERNAL` | any other exception (logged with `requestId`) | "Something went wrong on my end. Nothing was changed." |
 
-Los parámetros inválidos los rechaza el SDK con el `inputSchema`; nunca tumban el proceso.
+Invalid parameters are rejected by the SDK with the `inputSchema`; they never bring down the process.
 
-### 7.8 Idempotencia
+### 7.8 Idempotency
 
-| Tool | Regla |
+| Tool | Rule |
 |---|---|
-| open | Si existe una orden del mismo cliente, con el mismo activo y campos, creada hace menos de 2 minutos, se devuelve esa |
-| move | Mover a la etapa actual no cambia nada y responde éxito |
-| closeOut | Una orden ya cerrada devuelve el recibo existente sin registrar otro cobro |
-| reorder | Los ítems con orden de compra abierta se omiten |
-| addLine | Sin deduplicación: repetir "add another oil filter" es legítimo |
+| open | If an order exists for the same customer, with the same asset and fields, created less than 2 minutes ago, that one is returned |
+| move | Moving to the current stage changes nothing and responds with success |
+| closeOut | An already closed order returns the existing receipt without recording another payment |
+| reorder | Items with an open purchase order are skipped |
+| addLine | No deduplication: repeating "add another oil filter" is legitimate |
 
 ### 7.9 MCP Apps
 
-| Recurso | Tool | Contenido |
+| Resource | Tool | Content |
 |---|---|---|
-| `ui://counterpart/snapshot.html` | snapshot | ventas de hoy vs. el mismo día de la semana pasada; órdenes por etapa; vencimientos de hoy; inventario bajo |
-| `ui://counterpart/sales-report.html` | salesReport | ventas diarias del periodo vs. el anterior; total; ticket promedio; top 5 ítems |
+| `ui://counterpart/snapshot.html` | snapshot | today's sales vs. the same weekday last week; orders by stage; today's due items; low inventory |
+| `ui://counterpart/sales-report.html` | salesReport | daily sales for the period vs. the previous one; total; average ticket; top 5 items |
 
-- Registro con `registerAppTool` / `registerAppResource` de ext-apps. La ruta exacta de import en la 2.0.0 se confirma en el spike 3.
-- La UI recibe los datos por `structuredContent` (`app.ontoolresult`).
-- **El texto de `content` siempre basta por sí solo:** el bridge y los dispositivos sin pantalla no muestran UI.
+- Registered with ext-apps' `registerAppTool` / `registerAppResource`. The exact import path in 2.0.0 is confirmed in spike 3.
+- The UI receives the data through `structuredContent` (`app.ontoolresult`).
+- **The `content` text is always enough on its own:** the bridge and devices without a screen do not show UI.
 
-### 7.10 HTTP y operación
+### 7.10 HTTP and operations
 
-- `GET /ping` → `200 ok` (ruta de health check por defecto de ECS Express Mode).
-- `POST`, `GET` y `DELETE` en `/mcp` → transporte de la sesión.
-- Los streams SSE abiertos envían keep-alive cada 15 segundos o menos; el idle timeout del balanceador sube a 300 s. El mecanismo exacto se valida en el spike 2.
-- Logs JSON a stdout (CloudWatch): `requestId`, `sessionId`, `businessId`, tool, duración y código de error. Nunca tokens ni datos personales completos.
-- En `SIGTERM`: cerrar sesiones y transportes antes de salir.
+- `GET /ping` → `200 ok` (ECS Express Mode's default health check path).
+- `POST`, `GET` and `DELETE` on `/mcp` → the session's transport.
+- Open SSE streams send a keep-alive every 15 seconds or less; the load balancer idle timeout goes up to 300 s. The exact mechanism is validated in spike 2.
+- JSON logs to stdout (CloudWatch): `requestId`, `sessionId`, `businessId`, tool, duration and error code. Never tokens or full personal data.
+- On `SIGTERM`: close sessions and transports before exiting.
 
 ---
 
-## 8. Hosting e infraestructura (us-east-1)
+## 8. Hosting and infrastructure (us-east-1)
 
-Todo vive en us-east-1, la región que exige el bridge para Bedrock.
+Everything lives in us-east-1, the region the bridge requires for Bedrock.
 
-| Recurso | Configuración |
+| Resource | Configuration |
 |---|---|
-| ECR | repositorio `counterpart` |
-| ECS Express Mode | un servicio, 0.25 vCPU / 0.5 GB, puerto 3000, health check `/ping`, **mínimo y máximo 1 tarea** |
-| Balanceador (lo crea Express Mode) | HTTPS; idle timeout 300 s |
-| DynamoDB | tabla `counterpart`, on-demand |
-| Secrets Manager | tokens de los negocios demo para el bridge |
-| CloudWatch Logs | retención de 14 días |
+| ECR | `counterpart` repository |
+| ECS Express Mode | one service, 0.25 vCPU / 0.5 GB, port 3000, health check `/ping`, **minimum and maximum 1 task** |
+| Load balancer (created by Express Mode) | HTTPS; idle timeout 300 s |
+| DynamoDB | `counterpart` table, on-demand |
+| Secrets Manager | demo business tokens for the bridge |
+| CloudWatch Logs | 14-day retention |
 
-- **Despliegue:** `infra/deploy.sh` construye la imagen, la sube a ECR y crea el servicio con `aws ecs create-express-gateway-service` la primera vez, o actualiza la imagen en los despliegues siguientes.
-- **Requisito de Express Mode:** VPC por defecto con al menos 2 subnets públicas en 2 zonas de disponibilidad.
-- **Una sola tarea es una decisión consciente:** las sesiones viven en memoria. Escalar requiere sesiones compartidas o modo stateless; queda documentado en el README.
-- **Costo estimado:** ~$25–35 al mes (balanceador + Fargate; DynamoDB y logs casi $0), más las invocaciones de Bedrock del bridge. Entra en los $150 de créditos hasta el 3 de diciembre.
-
----
-
-## 9. Datos semilla
-
-Deterministas (semilla fija) y regenerables con `npm run seed -- <perfil>`.
-
-- **Taller:** 40 ítems (12 de mano de obra, 28 partes y fluidos; 5 por debajo del punto de reorden), 3 proveedores, 25 clientes con vehículo, 12 órdenes abiertas repartidas en todas las etapas, 30 días de cobros con patrón semanal. Exactamente un Civic y una F-150 (los del guion) y dos Camry (para probar ambigüedad).
-- **Pastelería:** 30 ítems (productos, ingredientes e insumos; 4 bajos), 2 proveedores, 20 clientes, 10 órdenes abiertas con `due` en los próximos 7 días (3 para el sábado), 30 días de cobros.
+- **Deployment:** `infra/deploy.sh` builds the image, pushes it to ECR and creates the service with `aws ecs create-express-gateway-service` the first time, or updates the image on later deployments.
+- **Express Mode requirement:** default VPC with at least 2 public subnets in 2 availability zones.
+- **A single task is a conscious decision:** sessions live in memory. Scaling requires shared sessions or stateless mode; this is documented in the README.
+- **Estimated cost:** ~$25–35 per month (load balancer + Fargate; DynamoDB and logs nearly $0), plus the bridge's Bedrock invocations. It fits in the $150 of credits until December 3.
 
 ---
 
-## 10. Superficies de demo
+## 9. Seed data
 
-### 10.1 Voz: alexa-skill-mcp-bridge
+Deterministic (fixed seed) and regenerable with `npm run seed -- <profile>`.
 
-- Proyecto open source (`github.com/KayLerch/alexa-skill-mcp-bridge`). Una Alexa Skill hace de add-on y un agente Strands en Bedrock AgentCore (Amazon Nova 2 Lite) emula el orquestador de Alexa+. Llama a Counterpart por Streamable HTTP con el token guardado en Secrets Manager.
-- **Track A** (agente local) para iterar las frases de oro. **Track C** (Skill) para el video, en un Echo o en el simulador de la consola de Alexa.
-- Limitaciones conocidas: sin UI, sin OAuth, solo inglés, y el modelo no es el de Alexa+. El propio README advierte que reproduce *"the mechanics of an Alexa+ MCP client, not Alexa's own model judgment."*
-- Cómo cambiar de negocio durante el video (actualizar el secreto o tener dos despliegues del bridge) se decide en el spike 4.
-
-### 10.2 Visual: basic-host de ext-apps
-
-Desde `examples/basic-host` del repo de ext-apps: `SERVERS='["http://localhost:3000/mcp"]' npm start` y abrir `http://localhost:8080`. En el video se presenta como la UI de MCP Apps que Alexa+ muestra en dispositivos con pantalla, sin hacerla pasar por una captura de Alexa+.
-
-### 10.3 Criterio de corte
-
-Si el spike 1 o el 4 no funcionan al terminar el día 1, la voz pasa a una web app propia con un agente en Bedrock que llama a Counterpart: la *"simulated Alexa+ experience"* que aceptan las reglas. **El servidor no cambia.**
+- **Shop:** 40 items (12 labor, 28 parts and fluids; 5 below the reorder point), 3 suppliers, 25 customers with a vehicle, 12 open orders spread across all stages, 30 days of payments with a weekly pattern. Exactly one Civic and one F-150 (the ones in the script) and two Camrys (to test ambiguity).
+- **Bakery:** 30 items (products, ingredients and supplies; 4 low), 2 suppliers, 20 customers, 10 open orders with `due` in the next 7 days (3 for Saturday), 30 days of payments.
 
 ---
 
-## 11. Pruebas
+## 10. Demo surfaces
 
-1. **Unitarias (vitest):** esquema de perfiles (válidos e inválidos); generación de tools e `inputSchema` por perfil; resolver con tabla de casos (número, nombre, posesivo, error de dedo, ambigüedad, consulta vacía); transiciones de etapa; `consumes` y backorder; impuestos y redondeo; resolución de `due` y de periodos alrededor de cambios de semana, de mes y de zona horaria.
-2. **Integración:** `Client` ↔ `McpServer` con `InMemoryTransport.createLinkedPair()`. Las 9 tools de cada perfil contra `MemoryStore` y contra `DynamoStore` sobre DynamoDB Local (Docker). Incluye idempotencia, conflictos de versión simulados y respuestas de error.
-3. **Contrato HTTP:** servidor real en local. `initialize` negocia `protocolVersion: "2025-11-25"`; sin token → 401; token de otro negocio con un session id válido → rechazado. Revisión manual con MCP Inspector.
-4. **Frases de oro:** `test/golden/<perfil>.yaml` con ~20 frases por perfil, cada una con la tool esperada y sus argumentos clave, corridas contra el Track A del bridge. **Meta antes de grabar: 18 de 20 o más por perfil.** Si fallan, se ajustan descripciones y sinónimos, no la lógica.
+### 10.1 Voice: alexa-skill-mcp-bridge
+
+- Open source project (`github.com/KayLerch/alexa-skill-mcp-bridge`). An Alexa Skill acts as the add-on and a Strands agent on Bedrock AgentCore (Amazon Nova 2 Lite) emulates the Alexa+ orchestrator. It calls Counterpart over Streamable HTTP with the token stored in Secrets Manager.
+- **Track A** (local agent) to iterate on the golden phrases. **Track C** (Skill) for the video, on an Echo or in the Alexa console simulator.
+- Known limitations: no UI, no OAuth, English only, and the model is not Alexa+'s. The README itself warns that it reproduces *"the mechanics of an Alexa+ MCP client, not Alexa's own model judgment."*
+- How to switch businesses during the video (update the secret or have two bridge deployments) is decided in spike 4.
+
+### 10.2 Visual: ext-apps basic-host
+
+From `examples/basic-host` in the ext-apps repo: `SERVERS='["http://localhost:3000/mcp"]' npm start` and open `http://localhost:8080`. In the video it is presented as the MCP Apps UI that Alexa+ shows on devices with a screen, without passing it off as an Alexa+ capture.
+
+### 10.3 Cut-off criterion
+
+If spike 1 or 4 does not work by the end of day 1, voice moves to our own web app with a Bedrock agent that calls Counterpart: the *"simulated Alexa+ experience"* the rules accept. **The server does not change.**
 
 ---
 
-## 12. Spikes (día 1)
+## 11. Tests
 
-Un MCP de juguete con una sola tool (`ping_shop`) sobre el stack elegido (SDK v2).
+1. **Unit (vitest):** profile schema (valid and invalid); tool and `inputSchema` generation per profile; resolver with a case table (number, name, possessive, typo, ambiguity, empty query); stage transitions; `consumes` and backorder; taxes and rounding; resolution of `due` and periods around week, month and time zone changes.
+2. **Integration:** `Client` ↔ `McpServer` with `InMemoryTransport.createLinkedPair()`. Each profile's 9 tools against `MemoryStore` and against `DynamoStore` on DynamoDB Local (Docker). Includes idempotency, simulated version conflicts and error responses.
+3. **HTTP contract:** real server locally. `initialize` negotiates `protocolVersion: "2025-11-25"`; no token → 401; another business's token with a valid session id → rejected. Manual review with MCP Inspector.
+4. **Golden phrases:** `test/golden/<profile>.yaml` with ~20 phrases per profile, each with the expected tool and its key arguments, run against the bridge's Track A. **Target before recording: 18 of 20 or more per profile.** If they fail, descriptions and synonyms are adjusted, not the logic.
 
-| # | Qué | Criterio de éxito |
+---
+
+## 12. Spikes (day 1)
+
+A toy MCP with a single tool (`ping_shop`) on the chosen stack (SDK v2).
+
+| # | What | Success criterion |
 |---|---|---|
-| 1 | Bridge Track A contra el juguete en local | El agente llama `ping_shop` y responde. Confirma el acceso a Bedrock / Nova 2 Lite y el formato con el que el bridge envía el token |
-| 2 | Juguete desplegado en ECS Express Mode | La URL HTTPS del servicio responde en `/mcp`; `initialize` negocia 2025-11-25; un stream SSE sigue vivo después de 60 s |
-| 3 | UI trivial con ext-apps 2.0.0 en basic-host | La UI muestra datos de la tool. Confirma los imports de v2 y si basic-host puede enviar headers de autenticación |
-| 4 | Bridge Track C (Skill) contra el juguete desplegado | Respuesta hablada en el simulador de la consola. Define cómo cambiar de negocio en el video |
+| 1 | Bridge Track A against the toy locally | The agent calls `ping_shop` and responds. Confirms access to Bedrock / Nova 2 Lite and the format in which the bridge sends the token |
+| 2 | Toy deployed on ECS Express Mode | The service's HTTPS URL responds on `/mcp`; `initialize` negotiates 2025-11-25; an SSE stream stays alive after 60 s |
+| 3 | Trivial UI with ext-apps 2.0.0 in basic-host | The UI shows tool data. Confirms the v2 imports and whether basic-host can send auth headers |
+| 4 | Bridge Track C (Skill) against the deployed toy | Spoken response in the console simulator. Defines how to switch businesses in the video |
 
-Corte: §10.3. Si el 2 o el 3 fallan por el SDK v2 → plan B de versiones (§6).
+Cut-off: §10.3. If 2 or 3 fail because of SDK v2 → version Plan B (§6).
 
 ---
 
-## 13. Entregables del hackathon
+## 13. Hackathon deliverables
 
-- **README:** qué es, arquitectura, cómo correr en local (Docker + DynamoDB Local + seed + basic-host), cómo desplegar y cómo conectar el bridge.
+- **README:** what it is, architecture, how to run locally (Docker + DynamoDB Local + seed + basic-host), how to deploy and how to connect the bridge.
 - **LICENSE:** MIT.
-- **`docs/aws-builder.md`:** servicios de AWS usados, por qué y diagrama (ECS Express Mode, ECR, DynamoDB, Secrets Manager, CloudWatch; Bedrock, AgentCore y Lambda del bridge).
-- **`docs/friction-log.md`** (hasta +10%), que se llena mientras se construye. Entradas iniciales: el CLI de Alexa+ no es público; el CLI no soporta Windows y exige Node 24+; Cognito omite `code_challenge_methods_supported`; App Runner cerró a clientes nuevos.
+- **`docs/aws-builder.md`:** AWS services used, why, and a diagram (ECS Express Mode, ECR, DynamoDB, Secrets Manager, CloudWatch; the bridge's Bedrock, AgentCore and Lambda).
+- **`docs/friction-log.md`** (up to +10%), filled in while building. Initial entries: the Alexa+ CLI is not public; the CLI does not support Windows and requires Node 24+; Cognito omits `code_challenge_methods_supported`; App Runner closed to new customers.
 - **`docs/product-feedback.md`**.
-- **Video ≤ 3 min** según §4.3, en YouTube.
-- **Devpost:** track Alexa+; mini-retos AWS Builder y Open Source.
+- **Video ≤ 3 min** per §4.3, on YouTube.
+- **Devpost:** Alexa+ track; AWS Builder and Open Source mini-challenges.
 
 ---
 
-## 14. Siguiente paso documentado: account linking
+## 14. Documented next step: account linking
 
-Para publicar en Alexa+ real con datos separados por negocio:
+To publish on real Alexa+ with data separated per business:
 
-- Cognito como servidor OAuth 2.1 con PKCE S256 y refresh tokens.
-- Counterpart sirve `/.well-known/oauth-protected-resource` (`resource`, `authorization_servers`, `scopes_supported`) y responde 401/403 cuando falta un token válido.
-- Como Cognito omite `code_challenge_methods_supported`, Counterpart publica su propio documento de metadatos del servidor de autorización, con `["S256"]` y los endpoints de Cognito, y es ese documento el que figura en `authorization_servers`.
-- El `sub` del token OAuth se mapea a `businessId` en lugar del hash de token actual.
+- Cognito as an OAuth 2.1 server with PKCE S256 and refresh tokens.
+- Counterpart serves `/.well-known/oauth-protected-resource` (`resource`, `authorization_servers`, `scopes_supported`) and responds 401/403 when a valid token is missing.
+- Since Cognito omits `code_challenge_methods_supported`, Counterpart publishes its own authorization server metadata document, with `["S256"]` and the Cognito endpoints, and that document is the one listed in `authorization_servers`.
+- The OAuth token's `sub` is mapped to `businessId` instead of the current token hash.
 
 ---
 
-## 15. Riesgos
+## 15. Risks
 
-| Riesgo | Mitigación |
+| Risk | Mitigation |
 |---|---|
-| El bridge no despliega o Bedrock niega acceso al modelo | Corte de §10.3 al terminar el día 1 |
-| El SDK v2 recién salido trae bugs | Versiones exactas; spikes 2 y 3; plan B con v1.30 + ext-apps 1.7.5 |
-| Nova 2 Lite elige mal las tools (no es el modelo de Alexa+) | Frases de oro; sinónimos y descripciones; umbral de 18/20 |
-| El autoescalado de Express Mode rompe las sesiones en memoria | Mínimo y máximo de 1 tarea |
-| Amazon abre el Toolkit durante el hackathon | El servidor ya cumple; publicar requiere §14 |
-| No alcanza el tiempo antes del 26 sep | Recortes en este orden: (1) UI del reporte de ventas, que queda en texto; (2) `consumes`; (3) impuestos. **Nunca se recortan:** los 2 perfiles, las 9 tools y el demo por voz |
+| The bridge does not deploy or Bedrock denies model access | §10.3 cut-off at the end of day 1 |
+| The brand-new SDK v2 has bugs | Exact versions; spikes 2 and 3; Plan B with v1.30 + ext-apps 1.7.5 |
+| Nova 2 Lite picks the wrong tools (it is not Alexa+'s model) | Golden phrases; synonyms and descriptions; 18/20 threshold |
+| Express Mode autoscaling breaks in-memory sessions | Minimum and maximum of 1 task |
+| Amazon opens the Toolkit during the hackathon | The server already complies; publishing requires §14 |
+| Not enough time before 26 Sep | Cuts in this order: (1) sales report UI, which stays as text; (2) `consumes`; (3) taxes. **Never cut:** the 2 profiles, the 9 tools and the voice demo |
 
 ---
 
-## 16. Hitos (15–26 sep)
+## 16. Milestones (15–26 Sep)
 
-| Día | Hito |
+| Day | Milestone |
 |---|---|
 | 1 | Spikes 1–4 |
-| 2–3 | `profiles` + `domain` + `MemoryStore`, con pruebas primero |
-| 4–5 | `tools` + `http` + `DynamoStore` + semillas |
+| 2–3 | `profiles` + `domain` + `MemoryStore`, tests first |
+| 4–5 | `tools` + `http` + `DynamoStore` + seeds |
 | 6 | MCP Apps |
-| 7 | Despliegue + bridge + frases de oro |
-| 8 | README, docs, video y submission en Devpost |
+| 7 | Deployment + bridge + golden phrases |
+| 8 | README, docs, video and Devpost submission |
 
 ---
 
-## 17. Prerrequisitos fuera del código
+## 17. Prerequisites outside the code
 
-- Cuenta de AWS y solicitud de los $150 en créditos del hackathon.
-- AWS CLI v2 (hoy no está instalado) con perfil en us-east-1.
-- Acceso habilitado al modelo Amazon Nova 2 Lite en Bedrock (us-east-1).
-- Cuenta de desarrollador de Amazon (Alexa) y ASK CLI.
-- Node.js 24 LTS en local (hoy 22.23; el bridge funciona con 22.18+, así que basta con actualizar a 24).
-- Docker Desktop (ya instalado) y cuenta de GitHub para el repo público (`gh` ya instalado).
+- AWS account and request for the hackathon's $150 in credits.
+- AWS CLI v2 (not installed today) with a profile in us-east-1.
+- Access enabled to the Amazon Nova 2 Lite model in Bedrock (us-east-1).
+- Amazon (Alexa) developer account and ASK CLI.
+- Node.js 24 LTS locally (22.23 today; the bridge works with 22.18+, so upgrading to 24 is enough).
+- Docker Desktop (already installed) and a GitHub account for the public repo (`gh` already installed).

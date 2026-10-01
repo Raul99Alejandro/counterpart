@@ -32,9 +32,9 @@ const draft = (over: Partial<Draft> = {}): Draft => ({
   createdAt: '2026-09-29T15:00:00.000Z', expiresAt: 1790000000, ...over
 });
 
-/** Lo que cualquier implementación de Store tiene que cumplir. La corren MemoryStore y DynamoStore. */
+/** What every Store implementation must satisfy. Run by MemoryStore and DynamoStore. */
 export function runStoreContract(name: string, makeStore: () => Promise<Store>): void {
-  describe(`contrato de Store: ${name}`, () => {
+  describe(`Store contract: ${name}`, () => {
     async function ready(): Promise<Store> {
       const store = await makeStore();
       await store.putBusiness(biz);
@@ -42,56 +42,56 @@ export function runStoreContract(name: string, makeStore: () => Promise<Store>):
       return store;
     }
 
-    it('encuentra el negocio por hash de token', async () => {
+    it('finds the business by token hash', async () => {
       const store = await ready();
       expect((await store.getBusinessByTokenHash('hash-abc'))?.id).toBe('b1');
-      expect(await store.getBusinessByTokenHash('otro')).toBeNull();
+      expect(await store.getBusinessByTokenHash('other')).toBeNull();
     });
 
-    it('devuelve null para un negocio que no existe', async () => {
+    it('returns null for a business that does not exist', async () => {
       const store = await ready();
-      expect(await store.getBusiness('nadie')).toBeNull();
+      expect(await store.getBusiness('nobody')).toBeNull();
     });
 
-    it('sube la versión del negocio al crearlo, igual que las demás entidades', async () => {
+    it('bumps the business version on create, like every other entity', async () => {
       const store = await ready();
       expect((await store.getBusiness('b1'))?.version).toBe(2);
     });
 
-    it('rechaza una versión vieja del negocio y acepta la vigente', async () => {
+    it('rejects a stale business version and accepts the current one', async () => {
       const store = await ready();
       await expect(store.putBusiness({ ...biz, version: 1 })).rejects.toBeInstanceOf(ConflictError);
       await store.putBusiness({ ...biz, version: 2 });
       expect((await store.getBusiness('b1'))?.version).toBe(3);
     });
 
-    it('entrega números de orden consecutivos', async () => {
+    it('hands out consecutive order numbers', async () => {
       const store = await ready();
       expect(await store.takeOrderNumber('b1')).toBe(41);
       expect(await store.takeOrderNumber('b1')).toBe(42);
     });
 
-    it('no entrega números de orden para un negocio desconocido', async () => {
+    it('does not hand out order numbers for an unknown business', async () => {
       const store = await ready();
-      await expect(store.takeOrderNumber('nadie')).rejects.toThrow();
+      await expect(store.takeOrderNumber('nobody')).rejects.toThrow();
     });
 
-    it('sube la versión al guardar y rechaza versiones viejas', async () => {
+    it('bumps the version on save and rejects stale versions', async () => {
       const store = await ready();
       await store.putOrder('b1', order);
       expect((await store.getOrder('b1', 'o1'))?.version).toBe(2);
       await expect(store.putOrder('b1', order)).rejects.toBeInstanceOf(ConflictError);
     });
 
-    it('devuelve copias, no referencias', async () => {
+    it('returns copies, not references', async () => {
       const store = await ready();
       await store.putOrder('b1', order);
       const first = await store.getOrder('b1', 'o1');
-      first!.stage = 'mutado';
+      first!.stage = 'mutated';
       expect((await store.getOrder('b1', 'o1'))?.stage).toBe('in_bay');
     });
 
-    it('guarda y lista clientes y activos', async () => {
+    it('saves and lists customers and assets', async () => {
       const store = await ready();
       await store.putCustomer('b1', { id: 'c1', name: 'Dana Lee', nameNormalized: 'dana lee' });
       await store.putAsset('b1', { id: 'a1', customerId: 'c1', fields: { year: 2019 }, spokenLabel: '2019 Honda Civic' });
@@ -101,21 +101,21 @@ export function runStoreContract(name: string, makeStore: () => Promise<Store>):
       });
     });
 
-    it('filtra cobros por rango de fechas inclusivo', async () => {
+    it('filters payments by an inclusive date range', async () => {
       const store = await ready();
       await store.commitClose('b1', { ...order, version: 1 }, payment('p1', '2026-09-15'));
       expect(await store.listPayments('b1', '2026-09-15', '2026-09-15')).toHaveLength(1);
       expect(await store.listPayments('b1', '2026-09-16', '2026-09-20')).toHaveLength(0);
     });
 
-    it('filtra cobros por fecha civil, no por el día UTC del instante', async () => {
+    it('filters payments by civil date, not by the UTC day of the instant', async () => {
       const store = await ready();
       await store.commitClose('b1', { ...order, version: 1 }, payment('p9', '2026-09-15', '2026-09-16T01:30:00.000Z'));
       expect(await store.listPayments('b1', '2026-09-15', '2026-09-15')).toHaveLength(1);
       expect(await store.listPayments('b1', '2026-09-16', '2026-09-16')).toHaveLength(0);
     });
 
-    it('commitClose con versión vieja no registra el cobro', async () => {
+    it('commitClose with a stale version does not record the payment', async () => {
       const store = await ready();
       await store.putOrder('b1', order);
       await expect(store.commitClose('b1', { ...order, version: 1 }, payment('p2', '2026-09-15')))
@@ -123,7 +123,7 @@ export function runStoreContract(name: string, makeStore: () => Promise<Store>):
       expect(await store.listPayments('b1', '2026-09-01', '2026-09-30')).toHaveLength(0);
     });
 
-    it('commitOrderWithItems es atómico: rechaza si hay conflicto sin escribir nada', async () => {
+    it('commitOrderWithItems is atomic: on conflict it rejects without writing anything', async () => {
       const store = await ready();
       await store.putOrder('b1', order);
       await store.putItems('b1', [item]);
@@ -136,7 +136,7 @@ export function runStoreContract(name: string, makeStore: () => Promise<Store>):
       expect((await store.listItems('b1'))[0]).toEqual(itemBefore);
     });
 
-    it('putItems es todo o nada', async () => {
+    it('putItems is all or nothing', async () => {
       const store = await ready();
       await store.putItems('b1', [item]);
       const fresh: CatalogItem = { ...item, id: 'i2', name: 'Tire' };
@@ -144,7 +144,7 @@ export function runStoreContract(name: string, makeStore: () => Promise<Store>):
       expect((await store.listItems('b1')).map(i => i.id)).toEqual(['i1']);
     });
 
-    it('lista solo las órdenes de compra abiertas', async () => {
+    it('lists only open purchase orders', async () => {
       const store = await ready();
       const po = (id: string, status: PurchaseOrder['status']): PurchaseOrder => ({
         id, supplierId: 's1', lines: [{ itemId: 'i1', qty: 5 }], status, createdAt: '2026-09-15T15:00:00.000Z'
@@ -153,12 +153,12 @@ export function runStoreContract(name: string, makeStore: () => Promise<Store>):
       expect((await store.listOpenPurchaseOrders('b1')).map(p => p.id)).toEqual(['po1']);
     });
 
-    it('aísla a cada negocio: cada lista y cada token ven solo lo suyo', async () => {
+    it('isolates each business: every list and every token sees only its own data', async () => {
       const store = await ready();
       await store.putBusiness({ ...biz, id: 'b2', name: 'Sweet Crumb Bakery', status: 'active', profileVersion: 1 });
       await store.putToken('hash-xyz', 'b2');
 
-      // Mismo tipo de registro en los dos negocios, con ids distintos y cobros del mismo día.
+      // Same record types in both businesses, with different ids and payments on the same day.
       for (const b of ['b1', 'b2']) {
         await store.putCustomer(b, { id: `${b}-c`, name: 'Dana Lee', nameNormalized: 'dana lee' });
         await store.putAsset(b, { id: `${b}-a`, customerId: `${b}-c`, fields: {}, spokenLabel: '2019 Honda Civic' });
@@ -183,15 +183,15 @@ export function runStoreContract(name: string, makeStore: () => Promise<Store>):
       expect((await store.getBusinessByTokenHash('hash-xyz'))?.id).toBe('b2');
     });
 
-    it('guarda y lee el perfil de un negocio', async () => {
+    it('saves and reads a business profile', async () => {
       const store = await ready();
       expect(await store.getProfile('b1')).toBeNull();
       await store.putProfile('b1', profileRecord());
       expect(await store.getProfile('b1')).toEqual(profileRecord());
-      expect(await store.getProfile('nadie')).toBeNull();
+      expect(await store.getProfile('nobody')).toBeNull();
     });
 
-    it('guarda, reemplaza y borra el borrador', async () => {
+    it('saves, replaces and deletes the draft', async () => {
       const store = await ready();
       expect(await store.getDraft('b1')).toBeNull();
       await store.putDraft('b1', draft());
@@ -200,10 +200,10 @@ export function runStoreContract(name: string, makeStore: () => Promise<Store>):
       expect(await store.getDraft('b1')).toEqual(ready1);
       await store.deleteDraft('b1');
       expect(await store.getDraft('b1')).toBeNull();
-      await store.deleteDraft('b1'); // borrar lo que no existe no falla
+      await store.deleteDraft('b1'); // deleting what does not exist does not fail
     });
 
-    it('activa un negocio de una vez: META, perfil, ítems y sin borrador', async () => {
+    it('activates a business in one go: META, profile, items and no draft', async () => {
       const store = await ready();
       await store.putDraft('b1', draft({ state: 'ready' }));
       const current = (await store.getBusiness('b1'))!;
@@ -214,7 +214,7 @@ export function runStoreContract(name: string, makeStore: () => Promise<Store>):
       expect(await store.getDraft('b1')).toBeNull();
     });
 
-    it('no activa nada si la versión del negocio es vieja', async () => {
+    it('activates nothing if the business version is stale', async () => {
       const store = await ready();
       await store.putDraft('b1', draft({ state: 'ready' }));
       const stale = { ...(await store.getBusiness('b1'))!, version: 1 };
@@ -225,18 +225,18 @@ export function runStoreContract(name: string, makeStore: () => Promise<Store>):
       expect(await store.getDraft('b1')).not.toBeNull();
     });
 
-    it('lee vacío un negocio inexistente, igual en los dos stores', async () => {
+    it('reads a nonexistent business as empty, the same in both stores', async () => {
       const store = await ready();
-      expect(await store.listCustomers('nadie')).toEqual([]);
-      expect(await store.listAssets('nadie')).toEqual([]);
-      expect(await store.listOrders('nadie')).toEqual([]);
-      expect(await store.getOrder('nadie', 'o1')).toBeNull();
-      expect(await store.listItems('nadie')).toEqual([]);
-      expect(await store.listPayments('nadie', '2026-01-01', '2026-12-31')).toEqual([]);
-      expect(await store.listOpenPurchaseOrders('nadie')).toEqual([]);
+      expect(await store.listCustomers('nobody')).toEqual([]);
+      expect(await store.listAssets('nobody')).toEqual([]);
+      expect(await store.listOrders('nobody')).toEqual([]);
+      expect(await store.getOrder('nobody', 'o1')).toBeNull();
+      expect(await store.listItems('nobody')).toEqual([]);
+      expect(await store.listPayments('nobody', '2026-01-01', '2026-12-31')).toEqual([]);
+      expect(await store.listOpenPurchaseOrders('nobody')).toEqual([]);
     });
 
-    it('guarda todas las órdenes de compra de una vez, y una lista vacía no hace nada', async () => {
+    it('saves all purchase orders at once, and an empty list does nothing', async () => {
       const store = await ready();
       await store.putPurchaseOrders('b1', []);
       const po = (id: string): PurchaseOrder => ({ id, supplierId: 's1', lines: [{ itemId: 'i1', qty: 5 }], status: 'open', createdAt: '2026-09-15T15:00:00.000Z' });

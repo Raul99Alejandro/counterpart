@@ -18,33 +18,33 @@ const ref: OrderRef = {
   asset: { id: 'a1', customerId: 'c1', fields: {}, spokenLabel: '2019 Honda Civic' }
 };
 
-describe('frases', () => {
-  it('nombra la orden con el sustantivo del perfil', () => {
+describe('phrases', () => {
+  it('names the order with the profile noun', () => {
     expect(say.orderName(profile, 42)).toBe('work order 42');
     expect(say.orderName(bakery, 7)).toBe('cake order 7');
   });
 
-  it('describe la orden con el activo y el cliente', () => {
+  it('describes the order with the asset and the customer', () => {
     expect(say.orderPhrase(profile, ref)).toBe("work order 42, Dana Lee's 2019 Honda Civic");
   });
 
-  it('confirma una partida agregada con el nuevo total', () => {
+  it('confirms an added line with the new total', () => {
     const line = { itemId: 'i1', name: 'Front brake pads', quantity: 2, unitPriceCents: 4500, taxable: true, backordered: 0 };
     expect(say.lineAdded(profile, ref, line, 41250))
       .toBe('Added 2 Front brake pads to work order 42. The total is now $412.50.');
   });
 
-  it('avisa del backorder', () => {
+  it('warns about the backorder', () => {
     const line = { itemId: 'i1', name: 'Front brake pads', quantity: 2, unitPriceCents: 4500, taxable: true, backordered: 1 };
     expect(say.lineAdded(profile, ref, line, 41250))
       .toBe('Added 2 Front brake pads to work order 42, but only 1 was in stock, so 1 is backordered. The total is now $412.50.');
   });
 
-  it('formatea la fecha en inglés hablado', () => {
+  it('formats the date in spoken English', () => {
     expect(say.date('2026-09-19')).toBe('Saturday, September 19');
   });
 
-  it('abre la orden con fecha de vencimiento hablada', () => {
+  it('opens the order with a spoken due date', () => {
     const orderWithDue: Order = { ...order, dueOn: '2026-09-19' };
     const refWithDue: OrderRef = { ...ref, order: orderWithDue };
     const result = say.opened(profile, refWithDue);
@@ -52,20 +52,20 @@ describe('frases', () => {
     expect(result).not.toContain('2026-09-19');
   });
 
-  it('enumera candidatas cuando hay ambigüedad', () => {
+  it('lists candidates when there is ambiguity', () => {
     const other: OrderRef = { ...ref, order: { ...order, id: 'o2', number: 57 },
       customer: { id: 'c2', name: 'Mark Ortiz', nameNormalized: 'mark ortiz' } };
     expect(say.ambiguous(profile, [ref, other]))
       .toBe("I found two: work order 42, Dana Lee's 2019 Honda Civic and work order 57, Mark Ortiz's 2019 Honda Civic. Which one?");
   });
 
-  it('une listas en inglés', () => {
+  it('joins lists in English', () => {
     expect(say.list(['a'])).toBe('a');
     expect(say.list(['a', 'b'])).toBe('a and b');
     expect(say.list(['a', 'b', 'c'])).toBe('a, b and c');
   });
 
-  it('concuerda en número el stock y el backorder', () => {
+  it('uses singular or plural for stock and backorder', () => {
     const three = { itemId: 'i1', name: 'Front brake pads', quantity: 3, unitPriceCents: 4500, taxable: true, backordered: 1 };
     expect(say.lineAdded(profile, ref, three, 41250))
       .toBe('Added 3 Front brake pads to work order 42, but only 2 were in stock, so 1 is backordered. The total is now $412.50.');
@@ -75,7 +75,7 @@ describe('frases', () => {
       .toBe('Added 2 Front brake pads to work order 42, but none were in stock, so 2 are backordered. The total is now $412.50.');
   });
 
-  it('habla en singular cuando solo hay una orden abierta', () => {
+  it('speaks in singular when there is only one open order', () => {
     expect(say.notFound(profile, 'Accord', [ref]))
       .toBe(`I couldn't find an open work order for "Accord". The only open one is work order 42, Dana Lee's 2019 Honda Civic.`);
   });

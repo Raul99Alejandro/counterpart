@@ -19,7 +19,7 @@ async function blankStore(): Promise<MemoryStore> {
 
 const service = (store: MemoryStore, generate: DraftGenerator) => new SetupService({ store, generate, now: () => clock });
 
-/** Lo que hace una persona: oye el resumen y contesta unos segundos después. */
+/** What a person does: hears the summary and answers a few seconds later. */
 async function reviewAndWait(svc: SetupService): Promise<void> {
   await svc.review('florist');
   clock = new Date(clock.getTime() + 5000);
@@ -31,8 +31,8 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
-describe('servicio de borradores', () => {
-  it('genera en segundo plano y deja el borrador listo', async () => {
+describe('draft service', () => {
+  it('generates in the background and leaves the draft ready', async () => {
     const svc = service(await blankStore(), scriptedGenerator(floristDraft()));
     expect(await svc.start('florist', 'I run a flower shop')).toBe('started');
     await svc.settled();
@@ -41,7 +41,7 @@ describe('servicio de borradores', () => {
     if (review.state === 'ready') expect(review.items).toHaveLength(7);
   });
 
-  it('dice que sigue generando y no arranca otra generación mientras tanto', async () => {
+  it('says it is still generating and does not start another generation meanwhile', async () => {
     const pending = deferred<unknown>();
     let calls = 0;
     const svc = service(await blankStore(), async () => { calls += 1; return pending.promise; });
@@ -54,7 +54,7 @@ describe('servicio de borradores', () => {
     expect((await svc.review('florist')).state).toBe('ready');
   });
 
-  it('limita a cinco borradores por negocio por hora', async () => {
+  it('limits to five drafts per business per hour', async () => {
     const svc = service(await blankStore(), scriptedGenerator(floristDraft()));
     for (let i = 0; i < 5; i++) {
       expect(await svc.start('florist', `try ${i}`)).toBe('started');
@@ -65,7 +65,7 @@ describe('servicio de borradores', () => {
     expect(await svc.start('florist', 'try 7')).toBe('started');
   });
 
-  it('un borrador irreparable dice qué faltó', async () => {
+  it('an unrepairable draft says what was missing', async () => {
     const hopeless = floristDraft();
     hopeless.profile.closedStage = 'done';
     const svc = service(await blankStore(), scriptedGenerator(hopeless));
@@ -74,7 +74,7 @@ describe('servicio de borradores', () => {
     expect(await svc.review('florist')).toEqual({ state: 'failed', spoken: STAGES_QUESTION });
   });
 
-  it('un generador que lanza deja el borrador fallido sin romper el proceso', async () => {
+  it('a generator that throws leaves the draft failed without crashing the process', async () => {
     const store = await blankStore();
     const svc = service(store, scriptedGenerator(new Error('AccessDeniedException')));
     await svc.start('florist', 'flowers');
@@ -83,7 +83,7 @@ describe('servicio de borradores', () => {
     expect(await store.getProfile('florist')).toBeNull();
   });
 
-  it('una generación huérfana deja de bloquear a los cinco minutos', async () => {
+  it('an orphaned generation stops blocking after five minutes', async () => {
     const store = await blankStore();
     await store.putDraft('florist', {
       description: 'flowers', state: 'generating', createdAt: NOW.toISOString(), expiresAt: NOW.getTime() / 1000 + 86400
@@ -95,7 +95,7 @@ describe('servicio de borradores', () => {
     expect(await svc.start('florist', 'again')).toBe('started');
   });
 
-  it('una generación vieja que termina tarde no pisa el borrador nuevo', async () => {
+  it('an old generation that finishes late does not overwrite the new draft', async () => {
     const slow = deferred<unknown>();
     const small = floristDraft();
     small.catalog.items = small.catalog.items.filter((i: { id: string }) => i.id !== 'centerpiece' && i.id !== 'vase');
@@ -111,7 +111,7 @@ describe('servicio de borradores', () => {
     expect(review.state === 'ready' && review.items.length).toBe(5);
   });
 
-  it('un borrador caducado ya no existe aunque el registro siga ahí', async () => {
+  it('an expired draft no longer exists even if the record is still there', async () => {
     const store = await blankStore();
     const svc = service(store, scriptedGenerator(floristDraft()));
     await svc.start('florist', 'flowers');
@@ -122,7 +122,7 @@ describe('servicio de borradores', () => {
     expect((await store.getBusiness('florist'))?.status).toBe('blank');
   });
 
-  it('confirm false descarta el borrador', async () => {
+  it('confirm false discards the draft', async () => {
     const store = await blankStore();
     const svc = service(store, scriptedGenerator(floristDraft()));
     await svc.start('florist', 'flowers');
@@ -132,7 +132,7 @@ describe('servicio de borradores', () => {
     expect((await store.getBusiness('florist'))?.status).toBe('blank');
   });
 
-  it('confirm true activa perfil, catálogo y estado en una sola escritura', async () => {
+  it('confirm true activates profile, catalog and status in a single write', async () => {
     const store = await blankStore();
     const svc = service(store, scriptedGenerator(floristDraft()));
     await svc.start('florist', 'flowers');
@@ -148,7 +148,7 @@ describe('servicio de borradores', () => {
     expect(await store.getDraft('florist')).toBeNull();
   });
 
-  it('no activa sin borrador ni mientras genera', async () => {
+  it('does not activate without a draft or while generating', async () => {
     const pending = deferred<unknown>();
     const svc = service(await blankStore(), async () => pending.promise);
     expect(await svc.activate('florist', true)).toEqual({ status: 'none' });
@@ -157,9 +157,9 @@ describe('servicio de borradores', () => {
     pending.resolve(floristDraft());
     await svc.settled();
   });
-  it('la versión del perfil no se repite después de un reset que borró el PROFILE', async () => {
-    // Un reset (business:new --reset) borra la partición con el proceso vivo: la caché de perfiles
-    // no puede volver a ver la misma versión para otro borrador.
+  it('the profile version does not repeat after a reset that deleted the PROFILE', async () => {
+    // A reset (business:new --reset) deletes the partition while the process is running: the profile cache
+    // must not see the same version again for another draft.
     const versions: number[] = [];
     for (const minutes of [0, 30]) {
       clock = new Date(NOW.getTime() + minutes * MINUTE);
@@ -173,7 +173,7 @@ describe('servicio de borradores', () => {
     }
     expect(versions[0]).not.toBe(versions[1]);
   });
-  it('una sesión vieja de un negocio ya activo no arranca borradores', async () => {
+  it('an old session of an already active business does not start drafts', async () => {
     const store = await blankStore();
     const generate = scriptedGenerator(floristDraft());
     const svc = service(store, generate);
@@ -186,7 +186,7 @@ describe('servicio de borradores', () => {
     expect(await store.getDraft('florist')).toBeNull();
   });
 
-  it('dos arranques a la vez generan una sola vez', async () => {
+  it('two starts at the same time generate only once', async () => {
     const generate = scriptedGenerator(floristDraft());
     const svc = service(await blankStore(), generate);
     const results = await Promise.all([svc.start('florist', 'first'), svc.start('florist', 'second')]);
@@ -194,7 +194,7 @@ describe('servicio de borradores', () => {
     expect(results.sort()).toEqual(['busy', 'started']);
     expect(generate.attempts).toHaveLength(1);
   });
-  it('revisar puede esperar a que termine la generación, para que el agente no pregunte en bucle', async () => {
+  it('review can wait for the generation to finish, so the agent does not ask in a loop', async () => {
     const pending = deferred<unknown>();
     const svc = service(await blankStore(), async () => pending.promise);
     await svc.start('florist', 'flowers');
@@ -202,12 +202,12 @@ describe('servicio de borradores', () => {
     expect((await svc.review('florist', { waitMs: 5000 })).state).toBe('ready');
   });
 
-  it('la espera de revisar tiene tope', async () => {
+  it('the review wait has a cap', async () => {
     const svc = service(await blankStore(), async () => new Promise(() => {}));
     await svc.start('florist', 'flowers');
     expect((await svc.review('florist', { waitMs: 30 })).state).toBe('generating');
   });
-  it('no activa si nadie tuvo tiempo de contestar al resumen: el modelo no puede confirmar solo', async () => {
+  it('does not activate if nobody had time to answer the summary: the model cannot confirm on its own', async () => {
     const store = await blankStore();
     const svc = service(store, scriptedGenerator(floristDraft()));
     await svc.start('florist', 'flowers');
@@ -220,7 +220,7 @@ describe('servicio de borradores', () => {
     expect((await svc.activate('florist', true)).status).toBe('activated');
   });
 
-  it('no activa un borrador que nadie revisó', async () => {
+  it('does not activate a draft nobody reviewed', async () => {
     const svc = service(await blankStore(), scriptedGenerator(floristDraft()));
     await svc.start('florist', 'flowers');
     await svc.settled();
@@ -229,7 +229,7 @@ describe('servicio de borradores', () => {
     clock = new Date(NOW.getTime() + 120_000);
     expect(await svc.activate('florist', true)).toEqual({ status: 'needs_confirmation' });
   });
-  it('reintentar la activación en el mismo turno no abre la compuerta', async () => {
+  it('retrying the activation in the same turn does not open the gate', async () => {
     const store = await blankStore();
     const svc = service(store, scriptedGenerator(floristDraft()));
     await svc.start('florist', 'flowers');
@@ -242,7 +242,7 @@ describe('servicio de borradores', () => {
     expect((await store.getBusiness('florist'))?.status).toBe('blank');
   });
 
-  it('revisar otra vez en el turno del sí no atrapa a la persona en un bucle', async () => {
+  it('reviewing again in the yes turn does not trap the person in a loop', async () => {
     const svc = service(await blankStore(), scriptedGenerator(floristDraft()));
     await svc.start('florist', 'flowers');
     await svc.settled();

@@ -41,9 +41,9 @@ export function registerOpen(server: McpServer, ctx: ToolContext): void {
           .map(f => [f.id, String(args[f.id])])
       );
 
-      // Idempotencia (§7.8): mismo cliente, mismo activo, mismos campos y misma fecha,
-      // abierta hace menos de dos minutos. Sin los campos, dos pedidos distintos del mismo
-      // cliente se fundirían en uno en los perfiles sin activo.
+      // Idempotency (§7.8): same customer, same asset, same fields and same date,
+      // opened less than two minutes ago. Without the fields, two different orders from the same
+      // customer would merge into one in profiles without an asset.
       const refs = await loadRefs(ctx);
       const duplicate = refs.find(r =>
         r.order.stage !== ctx.profile.closedStage
@@ -109,7 +109,7 @@ export function registerOpen(server: McpServer, ctx: ToolContext): void {
   );
 }
 
-/** Compara solo los campos que el perfil declara: lo demás no distingue una orden de otra. */
+/** Compares only the fields the profile declares: nothing else tells one order from another. */
 function sameFields(profile: Profile, a: Record<string, string>, b: Record<string, string>): boolean {
   return profile.orderFields.every(f => (a[f.id] ?? '') === (b[f.id] ?? ''));
 }

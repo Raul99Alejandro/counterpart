@@ -1,7 +1,7 @@
 import { BedrockRuntimeClient, ConverseCommand } from '@aws-sdk/client-bedrock-runtime';
 
-// Spike S4: cuánto tarda Nova 2 Lite en generar un borrador de negocio (perfil + catálogo)
-// con tool use forzado. Uso: npx tsx infra/spikes/nova-latency.ts [corridas]
+// Spike S4: how long Nova 2 Lite takes to generate a business draft (profile + catalog)
+// with forced tool use. Usage: npx tsx infra/spikes/nova-latency.ts [runs]
 const runs = Number(process.argv[2] ?? 5);
 const modelId = process.env.NOVA_MODEL_ID ?? 'us.amazon.nova-2-lite-v1:0';
 const client = new BedrockRuntimeClient({ region: process.env.AWS_REGION ?? 'us-east-1' });
@@ -10,7 +10,7 @@ const description = 'I run a flower shop. We make arrangements for weddings and 
   + 'Orders get designed, then arranged, then they are ready for pickup. '
   + 'We stock roses, lilies, tulips, vases, ribbon and floral foam.';
 
-// Un esquema del tamaño aproximado del real (perfil + catálogo): lo que importa aquí es el tiempo.
+// A schema about the size of the real one (profile + catalog): what matters here is the timing.
 const schema = {
   type: 'object',
   required: ['nouns', 'stages', 'items'],
@@ -46,7 +46,7 @@ for (let i = 0; i < runs; i += 1) {
   const ms = Math.round(performance.now() - started);
   times.push(ms);
   const used = out.output?.message?.content?.some(block => 'toolUse' in block && block.toolUse);
-  console.log(`corrida ${i + 1}: ${ms} ms, tool use: ${used ? 'sí' : 'no'}`);
+  console.log(`run ${i + 1}: ${ms} ms, tool use: ${used ? 'yes' : 'no'}`);
 }
 
 times.sort((a, b) => a - b);

@@ -6,7 +6,7 @@ import { loadTemplate } from '../../src/profiles/load.js';
 import { registerTools, type ToolContext } from '../../src/tools/context.js';
 import type { Business, CatalogItem, Order } from '../../src/domain/types.js';
 
-const NOW = new Date('2026-09-15T15:00:00Z'); // martes, 10:00 en Chicago
+const NOW = new Date('2026-09-15T15:00:00Z'); // Tuesday, 10:00 in Chicago
 
 const business: Business = {
   id: 'b1', name: 'Oak Street Auto', status: 'active', profileVersion: 1,
@@ -28,7 +28,7 @@ async function connect(ctx: ToolContext): Promise<Client> {
   return client;
 }
 
-/** Pastelería: sin activo, la etiqueta hablada es el cliente y el sabor vive en los campos. */
+/** Bakery: no asset, so the spoken label is the customer and the flavor lives in the fields. */
 async function bakeryFixture(): Promise<Client> {
   const store = new MemoryStore();
   await store.putBusiness(bakery);
@@ -77,11 +77,11 @@ async function fixture(): Promise<{ client: Client; store: MemoryStore }> {
   return { client, store };
 }
 
-describe('tools de lectura', () => {
+describe('read tools', () => {
   let client: Client;
   beforeEach(async () => { ({ client } = await fixture()); });
 
-  it('registra las nueve tools con los nombres del perfil', async () => {
+  it('registers the nine tools with the profile names', async () => {
     const { tools } = await client.listTools();
     expect(tools.map(t => t.name).sort()).toEqual([
       'add_parts_or_labor', 'check_parts_stock', 'close_out_work_order', 'find_work_orders',
@@ -89,7 +89,7 @@ describe('tools de lectura', () => {
     ]);
   });
 
-  it('el resumen del día cuenta por etapa y lista lo bajo', async () => {
+  it('the day snapshot counts by stage and lists what is low', async () => {
     const r = await client.callTool({ name: 'get_shop_snapshot', arguments: {} });
     expect(r.isError).toBeFalsy();
     const data = r.structuredContent as { byStage: Array<{ stage: string; count: number }>; low: Array<{ name: string }> };
@@ -97,8 +97,8 @@ describe('tools de lectura', () => {
     expect(data.low.map(l => l.name)).toEqual(['Oil filter']);
   });
 
-  it('busca con el mismo criterio que las referencias habladas', async () => {
-    // El sustantivo del perfil no debe hundir la búsqueda: es ruido, no señal.
+  it('searches with the same criteria as spoken references', async () => {
+    // The profile noun must not sink the search: it is noise, not signal.
     const withNoun = await client.callTool({ name: 'find_work_orders', arguments: { query: "Dana's work order" } });
     expect((withNoun.structuredContent as { total: number }).total).toBe(1);
 
@@ -109,7 +109,7 @@ describe('tools de lectura', () => {
     expect((miss.structuredContent as { total: number }).total).toBe(0);
   });
 
-  it('no llama servicio a un producto que se hace por encargo', async () => {
+  it('does not call a made-to-order product a service', async () => {
     const bakeryClient = await bakeryFixture();
     const r = await bakeryClient.callTool({ name: 'check_ingredients', arguments: { item: '10-inch round cake' } });
     const spoken = (r.content[0] as { text: string }).text;
@@ -119,7 +119,7 @@ describe('tools de lectura', () => {
     await bakeryClient.close();
   });
 
-  it('busca por un campo de la orden en un perfil sin activo', async () => {
+  it('searches by an order field in a profile without an asset', async () => {
     const bakeryClient = await bakeryFixture();
     const r = await bakeryClient.callTool({ name: 'find_cake_orders', arguments: { query: 'chocolate' } });
     const data = r.structuredContent as { total: number; orders: Array<{ number: number }> };
@@ -128,7 +128,7 @@ describe('tools de lectura', () => {
     await bakeryClient.close();
   });
 
-  it('busca por etapa', async () => {
+  it('searches by stage', async () => {
     const r = await client.callTool({ name: 'find_work_orders', arguments: { stage: 'waiting_on_parts' } });
     const data = r.structuredContent as { total: number; orders: Array<{ number: number }> };
     expect(data.total).toBe(1);
@@ -136,20 +136,20 @@ describe('tools de lectura', () => {
     expect((r.content[0] as { text: string }).text).toContain('work order 41');
   });
 
-  it('consulta un ítem por sinónimo', async () => {
+  it('looks up an item by synonym', async () => {
     const r = await client.callTool({ name: 'check_parts_stock', arguments: { item: 'filter' } });
     const data = r.structuredContent as { items: Array<{ name: string; onHand: number; low: boolean }> };
     expect(data.items).toEqual([{ itemId: 'i1', name: 'Oil filter', unit: 'each', onHand: 1, reorderPoint: 5, low: true }]);
   });
 
-  it('avisa cuando el ítem no existe, sin romperse', async () => {
+  it('says when the item does not exist, without breaking', async () => {
     const r = await client.callTool({ name: 'check_parts_stock', arguments: { item: 'blinker fluid' } });
     expect(r.isError).toBe(true);
     expect(r.structuredContent).toBeUndefined();
     expect((r.content[0] as { text: string }).text).toContain("I don't have");
   });
 
-  it('reporta ventas de una semana vacía sin dividir entre cero', async () => {
+  it('reports sales for an empty week without dividing by zero', async () => {
     const r = await client.callTool({ name: 'sales_report', arguments: { period: 'this_week' } });
     const data = r.structuredContent as { totalCents: number; averageTicketCents: number };
     expect(data.totalCents).toBe(0);

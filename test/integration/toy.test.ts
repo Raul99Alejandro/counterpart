@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
 import { createToyServer } from '../../src/toy.js';
 
-describe('servidor de juguete', () => {
-  it('expone ping_shop y responde', async () => {
+describe('toy server', () => {
+  it('exposes ping_shop and answers', async () => {
     const [clientEnd, serverEnd] = InMemoryTransport.createLinkedPair();
     const server = createToyServer();
     const client = new Client({ name: 'test', version: '1.0.0' });

@@ -1,89 +1,89 @@
-# Lo que el Plan A deja abierto para el Plan B
+# What Plan A leaves open for Plan B
 
-**Estado:** Plan A completo en la rama `feat/core` — 92 pruebas, chequeo de tipos estricto limpio. Revisado tarea por tarea y con una revisión final de la rama entera; su ola de arreglos ya está aplicada y verificada.
+**Status:** Plan A complete on the `feat/core` branch — 92 tests, strict type check clean. Reviewed task by task and with a final review of the whole branch; its wave of fixes is already applied and verified.
 
-## Estado tras el Plan B1 (2026-09-16)
+## Status after Plan B1 (2026-09-16)
 
-Resuelto en la rama `feat/local-delivery`:
+Resolved on the `feat/local-delivery` branch:
 
-- **§1:** `DynamoStore` y `MemoryStore` pasan la misma suite de contrato, atomicidad incluida. Los cobros llevan `paidOn`, la fecha civil del negocio, y `listPayments` compara esa fecha (ya no los primeros 10 caracteres de `paidAt`).
-- **§2:** la siembra contra AWS no instala los tokens de demo, y `npm run token` emite tokens reales guardando solo su hash.
-- **§3:** logs JSON a stdout, una línea por petición y otra por tool, correlacionadas por `requestId`; `Sessions.drop()` registra las fallas de `close()`; la línea `INTERNAL` va a stdout.
-- **§4:** vencimientos de la pastelería fijados por día de la semana; semilla y cierres usan la fecha del negocio.
-- **§5:** concordancia de número, `notFound` en singular, dos oraciones en resumen y reporte, ids reservados en los perfiles, campos del activo genéricos en vez de `plate`, filtro de `.ts` en `copy-assets`, `npm run seed -- --reset`, `toy.ts` fuera de la imagen, y plurales en -s/-es en las referencias habladas.
-- **Revisión final de la rama:** una sesión desconocida o de otro negocio responde 404 (MCP pide 404 para que el cliente abra otra); la imagen falla cerrada sin `COUNTERPART_STORE`, porque con `NODE_ENV=production` se rechaza el store en memoria; `npm run seed -- --reset` contra AWS borra y vuelve a sembrar solo los negocios del demo, sin tocar la tabla ni los tokens; logs JSON también para los errores fuera de las tools y para las peticiones abortadas; el rango de la semana del resumen se calcula en fechas civiles; el apóstrofo tipográfico en los posesivos; un caso de aislamiento entre negocios en el contrato del store; y DynamoDB Local con `-sharedDb`.
+- **§1:** `DynamoStore` and `MemoryStore` pass the same contract suite, atomicity included. Payments carry `paidOn`, the business's civil date, and `listPayments` compares that date (no longer the first 10 characters of `paidAt`).
+- **§2:** seeding against AWS does not install the demo tokens, and `npm run token` issues real tokens, storing only their hash.
+- **§3:** JSON logs to stdout, one line per request and another per tool, correlated by `requestId`; `Sessions.drop()` logs `close()` failures; the `INTERNAL` line goes to stdout.
+- **§4:** bakery due dates pinned to the day of the week; seed and close-outs use the business date.
+- **§5:** number agreement, singular `notFound`, two sentences in summary and report, reserved ids in profiles, generic asset fields instead of `plate`, `.ts` filter in `copy-assets`, `npm run seed -- --reset`, `toy.ts` out of the image, and -s/-es plurals in spoken references.
+- **Final branch review:** an unknown session or one from another business answers 404 (MCP asks for 404 so the client opens a new one); the image fails closed without `COUNTERPART_STORE`, because with `NODE_ENV=production` the in-memory store is rejected; `npm run seed -- --reset` against AWS deletes and reseeds only the demo businesses, without touching the table or the tokens; JSON logs also for errors outside the tools and for aborted requests; the summary's week range is computed in civil dates; the typographic apostrophe in possessives; a cross-business isolation case in the store contract; and DynamoDB Local with `-sharedDb`.
 
-Sigue abierto:
+Still open:
 
-- **§2:** `allowedHosts` con el hostname del balanceador; tokens reales en Secrets Manager; tope de sesiones por token.
-- **§3:** envío de los logs a CloudWatch.
-- **§4:** `this_week` contra `last_week` a mitad de semana; interoperabilidad con `basic-host`, incluido ver las dos UIs de MCP Apps en un host real.
-- **§5:** solapamiento de disparadores entre resumen y reporte (medirlo con `test/golden/`, que se corre en orden, en una sola sesión y con semilla fresca); umbrales duplicados entre `findItem` y `resolveOrder`; guardas de cantidad; "closest matches" con puntaje 0; boilerplate de `package.json`; y todos los "detalles con consecuencias acotadas".
-- **Revisión final de la rama:** instrucciones de `basic-host` en el README (spec §13); `putPurchaseOrders` sin transacción (un fallo a medias contradice el "Nothing was changed" de la respuesta); `createdAt` en las filas de token (spec §7.3); la gráfica de ventas sin etiquetas de fecha ni serie del periodo anterior (spec §7.9); `ui/*/main.ts` y `ui/vite.config.ts` fuera del chequeo de tipos; y el comportamiento distinto de los dos stores ante un negocio inexistente.
+- **§2:** `allowedHosts` with the load balancer hostname; real tokens in Secrets Manager; session cap per token.
+- **§3:** shipping the logs to CloudWatch.
+- **§4:** `this_week` versus `last_week` mid-week; interoperability with `basic-host`, including seeing the two MCP Apps UIs in a real host.
+- **§5:** trigger overlap between summary and report (measure it with `test/golden/`, which runs in order, in a single session and with a fresh seed); duplicated thresholds between `findItem` and `resolveOrder`; quantity guards; "closest matches" with score 0; `package.json` boilerplate; and all the "details with limited consequences".
+- **Final branch review:** `basic-host` instructions in the README (spec §13); `putPurchaseOrders` without a transaction (a partial failure contradicts the response's "Nothing was changed"); `createdAt` in token rows (spec §7.3); the sales chart without date labels or a previous-period series (spec §7.9); `ui/*/main.ts` and `ui/vite.config.ts` outside the type check; and the different behavior of the two stores for a nonexistent business.
 
-Este documento existe porque el espacio de trabajo de ejecución (`.superpowers/sdd/`) está ignorado por git y se borra al cerrar el plan. Aquí queda lo que sí debe sobrevivir.
+This document exists because the execution workspace (`.superpowers/sdd/`) is ignored by git and is deleted when the plan closes. What must survive stays here.
 
 ---
 
-## 1. Invariantes que el `DynamoStore` tiene que preservar
+## 1. Invariants the `DynamoStore` has to preserve
 
-Dos propiedades están fijadas por pruebas y las asume toda la capa de tools. `TransactWriteItems` las da gratis; el riesgo es "simplificarlas" al portar.
+Two properties are pinned by tests and the whole tool layer assumes them. `TransactWriteItems` gives them for free; the risk is "simplifying" them when porting.
 
-- **`commitOrderWithItems` valida TODAS las versiones antes de escribir cualquier registro.** Si algo choca, no se escribe nada. La prueba de `memory-store.test.ts` afirma que el ítem queda intacto tras un commit rechazado.
-- **`listPayments(bizId, from, to)` es un rango inclusivo de fechas civiles (`YYYY-MM-DD`) en ambos extremos**, comparado sobre `paidOn`, la fecha civil del cobro en la zona horaria del negocio; nunca sobre el instante `paidAt`.
+- **`commitOrderWithItems` validates ALL versions before writing any record.** If anything conflicts, nothing is written. The `memory-store.test.ts` test asserts that the item stays intact after a rejected commit.
+- **`listPayments(bizId, from, to)` is an inclusive range of civil dates (`YYYY-MM-DD`) at both ends**, compared on `paidOn`, the civil date of the payment in the business's time zone; never on the `paidAt` instant.
 
-## 2. Seguridad, antes de desplegar
+## 2. Security, before deploying
 
-- **`allowedHosts`**: hoy el servidor escucha en `0.0.0.0` y eso desactiva la validación de host-header del SDK; lo único que queda delante es el bearer token. Configurar `allowedHosts` en `createMcpExpressApp` cuando exista el hostname del balanceador.
-- **`DEMO_TOKENS` está en texto plano** en `seed/run.ts`, y el repo es público por requisito del hackathon. El servicio desplegado debe leer tokens reales de Secrets Manager; esas constantes no pueden llegar a configuración de producción.
-- **No hay tope de sesiones por token**: un token válido puede abrir sesiones sin límite y solo las recupera el barrido de 30 minutos.
+- **`allowedHosts`**: today the server listens on `0.0.0.0` and that disables the SDK's host-header validation; the only thing in front is the bearer token. Configure `allowedHosts` in `createMcpExpressApp` once the load balancer hostname exists.
+- **`DEMO_TOKENS` is in plain text** in `seed/run.ts`, and the repo is public as a hackathon requirement. The deployed service must read real tokens from Secrets Manager; those constants must not reach production configuration.
+- **There is no session cap per token**: a valid token can open unlimited sessions and only the 30-minute sweep reclaims them.
 
-## 3. El hueco de observabilidad (§7.10 del spec)
+## 3. The observability gap (spec §7.10)
 
-El middleware de logs JSON (`requestId`, `sessionId`, `businessId`, tool, duración, código de error) no se construyó: sin destino de logs no había forma de verificarlo. Va junto con CloudWatch, y además le da un lugar donde reportar a dos sitios que hoy callan:
+The JSON logging middleware (`requestId`, `sessionId`, `businessId`, tool, duration, error code) was not built: with no log destination there was no way to verify it. It goes together with CloudWatch, and it also gives two places that are silent today somewhere to report:
 
-- `Sessions.drop()` se traga los errores de `close()` sin registrar nada.
-- El `guard()` de `context.ts` escribe la línea JSON a **stderr**; el spec §7.10 dice stdout. Decidir uno al montar el middleware.
+- `Sessions.drop()` swallows `close()` errors without logging anything.
+- The `guard()` in `context.ts` writes the JSON line to **stderr**; spec §7.10 says stdout. Pick one when building the middleware.
 
-## 4. Cosas que afectan directamente al video
+## 4. Things that directly affect the video
 
-- **El panel de reporte de ventas (MCP Apps, §7.9) necesita `topItems` no vacío.** Ya lo está: la semilla genera partidas reales. No revertir eso o la UI se diseñará contra un estado vacío.
-- **Las fechas de la pastelería dependen del día en que se siembra.** La línea del guion "3 pasteles para el sábado" solo es cierta si el servidor arranca en martes. Fijar los vencimientos a un cálculo real de día de la semana antes de grabar.
-- **`this_week` contra `last_week` a mitad de semana** compara 2-3 días transcurridos contra 7 completos, lo que produce caídas aparentes enormes. El spec lo pide así; para el video conviene comparar días equivalentes.
-- **La semilla calcula fechas en UTC**, no en `business.timezone`. Si el servidor se siembra entre las 19:00 y las 24:00 de Chicago, el "hoy" de la semilla va un día adelante del "hoy" que leen las tools.
-- **Interop con un host MCP de terceros sigue sin verificarse.** El chequeo manual con `basic-host` no se pudo hacer (repo externo no clonado); se verificó el equivalente por HTTP directo. Cualquier detalle de conformidad que tropiece con otra implementación de cliente aparecería recién ahí.
+- **The sales report panel (MCP Apps, §7.9) needs a non-empty `topItems`.** It already is: the seed generates real line items. Do not revert that or the UI will be designed against an empty state.
+- **The bakery dates depend on the day of seeding.** The script line "3 cakes for Saturday" is only true if the server starts on a Tuesday. Pin the due dates to a real day-of-week calculation before recording.
+- **`this_week` versus `last_week` mid-week** compares 2-3 elapsed days against 7 full ones, which produces huge apparent drops. The spec asks for it that way; for the video it is better to compare equivalent days.
+- **The seed computes dates in UTC**, not in `business.timezone`. If the server is seeded between 19:00 and 24:00 Chicago time, the seed's "today" is one day ahead of the "today" the tools read.
+- **Interop with a third-party MCP host is still unverified.** The manual check with `basic-host` could not be done (external repo not cloned); the equivalent was verified over direct HTTP. Any conformance detail that trips on another client implementation would only show up there.
 
-## 5. Deuda menor, triada como "puede esperar"
+## 5. Minor debt, triaged as "can wait"
 
-Ninguna de estas bloquea nada; están ordenadas por lo que más barato sale arreglar mientras se toca el archivo.
+None of these block anything; they are ordered by what is cheapest to fix while touching the file.
 
-**Habla y texto**
-- Concordancia de número: "but only 2 **was** in stock", y "only 0 was in stock" cuando no queda nada. Un helper `was/were` lo arregla.
-- `notFound` dice "Open ones are" incluso con una sola orden abierta.
-- `snapshot` y `salesReport` emiten tres o cuatro oraciones, contra la regla de una o dos del §7.7 que sí se aplicó a `lineAdded`. O se relaja la regla en el spec o se recortan esos dos.
-- Los disparadores de `snapshot` y `salesReport` se solapan para "how did today go". Es medible solo con las frases de oro: entra como insumo de esa pasada.
+**Speech and text**
+- Number agreement: "but only 2 **was** in stock", and "only 0 was in stock" when nothing is left. A `was/were` helper fixes it.
+- `notFound` says "Open ones are" even with a single open order.
+- `snapshot` and `salesReport` emit three or four sentences, against the one-or-two rule of §7.7 that was applied to `lineAdded`. Either relax the rule in the spec or trim those two.
+- The `snapshot` and `salesReport` triggers overlap for "how did today go". It can only be measured with the golden phrases: it is input for that pass.
 
-**Perfiles y dominio**
-- `parseProfile` no reserva los ids `due`, `asset`, `customerName`, `customerPhone` ni `description`: un `orderFields` con uno de esos nombres sobrescribiría el campo en silencio. Tres líneas de guarda, y los perfiles son el punto de extensión.
-- `resolver.ts` fija el nombre de campo `plate`, que es vocabulario de taller; `Object.values(asset.fields)` es genérico y estrictamente mejor. (El spec también lo nombra, así que es fuga de spec tanto como de código.)
-- Los umbrales 0.5 / 0.15 están duplicados entre `findItem` y `resolveOrder`. Extraer un `pickBest` único — es la misma clase de deriva que ya causó un hallazgo importante.
-- `addLineToOrder` no rechaza cantidades ≤ 0 (inalcanzable desde MCP, porque el esquema usa `positive()`), y `planReorder` no pone piso si `reorderQty` fuera ≤ 0.
-- `findItem` devuelve los tres mejores como "closest matches" aunque todos puntúen 0.
+**Profiles and domain**
+- `parseProfile` does not reserve the ids `due`, `asset`, `customerName`, `customerPhone` or `description`: an `orderFields` with one of those names would silently overwrite the field. Three lines of guard, and profiles are the extension point.
+- `resolver.ts` hardcodes the field name `plate`, which is shop vocabulary; `Object.values(asset.fields)` is generic and strictly better. (The spec names it too, so it is a spec leak as much as a code leak.)
+- The 0.5 / 0.15 thresholds are duplicated between `findItem` and `resolveOrder`. Extract a single `pickBest` — it is the same kind of drift that already caused an important finding.
+- `addLineToOrder` does not reject quantities ≤ 0 (unreachable from MCP, because the schema uses `positive()`), and `planReorder` sets no floor if `reorderQty` were ≤ 0.
+- `findItem` returns the top three as "closest matches" even when all score 0.
 
-**Infraestructura y empaque**
-- `infra/copy-assets.mjs` copia también los `.ts` a `dist/`; falta `filter: p => !p.endsWith('.ts')`. Hacerlo junto con el Dockerfile.
-- Falta el script `npm run seed -- <perfil>` que pide el spec §9; hoy la siembra solo ocurre al arrancar.
-- `src/toy.ts` se sigue compilando aunque nada del servidor real lo usa. Es el blanco de los spikes del Plan B: que no entre a la imagen Docker.
-- `package.json` conserva boilerplate de `npm init` (`main`, `directories`, descripción y autor vacíos), `"private"` como string en vez de booleano, y `@types/node` en `^22` contra `engines.node >= 24`.
+**Infrastructure and packaging**
+- `infra/copy-assets.mjs` also copies the `.ts` files to `dist/`; it is missing `filter: p => !p.endsWith('.ts')`. Do it together with the Dockerfile.
+- The `npm run seed -- <profile>` script that spec §9 asks for is missing; today seeding only happens at startup.
+- `src/toy.ts` is still compiled even though nothing in the real server uses it. It is the target of the Plan B spikes: keep it out of the Docker image.
+- `package.json` keeps `npm init` boilerplate (`main`, `directories`, empty description and author), `"private"` as a string instead of a boolean, and `@types/node` at `^22` against `engines.node >= 24`.
 
-**Detalles con consecuencias acotadas**
-- `close-out.ts` en la rama `alreadyClosed` devuelve el método de pago *solicitado*, no el que quedó registrado.
-- `takeOrderNumber` consume el número antes de escribir la orden: una escritura fallida quema un número y la numeración no es continua.
-- Cada petición a `/mcp` con token válido pero sin session id ni `initialize` construye un `McpServer` y un transporte que nadie cierra, y vuelve a leer y parsear el YAML del perfil desde disco. Cachear el perfil.
-- `moveStage` tiene una rama `closed` que es código muerto desde `move.ts` (que ya filtra órdenes abiertas), pero es API pública del dominio.
-- La ventana de deduplicación de 2 minutos solo se prueba en su interior; el borde (justo antes y justo después) no.
+**Details with limited consequences**
+- `close-out.ts` in the `alreadyClosed` branch returns the *requested* payment method, not the one that was recorded.
+- `takeOrderNumber` consumes the number before writing the order: a failed write burns a number and the numbering is not continuous.
+- Each `/mcp` request with a valid token but no session id or `initialize` builds an `McpServer` and a transport that nobody closes, and reads and parses the profile YAML from disk again. Cache the profile.
+- `moveStage` has a `closed` branch that is dead code from `move.ts` (which already filters open orders), but it is public domain API.
+- The 2-minute dedup window is only tested inside it; the edge (just before and just after) is not.
 
-## 6. Dos decisiones deliberadas que NO son deuda
+## 6. Two deliberate decisions that are NOT debt
 
-- **`find` no tiene atajo por número de orden**, a diferencia de `resolveOrder`. Agregarlo cambiaría el contrato del filtro de `find`, no repara ninguna deriva.
-- **La semilla no incluye una F-150**: el test de extremo a extremo abre una, y dos volverían ambigua la frase "the F-150". El guion del video usa la Mazda CX-5 de Nina Patel, que ya queda sembrada como lista para entrega.
+- **`find` has no order-number shortcut**, unlike `resolveOrder`. Adding it would change the contract of the `find` filter; it does not fix any drift.
+- **The seed does not include an F-150**: the end-to-end test opens one, and two would make the phrase "the F-150" ambiguous. The video script uses Nina Patel's Mazda CX-5, which is seeded as ready for pickup.

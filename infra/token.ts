@@ -11,14 +11,14 @@ export interface IssueDeps {
   putSecret?: (name: string, value: string) => Promise<void>;
 }
 
-/** Donde lee el token el bridge (BRIDGE_MCP_SECRET_NAME). */
+/** Where the bridge reads the token from (BRIDGE_MCP_SECRET_NAME). */
 export function secretNameFor(bizId: string): string {
   return `counterpart/${bizId}/token`;
 }
 
-/** Emite un token: en la tabla queda solo su hash; con putSecret, el valor va al secreto del negocio. */
+/** Issues a token: the table keeps only its hash; with putSecret, the value goes to the business's secret. */
 export async function issueToken(deps: IssueDeps, bizId: string): Promise<{ token: string; secretName?: string }> {
-  if (!(await deps.store.getBusiness(bizId))) throw new Error(`No existe el negocio "${bizId}".`);
+  if (!(await deps.store.getBusiness(bizId))) throw new Error(`Business "${bizId}" does not exist.`);
   const token = (deps.random ?? (() => randomBytes(32).toString('base64url')))();
   await deps.store.putToken(hashToken(token), bizId);
   if (!deps.putSecret) return { token };
@@ -27,7 +27,7 @@ export async function issueToken(deps: IssueDeps, bizId: string): Promise<{ toke
   return { token, secretName };
 }
 
-/** Crea el secreto o, si ya existe, le pone un valor nuevo. */
+/** Creates the secret or, if it already exists, sets a new value. */
 export function secretsManagerWriter(client: SecretsManagerClient): (name: string, value: string) => Promise<void> {
   return async (name, value) => {
     try {

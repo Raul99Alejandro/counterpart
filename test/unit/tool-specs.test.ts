@@ -8,20 +8,20 @@ import {
 const shop = loadTemplate('auto-repair');
 const bakery = loadTemplate('bakery');
 
-describe('generación de tools', () => {
-  it('toma los nombres del perfil', () => {
+describe('tool generation', () => {
+  it('takes the names from the profile', () => {
     expect(toolSpecs(shop).open.name).toBe('open_work_order');
     expect(toolSpecs(bakery).open.name).toBe('take_cake_order');
   });
 
-  it('mete los sinónimos en la descripción', () => {
+  it('puts the synonyms in the description', () => {
     const d = toolSpecs(shop).find.description;
     expect(d).toContain('repair order');
     expect(d).toContain('RO');
     expect(d.toLowerCase()).not.toContain('json');
   });
 
-  it('el esquema de abrir exige el activo en el taller', () => {
+  it('the open schema requires the asset in the auto repair shop', () => {
     const schema = openInput(shop);
     expect(schema.safeParse({ customerName: 'Dana Lee' }).success).toBe(false);
     expect(schema.safeParse({
@@ -29,7 +29,7 @@ describe('generación de tools', () => {
     }).success).toBe(true);
   });
 
-  it('el esquema de abrir exige due y campos propios en la pastelería', () => {
+  it('the open schema requires due and the custom fields in the bakery', () => {
     const schema = openInput(bakery);
     expect(schema.safeParse({ customerName: 'Priya Shah', flavor: 'chocolate', size: '10-inch' }).success).toBe(false);
     expect(schema.safeParse({
@@ -37,13 +37,13 @@ describe('generación de tools', () => {
     }).success).toBe(true);
   });
 
-  it('el esquema de buscar acepta solo etapas del perfil', () => {
+  it('the find schema accepts only profile stages', () => {
     expect(findInput(shop).safeParse({ stage: 'waiting_on_parts' }).success).toBe(true);
     expect(findInput(shop).safeParse({ stage: 'baking' }).success).toBe(false);
     expect(findInput(shop).safeParse({}).success).toBe(true);
   });
 
-  it('las descripciones de los parámetros no llevan vocabulario del taller a otro perfil', () => {
+  it('parameter descriptions do not carry auto repair vocabulary into another profile', () => {
     const described = (schema: ReturnType<typeof moveInput>, key: string): string => {
       const json = z.toJSONSchema(schema) as { properties?: Record<string, { description?: string }> };
       return json.properties?.[key]?.description ?? '';
@@ -56,7 +56,7 @@ describe('generación de tools', () => {
 
     const shopOrder = described(moveInput(shop), 'order');
     expect(shopOrder).toContain('work order');
-    expect(shopOrder).toContain('vehicle'); // el activo del perfil sirve de ejemplo
+    expect(shopOrder).toContain('vehicle'); // the profile asset serves as the example
 
     expect(described(findInput(bakery), 'stage').toLowerCase()).not.toContain('job');
     expect(described(findInput(bakery), 'query').toLowerCase()).not.toContain('job');
@@ -67,46 +67,46 @@ describe('generación de tools', () => {
     expect(toolSpecs(bakery).open.description.toLowerCase()).not.toContain('job');
   });
 
-  it('usa el artículo correcto según el sustantivo del perfil', () => {
+  it('uses the right article for the profile noun', () => {
     expect(toolSpecs(bakery).addLine.description).toContain('an ingredient');
     expect(toolSpecs(bakery).addLine.description).not.toContain('a ingredient');
     expect(toolSpecs(shop).addLine.description).toContain('a part');
   });
 
-  describe('lo que pidieron las frases de oro contra Nova 2 Lite', () => {
+  describe('what the golden phrases against Nova 2 Lite asked for', () => {
     const described = (schema: ReturnType<typeof openInput>, key: string): string => {
       const json = z.toJSONSchema(schema) as { properties?: Record<string, { description?: string }> };
       return json.properties?.[key]?.description ?? '';
     };
 
-    it('los campos propios de la orden dicen qué son', () => {
+    it('the custom order fields say what they are', () => {
       expect(described(openInput(bakery), 'flavor')).toContain('flavor');
       expect(described(openInput(bakery), 'size')).toContain('cake order');
     });
 
-    it('abrir una orden pide usar lo que el usuario ya dijo y no preguntar lo opcional', () => {
+    it('opening an order asks to use what the user already said and not ask for optional details', () => {
       const d = toolSpecs(bakery).open.description;
       expect(d).toContain('Fill in every detail the user already gave');
       expect(d).toContain('phone number');
     });
 
-    it('abrir una orden nombra lo obligatorio del perfil y pide omitir lo demás', () => {
+    it('opening an order names what the profile requires and asks to leave out the rest', () => {
       const d = toolSpecs(bakery).open.description;
       expect(d).toContain("Needed: the customer's name, flavor, size and the due date.");
       expect(d).toContain('Leave anything else out instead of asking for it');
       expect(toolSpecs(shop).open.description).toContain("Needed: the customer's name and the vehicle.");
     });
 
-    it('la referencia a una orden acepta el nombre del cliente sin pedir el número', () => {
+    it('an order reference accepts the customer name without asking for the number', () => {
       const json = z.toJSONSchema(addLineInput(bakery)) as { properties?: Record<string, { description?: string }> };
       expect(json.properties?.order?.description).toContain('never ask for the cake order number');
     });
 
-    it('el resumen del día cubre "what is on the board today"', () => {
+    it('the daily snapshot covers "what is on the board today"', () => {
       expect(toolSpecs(bakery).snapshot.description).toContain("what's on the board");
     });
   });
-  it('dice los ids de campo con guion bajo como palabras', () => {
+  it('says underscored field ids as words', () => {
     const florist = { ...bakery, orderFields: [{ id: 'card_message', type: 'string' as const, required: true }] };
     const schema = openInput(florist);
     const described = (schema.shape as Record<string, { description?: string }>).card_message?.description;

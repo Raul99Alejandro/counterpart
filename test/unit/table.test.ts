@@ -6,7 +6,7 @@ import { clearBusinesses } from '../../src/store/table.js';
 
 const key = (sk: string) => ({ pk: { S: 'BIZ#shop' }, sk: { S: sk } });
 
-/** Doble del cliente: una página de llaves por Query y respuestas de BatchWriteItem en orden. */
+/** Client double: one page of keys per Query and BatchWriteItem replies in order. */
 function fakeClient(keys: Array<ReturnType<typeof key>>, batchReplies: Array<WriteRequest[]>) {
   const batches: WriteRequest[][] = [];
   const send = vi.fn(async (command: unknown) => {
@@ -17,7 +17,7 @@ function fakeClient(keys: Array<ReturnType<typeof key>>, batchReplies: Array<Wri
       const unprocessed = batchReplies.shift() ?? [];
       return { UnprocessedItems: unprocessed.length > 0 ? { t: unprocessed } : {} };
     }
-    throw new Error('comando inesperado');
+    throw new Error('unexpected command');
   });
   return { client: { send } as unknown as DynamoDBClient, batches };
 }
@@ -25,7 +25,7 @@ function fakeClient(keys: Array<ReturnType<typeof key>>, batchReplies: Array<Wri
 afterEach(() => { vi.useRealTimers(); });
 
 describe('clearBusinesses', () => {
-  it('borra en lotes de 25 y reintenta lo que DynamoDB no procesó', async () => {
+  it('deletes in batches of 25 and retries what DynamoDB did not process', async () => {
     vi.useFakeTimers();
     const keys = Array.from({ length: 30 }, (_, i) => key(`ORD#${i}`));
     const leftover: WriteRequest[] = [{ DeleteRequest: { Key: keys[0]! } }];
@@ -39,13 +39,13 @@ describe('clearBusinesses', () => {
     expect(batches[1]).toEqual(leftover);
   });
 
-  it('se rinde con un error claro si DynamoDB nunca procesa el lote', async () => {
+  it('gives up with a clear error if DynamoDB never processes the batch', async () => {
     vi.useFakeTimers();
     const keys = [key('META')];
     const stuck: WriteRequest[] = [{ DeleteRequest: { Key: keys[0]! } }];
     const { client, batches } = fakeClient(keys, Array.from({ length: 50 }, () => stuck));
 
-    const done = expect(clearBusinesses(client, 't', ['shop'])).rejects.toThrow(/quedaron 1 borrados sin procesar .* tras \d+ intentos/);
+    const done = expect(clearBusinesses(client, 't', ['shop'])).rejects.toThrow(/1 deletes were left unprocessed .* after \d+ attempts/);
     await vi.runAllTimersAsync();
     await done;
     expect(batches.length).toBeGreaterThan(1);

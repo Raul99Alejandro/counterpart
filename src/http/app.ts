@@ -20,16 +20,16 @@ import type { HostPolicy } from './hosts.js';
 
 const IDLE_MS = 30 * 60 * 1000;
 
-/** Sesiones abiertas por negocio (spec B2 §4.4). La siguiente recibe 429. */
+/** Open sessions per business (spec B2 §4.4). The next one gets 429. */
 export const MAX_SESSIONS_PER_BUSINESS = 10;
 
-/** Servidor con sesiones por negocio: una McpServer/transport por sesión, atadas al negocio del token. */
+/** Server with per-business sessions: one McpServer/transport per session, bound to the token's business. */
 export function createApp(deps: {
   store: Store; devBusinessId?: string; host: string; hosts?: HostPolicy; maxSessionsPerBusiness?: number;
   generate?: DraftGenerator; now?: () => Date;
 }): Express {
   if (deps.devBusinessId && deps.host !== '127.0.0.1') {
-    throw new Error('COUNTERPART_DEV_BUSINESS solo se permite escuchando en 127.0.0.1');
+    throw new Error('COUNTERPART_DEV_BUSINESS is only allowed when listening on 127.0.0.1');
   }
 
   const app = createMcpExpressApp({ host: deps.host });
@@ -37,26 +37,26 @@ export function createApp(deps: {
   const sessions = new Sessions();
   const profiles = new ProfileCache(deps.store);
   const now = deps.now ?? (() => new Date());
-  // Uno por proceso: el tope por hora y las generaciones en curso son del negocio, no de la sesión.
+  // One per process: the hourly cap and in-flight generations belong to the business, not the session.
   const setup = new SetupService({ store: deps.store, generate: deps.generate ?? unavailableGenerator, now });
 
   const toolContext = (business: Business, profile: Profile): ToolContext => ({
     business, profile, store: deps.store, now, newId: prefix => `${prefix}-${randomUUID()}`
   });
 
-  /** Negocio activo → sus nueve tools. En blanco → las tres de alta, que al activar se cambian por las nueve. */
+  /** Active business → its nine tools. Blank → the three setup tools, swapped for the nine on activation. */
   async function registerFor(server: McpServer, business: Business, state: { status: Business['status'] }): Promise<void> {
     if (business.status === 'active') {
       registerTools(server, toolContext(business, await profiles.forBusiness(business)));
       return;
     }
-    // Antes de conectar: las páginas que usará el perfil al activarse tienen que existir ya (Step 3b).
+    // Before connecting: the pages the profile will use once activated must already exist (Step 3b).
     registerUiResources(server, ['snapshot', 'sales-report']);
     const setupTools = registerSetupTools(server, {
       business, setup,
       onActivated: (active, profile) => {
         state.status = 'active';
-        // La sesión sigue viva (spec B2 §5.2): fuera las de alta, dentro las del perfil, y se avisa al cliente.
+        // The session stays alive (spec B2 §5.2): setup tools out, profile tools in, and the client is notified.
         for (const tool of setupTools) tool.remove();
         registerTools(server, toolContext(active, profile));
         server.sendToolListChanged();
@@ -70,7 +70,7 @@ export function createApp(deps: {
     res.status(200).type('text/plain').send('ok');
   });
 
-  // Solo /mcp: el health check de /ping llega con la IP de la tarea como Host.
+  // Only /mcp: the /ping health check arrives with the task's IP as Host.
   const hosts = deps.hosts ?? { kind: 'any' };
   if (hosts.kind === 'list') app.use('/mcp', hostHeaderValidation(hosts.hosts));
   if (hosts.kind === 'closed') {
@@ -81,8 +81,8 @@ export function createApp(deps: {
     const context: RequestContext = { requestId: randomUUID() };
     const started = performance.now();
 
-    // 'close' y no 'finish': se emite una vez siempre, también si el cliente corta la petición
-    // (un stream SSE abandonado nunca llega a 'finish').
+    // 'close', not 'finish': it always fires once, even if the client aborts the request
+    // (an abandoned SSE stream never reaches 'finish').
     res.on('close', () => {
       const assigned = res.getHeader('mcp-session-id');
       log({
@@ -108,14 +108,14 @@ export function createApp(deps: {
       if (sessionId) {
         const entry = sessions.get(sessionId, business.id);
         if (!entry) {
-          // 404, como pide MCP para una sesión terminada: el cliente abre una nueva. Mismo código
-          // si el id es de otro negocio, para no revelar que existe.
+          // 404, as MCP requires for a terminated session: the client opens a new one. Same code
+          // if the id belongs to another business, so as not to reveal that it exists.
           res.status(404).json({ error: 'session not found' });
           return;
         }
         if (entry.state.status !== business.status) {
-          // El negocio cambió de estado fuera de esta sesión (un reset, o se activó desde otra):
-          // sus tools ya no corresponden. 404 y el cliente abre una sesión nueva con las correctas.
+          // The business changed state outside this session (a reset, or activated from another one):
+          // its tools no longer match. 404, and the client opens a new session with the right ones.
           sessions.drop(sessionId);
           res.status(404).json({ error: 'session not found' });
           return;
@@ -125,8 +125,8 @@ export function createApp(deps: {
         return;
       }
 
-      // Sin session id solo vale initialize: cualquier otra cosa construiría un servidor y un
-      // transporte que nadie cierra (carryover §5).
+      // Without a session id only initialize is valid: anything else would build a server and a
+      // transport that nobody closes (carryover §5).
       if (req.method !== 'POST' || !isInitializeRequest(req.body)) {
         res.status(400).json({ error: 'missing session id' });
         return;
@@ -152,19 +152,19 @@ export function createApp(deps: {
       await transport.handleRequest(req, res, req.body);
     };
 
-    // El catch se engancha dentro del contexto de la petición: así el middleware de errores
-    // registra la misma requestId que la línea http.
+    // The catch is attached inside the request context, so the error middleware
+    // logs the same requestId as the http line.
     return withRequest(context, () => handle().catch(next));
   });
 
-  // Errores fuera de las tools (p. ej. el store caído al buscar el token): una línea JSON en vez
-  // del stack de Express en stderr. Nunca se registra la petición: lleva el token.
+  // Errors outside the tools (e.g. the store down while looking up the token): one JSON line instead
+  // of the Express stack on stderr. The request is never logged: it carries the token.
   app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
     const context = currentRequest();
     const clientStatus = clientErrorStatus(err);
     if (clientStatus !== undefined) {
-      // Error del cliente (p. ej. JSON mal formado en express.json()): no es INTERNAL. Ocurre antes
-      // de /mcp, sin contexto de petición, así que su línea http se escribe aquí.
+      // Client error (e.g. malformed JSON in express.json()): not INTERNAL. It happens before
+      // /mcp, with no request context, so its http line is written here.
       if (!context) {
         log({ level: 'info', msg: 'http', requestId: randomUUID(), method: req.method, path: req.path, status: clientStatus });
       }
@@ -178,7 +178,7 @@ export function createApp(deps: {
     }
 
     if (res.headersSent) {
-      // La respuesta ya empezó y no se puede corregir: se corta la conexión, como hace Express.
+      // The response has already started and cannot be fixed: drop the connection, as Express does.
       req.socket.destroy();
       return;
     }
@@ -191,7 +191,7 @@ export function createApp(deps: {
   return app;
 }
 
-/** El estado 4xx que traen los errores de cliente de Express (body-parser, http-errors); si no, undefined. */
+/** The 4xx status carried by Express client errors (body-parser, http-errors); otherwise undefined. */
 function clientErrorStatus(err: unknown): number | undefined {
   const status = typeof err === 'object' && err !== null ? (err as { status?: unknown }).status : undefined;
   return typeof status === 'number' && status >= 400 && status < 500 ? status : undefined;

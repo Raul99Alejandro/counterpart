@@ -30,7 +30,7 @@ export function registerCloseOut(server: McpServer, ctx: ToolContext): void {
 
       const today = businessToday(ctx.business.timezone, ctx.now());
       const refs = await loadRefs(ctx);
-      // Candidatas: abiertas, más las cerradas hoy en la fecha del negocio, para que repetir el cierre sea idempotente.
+      // Candidates: open ones, plus those closed today in the business's date, so repeating the close-out is idempotent.
       const closedToday = (closedAt: string | undefined): boolean =>
         closedAt !== undefined && businessToday(ctx.business.timezone, new Date(closedAt)) === today;
       const candidates = refs.filter(r =>
@@ -45,7 +45,7 @@ export function registerCloseOut(server: McpServer, ctx: ToolContext): void {
       const order = found.ref.order;
 
       if (order.stage === ctx.profile.closedStage) {
-        // El método que quedó registrado, no el que se pidió ahora.
+        // The method that was recorded, not the one requested now.
         const paidOn = businessToday(ctx.business.timezone, new Date(order.closedAt ?? ctx.now()));
         const recorded = (await ctx.store.listPayments(ctx.business.id, paidOn, paidOn)).find(p => p.orderId === order.id);
         return ok(say.alreadyClosed(ctx.profile, found.ref, order.totalCents), {

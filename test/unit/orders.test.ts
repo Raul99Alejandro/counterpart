@@ -18,15 +18,15 @@ function orderWithLines(): Order {
   return recalcTotals(base, 825);
 }
 
-describe('órdenes', () => {
-  it('suma partidas y cobra impuesto solo sobre lo gravable', () => {
+describe('orders', () => {
+  it('adds up lines and charges tax only on taxable ones', () => {
     const o = orderWithLines();
     expect(o.subtotalCents).toBe(9000 + 18000);
-    expect(o.taxCents).toBe(743); // 8.25% de 9000 = 742.5 -> 743
+    expect(o.taxCents).toBe(743); // 8.25% of 9000 = 742.5 -> 743
     expect(o.totalCents).toBe(27743);
   });
 
-  it('cambia de etapa y guarda historial', () => {
+  it('changes stage and keeps the history', () => {
     const r = moveStage(orderWithLines(), 'in_bay', profile, NOW);
     expect(r.ok).toBe(true);
     if (r.ok) {
@@ -35,18 +35,18 @@ describe('órdenes', () => {
     }
   });
 
-  it('no deja mover a la etapa de cierre', () => {
+  it('does not allow moving to the closing stage', () => {
     const r = moveStage(orderWithLines(), 'picked_up', profile, NOW);
     expect(r).toEqual({ ok: false, code: 'INVALID_STAGE', reason: 'use_close_out' });
   });
 
-  it('no deja mover una orden cerrada', () => {
+  it('does not allow moving a closed order', () => {
     const closed = { ...orderWithLines(), stage: 'picked_up', closedAt: NOW.toISOString() };
     const r = moveStage(closed, 'in_bay', profile, NOW);
     expect(r).toEqual({ ok: false, code: 'INVALID_STAGE', reason: 'closed' });
   });
 
-  it('cierra desde ready_for_pickup y genera el cobro', () => {
+  it('closes from ready_for_pickup and creates the payment', () => {
     const ready = { ...orderWithLines(), stage: 'ready_for_pickup' };
     const r = closeOut(ready, 'card', profile, NOW, 'p1', '2026-09-15');
     expect(r.ok).toBe(true);
@@ -59,13 +59,13 @@ describe('órdenes', () => {
     }
   });
 
-  it('no cierra desde una etapa que no está en closeFrom', () => {
+  it('does not close from a stage that is not in closeFrom', () => {
     const r = closeOut({ ...orderWithLines(), stage: 'in_bay' }, 'cash', profile, NOW, 'p1', '2026-09-15');
     expect(r).toEqual({ ok: false, code: 'CANNOT_CLOSE' });
   });
 });
 
-it('no mueve una orden cerrada', () => {
+it('does not move a closed order', () => {
   const closed = { ...newOrder({ id: 'o', number: 1, customerId: 'c', fields: {}, stage: 'picked_up', now: new Date() }) };
   expect(moveStage(closed, 'in_bay', profile, new Date())).toEqual({ ok: false, code: 'INVALID_STAGE', reason: 'closed' });
 });

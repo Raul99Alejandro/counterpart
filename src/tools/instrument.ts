@@ -4,17 +4,17 @@ import { log } from '../log.js';
 import type { Business } from '../domain/types.js';
 import type { ToolResult } from './context.js';
 
-/** Resultados producidos por la frontera INTERNAL: el log los distingue de un error de negocio. */
+/** Results produced by the INTERNAL boundary: the log tells them apart from a business error. */
 export const internalResults = new WeakSet<object>();
 
 type Callback = (...args: unknown[]) => Promise<ToolResult>;
 type RegisterTool = (name: string, config: unknown, cb: Callback) => unknown;
-/** Dueño de las tools que se registran: solo hace falta su id para el log. */
+/** Owner of the tools being registered: only its id is needed for the log. */
 type Owner = { business: Pick<Business, 'id'> };
 
 /**
- * Proxy sobre McpServer que mide y registra cada llamada a una tool. Las tools y los helpers
- * de MCP Apps lo reciben como si fuera el servidor real; todo lo demás pasa sin cambios.
+ * Proxy over McpServer that times and logs every tool call. The tools and the MCP Apps
+ * helpers receive it as if it were the real server; everything else passes through unchanged.
  */
 export function instrument(server: McpServer, owner: Owner): McpServer {
   return new Proxy(server, {
@@ -23,8 +23,8 @@ export function instrument(server: McpServer, owner: Owner): McpServer {
         const register = (target.registerTool as unknown as RegisterTool).bind(target);
         return (name: string, config: unknown, cb: Callback) => register(name, config, timed(name, owner, cb));
       }
-      // Sin `receiver`: los getters y métodos corren con el servidor real como `this`,
-      // así funcionan aunque la clase use campos privados (#campo).
+      // No `receiver`: getters and methods run with the real server as `this`,
+      // so they work even if the class uses private fields (#field).
       const value: unknown = Reflect.get(target, prop);
       return typeof value === 'function' ? value.bind(target) : value;
     }

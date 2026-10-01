@@ -16,8 +16,8 @@ async function storeWithProfile(): Promise<MemoryStore> {
   return store;
 }
 
-describe('caché de perfiles', () => {
-  it('lee el perfil una sola vez por versión', async () => {
+describe('profile cache', () => {
+  it('reads the profile only once per version', async () => {
     const store = await storeWithProfile();
     const read = vi.spyOn(store, 'getProfile');
     const cache = new ProfileCache(store);
@@ -26,7 +26,7 @@ describe('caché de perfiles', () => {
     expect(read).toHaveBeenCalledTimes(1);
   });
 
-  it('vuelve a leer cuando cambia la versión', async () => {
+  it('reads again when the version changes', async () => {
     const store = await storeWithProfile();
     const read = vi.spyOn(store, 'getProfile');
     const cache = new ProfileCache(store);
@@ -37,12 +37,12 @@ describe('caché de perfiles', () => {
     expect(read).toHaveBeenCalledTimes(2);
   });
 
-  it('rechaza un negocio en blanco', async () => {
+  it('rejects a blank business', async () => {
     const cache = new ProfileCache(await storeWithProfile());
     await expect(cache.forBusiness({ ...business, status: 'blank', profileVersion: 0 })).rejects.toThrow(/blank/);
   });
 
-  it('falla claro si falta el perfil guardado', async () => {
+  it('fails clearly when the saved profile is missing', async () => {
     const store = new MemoryStore();
     await store.putBusiness(business);
     await expect(new ProfileCache(store).forBusiness(business)).rejects.toThrow(/no saved profile/);

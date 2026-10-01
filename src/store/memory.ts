@@ -21,7 +21,7 @@ export class MemoryStore implements Store {
 
   private tenant(bizId: string): Tenant {
     const t = this.tenants.get(bizId);
-    if (!t) throw new Error(`negocio desconocido: ${bizId}`);
+    if (!t) throw new Error(`unknown business: ${bizId}`);
     return t;
   }
 
@@ -58,7 +58,7 @@ export class MemoryStore implements Store {
     return number;
   }
 
-  /** Lecturas: un negocio inexistente se lee vacío, como en DynamoDB. */
+  /** Reads: a missing business reads as empty, as in DynamoDB. */
   private peek(bizId: string): Tenant | undefined {
     return this.tenants.get(bizId);
   }
@@ -92,17 +92,17 @@ export class MemoryStore implements Store {
 
   async commitOrderWithItems(bizId: string, order: Order, items: CatalogItem[]): Promise<void> {
     const t = this.tenant(bizId);
-    // Validar orden
+    // Validate order
     const currentOrder = t.orders.get(order.id);
     if (currentOrder && currentOrder.version !== order.version) throw new ConflictError(`order ${order.id}`);
-    // Validar items
+    // Validate items
     for (const item of items) {
       const current = t.items.get(item.id);
       if (current && current.version !== item.version) throw new ConflictError(`item ${item.id}`);
     }
-    // Escribir items
+    // Write items
     for (const item of items) t.items.set(item.id, copy({ ...item, version: item.version + 1 }));
-    // Escribir orden
+    // Write order
     t.orders.set(order.id, copy({ ...order, version: order.version + 1 }));
   }
 
@@ -149,7 +149,7 @@ export class MemoryStore implements Store {
 
   async activateBusiness(bizId: string, a: Activation): Promise<void> {
     const t = this.tenant(bizId);
-    // Validar todo antes de escribir nada, igual que la transacción de DynamoDB.
+    // Validate everything before writing anything, just like the DynamoDB transaction.
     if (t.business.version !== a.business.version) throw new ConflictError('business');
     for (const item of a.items) {
       const current = t.items.get(item.id);

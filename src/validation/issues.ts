@@ -1,6 +1,6 @@
 import type * as z from 'zod/v4';
 
-/** Pistas por nombre de campo: el mensaje de zod dice qué está mal, esto dice cómo arreglarlo. */
+/** Hints by field name: the zod message says what is wrong, this says how to fix it. */
 const HINTS: Record<string, string> = {
   priceCents: 'write the price in cents as a whole number, e.g. 4500 for $45.00',
   kind: 'use one of part, labor, product, ingredient, supply',
@@ -9,10 +9,10 @@ const HINTS: Record<string, string> = {
   taxRateBps: 'write the tax rate in basis points, e.g. 825 for 8.25%'
 };
 
-/** Los ids de campos (de una orden o de un activo) llevan guion bajo; los de ítems, guion. */
+/** Field ids (of an order or an asset) use underscores; item ids use dashes. */
 const FIELD_ID_HINT = 'use lowercase letters, digits and underscores, starting with a letter';
 
-/** Las llaves de `consumes` son ids de otros ítems. */
+/** The keys of `consumes` are ids of other items. */
 const CONSUMES_HINT = 'use the exact id of another item in the catalog (lowercase letters, digits and dashes)';
 
 function hintFor(path: readonly PropertyKey[]): string {
@@ -24,13 +24,13 @@ function hintFor(path: readonly PropertyKey[]): string {
   return hint ? ` — ${hint}` : '';
 }
 
-/** `a.b[2].c` a partir de la ruta de un error de zod. */
+/** `a.b[2].c` from the path of a zod error. */
 function issuePath(path: readonly PropertyKey[]): string {
   return path.reduce<string>((acc, key) =>
     typeof key === 'number' ? `${acc}[${key}]` : acc ? `${acc}.${String(key)}` : String(key), '');
 }
 
-/** Errores de zod como `ruta: mensaje — pista`, una línea por error. */
+/** Zod errors as `path: message — hint`, one line per error. */
 export function formatIssues(error: z.ZodError, prefix = ''): string[] {
   return error.issues.map(issue => {
     const at = issuePath(issue.path);

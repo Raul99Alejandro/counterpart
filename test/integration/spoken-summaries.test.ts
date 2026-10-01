@@ -24,9 +24,9 @@ async function connectTo(store: MemoryStore, bizId: string): Promise<Client> {
   return client;
 }
 
-describe('resúmenes hablados', () => {
+describe('spoken summaries', () => {
   for (const [bizId, snapshotTool] of [['shop', 'get_shop_snapshot'], ['bakery', 'get_bakery_snapshot']] as const) {
-    it(`${bizId}: el resumen y los reportes caben en dos oraciones`, async () => {
+    it(`${bizId}: the snapshot and the reports fit in two sentences`, async () => {
       const store = new MemoryStore();
       await seedAll(store, NOW);
       const client = await connectTo(store, bizId);
@@ -40,7 +40,7 @@ describe('resúmenes hablados', () => {
     });
   }
 
-  it('dice "1 sale", no "1 sales"', async () => {
+  it('says "1 sale", not "1 sales"', async () => {
     const store = new MemoryStore();
     const business: Business = {
       id: 'b1', name: 'Oak Street Auto', status: 'active', profileVersion: 1,

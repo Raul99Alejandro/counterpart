@@ -5,12 +5,12 @@ import {
 } from '@aws-sdk/client-dynamodb';
 import { bizKey } from './dynamo.js';
 
-/** BatchWriteItem acepta hasta 25 operaciones por llamada. */
+/** BatchWriteItem accepts up to 25 operations per call. */
 const BATCH_SIZE = 25;
 const MAX_ATTEMPTS = 8;
 const FIRST_RETRY_MS = 50;
 
-/** Crea la tabla única si no existe y espera a que esté activa. */
+/** Creates the single table if it does not exist and waits until it is active. */
 export async function ensureTable(client: DynamoDBClient, table: string): Promise<void> {
   try {
     await client.send(new CreateTableCommand({
@@ -31,7 +31,7 @@ export async function ensureTable(client: DynamoDBClient, table: string): Promis
   await waitUntilTableExists({ client, maxWaitTime: 60 }, { TableName: table });
 }
 
-/** Borra la tabla y espera a que desaparezca: en AWS el borrado es asíncrono y recrearla antes choca. */
+/** Deletes the table and waits until it is gone: on AWS deletion is asynchronous and recreating it earlier fails. */
 export async function dropTable(client: DynamoDBClient, table: string): Promise<void> {
   try {
     await client.send(new DeleteTableCommand({ TableName: table }));
@@ -42,8 +42,8 @@ export async function dropTable(client: DynamoDBClient, table: string): Promise<
 }
 
 /**
- * Borra todos los registros de los negocios indicados (su partición `BIZ#<id>`, metadatos incluidos).
- * La tabla y los tokens (`TOKEN#…`) quedan: así un reset en AWS no invalida los tokens emitidos.
+ * Deletes every record of the given businesses (their `BIZ#<id>` partition, metadata included).
+ * The table and the tokens (`TOKEN#…`) stay, so a reset on AWS does not invalidate issued tokens.
  */
 export async function clearBusinesses(client: DynamoDBClient, table: string, businessIds: string[]): Promise<void> {
   for (const businessId of businessIds) {
@@ -54,7 +54,7 @@ export async function clearBusinesses(client: DynamoDBClient, table: string, bus
   }
 }
 
-/** Llaves (`pk`, `sk`) de toda una partición, página por página. */
+/** Keys (`pk`, `sk`) of a whole partition, page by page. */
 async function partitionKeys(
   client: DynamoDBClient, table: string, pk: string
 ): Promise<Array<Record<string, AttributeValue>>> {
@@ -76,7 +76,7 @@ async function partitionKeys(
   return keys;
 }
 
-/** Un lote de borrados. Lo que DynamoDB no procese se reintenta con espera creciente, hasta un tope. */
+/** One batch of deletes. Whatever DynamoDB does not process is retried with growing backoff, up to a cap. */
 async function deleteBatch(
   client: DynamoDBClient, table: string, keys: Array<Record<string, AttributeValue>>
 ): Promise<void> {
@@ -88,8 +88,8 @@ async function deleteBatch(
     if (pending.length === 0) return;
   }
   throw new Error(
-    `quedaron ${pending.length} borrados sin procesar en la tabla "${table}" tras ${MAX_ATTEMPTS} intentos; `
-    + 'el reset quedó a medias, vuelve a correrlo'
+    `${pending.length} deletes were left unprocessed in table "${table}" after ${MAX_ATTEMPTS} attempts; `
+    + 'the reset is incomplete, run it again'
   );
 }
 

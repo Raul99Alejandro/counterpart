@@ -22,7 +22,7 @@ export interface SalesReport {
 
 const day = (p: Payment): string => p.paidOn;
 
-/** Etiqueta hablable de una orden: el activo si lo hay, si no el cliente. */
+/** Speakable label for an order: the asset if there is one, otherwise the customer. */
 export function refLabel(ref: OrderRef): string {
   return ref.asset?.spokenLabel ?? ref.customer.name;
 }
@@ -61,7 +61,7 @@ export function buildSalesReport(input: {
   const previous = payments.filter(p => inRange(p, range.prevFrom, range.prevTo));
   const totalCents = current.reduce((sum, p) => sum + p.amountCents, 0);
 
-  /** Serie diaria completa del rango, con ceros: así las dos series quedan alineadas día por día. */
+  /** Full daily series for the range, with zeros, so the two series line up day by day. */
   const series = (from: string, to: string, list: Payment[]) => {
     const sums = new Map<string, number>();
     for (const p of list) sums.set(day(p), (sums.get(day(p)) ?? 0) + p.amountCents);

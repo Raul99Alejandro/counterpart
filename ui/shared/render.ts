@@ -1,4 +1,4 @@
-// Render puro de las UIs: sin DOM, para poder probarlo en node.
+// Pure rendering for the UIs: no DOM, so it can be tested in node.
 
 export interface SnapshotView {
   todayRevenueCents: number;
@@ -16,7 +16,7 @@ export interface SalesReportView {
   topItems: Array<{ name: string; quantity: number; cents: number }>;
 }
 
-/** Formato visual: con separador de miles, a diferencia del texto hablado. */
+/** Visual format: with a thousands separator, unlike the spoken text. */
 export function money(cents: number): string {
   const sign = cents < 0 ? '-' : '';
   const abs = Math.abs(cents);
@@ -70,16 +70,16 @@ function dayLabel(date: string, count: number): string {
   return count <= 7 ? WEEKDAYS[d.getUTCDay()]! : String(d.getUTCDate());
 }
 
-/** Barras del periodo con la del periodo anterior detrás, en gris, y etiquetas de fecha. */
+/** Bars for the period with the previous period's bars behind, in gray, and date labels. */
 export function salesChartSvg(daily: Point[], prevDaily: Point[] = [], width = 560, height = 180): string {
   if (daily.length === 0 || [...daily, ...prevDaily].every(d => d.cents === 0)) {
     return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="No sales in this period">`
       + `<text x="${width / 2}" y="${height / 2}" text-anchor="middle" class="muted">No sales in this period</text></svg>`;
   }
-  const chart = height - 20; // espacio para las etiquetas
+  const chart = height - 20; // room for the labels
   const max = Math.max(1, ...daily.map(d => d.cents), ...prevDaily.map(d => d.cents));
   const gap = 4;
-  // Tope de 64 px: un periodo de un día (hoy, o "esta semana" un lunes) no llena todo el ancho.
+  // 64 px cap: a one-day period (today, or "this week" on a Monday) does not fill the whole width.
   const barWidth = Math.min(64, Math.max(2, Math.floor((width - gap * (daily.length - 1)) / daily.length)));
   const left = Math.round((width - (barWidth * daily.length + gap * (daily.length - 1))) / 2);
   const scale = (cents: number): number => Math.round((cents / max) * (chart - 10));

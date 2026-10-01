@@ -1,5 +1,5 @@
 export type BusinessStatus = 'blank' | 'active';
-/** `profileVersion` es la versión del PROFILE vigente; 0 mientras el negocio está en blanco (spec B2 §5.1). */
+/** `profileVersion` is the version of the current PROFILE; 0 while the business is blank (spec B2 §5.1). */
 export interface Business { id: string; name: string; status: BusinessStatus; profileVersion: number; timezone: string; taxRateBps: number; nextOrderNumber: number; version: number }
 export interface Customer { id: string; name: string; nameNormalized: string; phone?: string }
 export interface Asset { id: string; customerId: string; fields: Record<string, string | number>; spokenLabel: string }

@@ -16,7 +16,7 @@ function withToken(token: string): typeof fetch {
   };
 }
 
-/** Lee el resultado JSON-RPC de una respuesta en JSON o en SSE (primer evento data:). */
+/** Reads the JSON-RPC result from a JSON or SSE response (first data: event). */
 async function rpcResult(res: Response): Promise<Record<string, unknown> | undefined> {
   const text = await res.text();
   const json = res.headers.get('content-type')?.includes('text/event-stream')
@@ -26,7 +26,7 @@ async function rpcResult(res: Response): Promise<Record<string, unknown> | undef
   return (JSON.parse(json) as { result?: Record<string, unknown> }).result;
 }
 
-/** Chequeos de humo contra un /mcp desplegado (spec B2 §4.7). Nunca lanza: cada chequeo reporta. */
+/** Smoke checks against a deployed /mcp (spec B2 §4.7). Never throws: each check reports. */
 export async function runSmoke(opts: { url: string; token: string; otherToken?: string }): Promise<SmokeResult[]> {
   const results: SmokeResult[] = [];
   const check = async (name: string, fn: () => Promise<string>): Promise<void> => {
@@ -40,47 +40,47 @@ export async function runSmoke(opts: { url: string; token: string; otherToken?: 
     return res.status === 200 ? '200' : fail(`status ${res.status}`);
   });
 
-  await check('sin token → 401', async () => {
+  await check('no token → 401', async () => {
     const res = await fetch(opts.url, { method: 'POST', headers: HEADERS, body: JSON.stringify(INIT) });
     await res.body?.cancel();
     return res.status === 401 ? '401' : fail(`status ${res.status}`);
   });
 
-  await check('versión 2025-11-25', async () => {
+  await check('version 2025-11-25', async () => {
     const res = await withToken(opts.token)(opts.url, { method: 'POST', headers: HEADERS, body: JSON.stringify(INIT) });
     if (res.status !== 200) fail(`status ${res.status}`);
     const version = (await rpcResult(res))?.protocolVersion;
-    // Cerrar la sesión que abrió este initialize: cuenta contra el tope de sesiones del negocio.
+    // Close the session this initialize opened: it counts against the business's session cap.
     const sessionId = res.headers.get('mcp-session-id');
     if (sessionId) {
       const closed = await withToken(opts.token)(opts.url, { method: 'DELETE', headers: { ...HEADERS, 'mcp-session-id': sessionId } });
       await closed.body?.cancel();
     }
-    return version === '2025-11-25' ? String(version) : fail(`negoció ${String(version)}`);
+    return version === '2025-11-25' ? String(version) : fail(`negotiated ${String(version)}`);
   });
 
   const transport = new StreamableHTTPClientTransport(new URL(opts.url), { fetch: withToken(opts.token) });
   const client = new Client({ name: 'counterpart-smoke', version: '0.1.0' });
   let connected = false;
-  await check('nueve tools', async () => {
+  await check('nine tools', async () => {
     await client.connect(transport);
     connected = true;
     const { tools } = await client.listTools();
     return tools.length === 9 ? tools.map(t => t.name).join(', ') : fail(`${tools.length} tools`);
   });
 
-  await check('resumen hablable', async () => {
-    if (!connected) fail('sin sesión');
+  await check('speakable snapshot', async () => {
+    if (!connected) fail('no session');
     const { tools } = await client.listTools();
-    const snapshot = tools.find(t => t.name.endsWith('_snapshot')) ?? fail('no hay tool de resumen');
+    const snapshot = tools.find(t => t.name.endsWith('_snapshot')) ?? fail('no snapshot tool');
     const result = await client.callTool({ name: snapshot.name, arguments: {} });
     const text = (result.content as Array<{ text?: string }>)[0]?.text ?? '';
-    return text.length > 0 && !result.isError ? text : fail('respuesta vacía o con error');
+    return text.length > 0 && !result.isError ? text : fail('empty or error response');
   });
 
   if (opts.otherToken) {
-    await check('sesión ajena → 404', async () => {
-      const sessionId = transport.sessionId ?? fail('sin session id');
+    await check('another business session → 404', async () => {
+      const sessionId = transport.sessionId ?? fail('no session id');
       const res = await withToken(opts.otherToken!)(opts.url, {
         method: 'POST',
         headers: { ...HEADERS, 'mcp-session-id': sessionId },
@@ -91,7 +91,7 @@ export async function runSmoke(opts: { url: string; token: string; otherToken?: 
     });
   }
 
-  // close() solo corta en local; terminateSession() manda el DELETE que libera el cupo en el servidor.
+  // close() only disconnects locally; terminateSession() sends the DELETE that frees the slot on the server.
   if (connected) {
     await transport.terminateSession().catch(() => undefined);
     await client.close();

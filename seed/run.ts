@@ -12,18 +12,18 @@ import { mulberry32 } from './random.js';
 
 export const DEMO_TOKENS = { shop: 'demo-shop-token', bakery: 'demo-bakery-token' };
 
-/** Los negocios que siembra el demo. El reset remoto borra y vuelve a sembrar solo estos. */
+/** The businesses the demo seeds. The remote reset deletes and reseeds only these. */
 export const DEMO_BUSINESS_IDS: readonly string[] = ['shop', 'bakery'];
 
-/** Paquetes de negocio (spec B2 §5.1): una carpeta por negocio. */
+/** Business packages (spec B2 §5.1): one folder per business. */
 export const PACKAGES_DIR = path.join(import.meta.dirname, 'businesses');
 
-/** Token de la floristería en blanco que se siembra en memoria. */
+/** Token for the blank florist seeded in memory. */
 export const DEMO_BLANK_TOKEN = 'demo-florist-token';
 
 const HOUR_MS = 3600 * 1000;
 
-/** Siembra los negocios del demo desde sus paquetes. Determinista: la misma corrida produce los mismos datos. */
+/** Seeds the demo businesses from their packages. Deterministic: every run produces the same data. */
 export async function seedAll(
   store: Store, now: Date = new Date(), opts: { demoTokens?: boolean } = {}
 ): Promise<void> {
@@ -34,13 +34,13 @@ export async function seedAll(
   }
 }
 
-/** Solo en memoria: una floristería en blanco, como la del video, que se configura por voz con el asistente. */
+/** In memory only: a blank florist, like the one in the video, set up by voice with the assistant. */
 export async function seedLocalBlank(store: Store): Promise<void> {
   await newBlankBusiness(store, { id: 'florist', name: 'Petal and Stem' });
   await store.putToken(hashToken(DEMO_BLANK_TOKEN), 'florist');
 }
 
-/** Siembra un negocio activo: META, perfil, catálogo, clientes y órdenes del demo, y 30 días de historia. */
+/** Seeds an active business: META, profile, catalog, demo customers and orders, and 30 days of history. */
 export async function seedPackage(store: Store, pkg: BusinessPackage, now: Date): Promise<void> {
   const business: Business = {
     id: pkg.id, name: pkg.name, status: 'active', profileVersion: 1, timezone: pkg.timezone,
@@ -53,12 +53,12 @@ export async function seedPackage(store: Store, pkg: BusinessPackage, now: Date)
   await seedPayments(store, business, pkg.profile, pkg.items, now, pkg.demo.historySeed ?? seedFrom(pkg.id));
 }
 
-/** Semilla del PRNG a partir del id, para paquetes sin `historySeed`. */
+/** PRNG seed derived from the id, for packages without `historySeed`. */
 function seedFrom(id: string): number {
   return [...id].reduce((h, ch) => (Math.imul(h, 31) + ch.charCodeAt(0)) | 0, 7);
 }
 
-/** Clientes, activos y órdenes abiertas de `demo.yaml`. */
+/** Customers, assets and open orders from `demo.yaml`. */
 async function seedDemo(store: Store, biz: Business, pkg: BusinessPackage, now: Date): Promise<void> {
   let n = 0;
   for (const c of pkg.demo.customers) {
@@ -75,10 +75,10 @@ async function seedDemo(store: Store, biz: Business, pkg: BusinessPackage, now: 
     }
     if (!c.order) continue;
 
-    // Escalonadas hacia atrás: si todas nacieran "ahora", la ventana de idempotencia de open
-    // (§7.8) quedaría armada en cada arranque y el siguiente pedido se leería como repetido.
+    // Staggered into the past: if they were all created "now", the open idempotency window
+    // (§7.8) would be armed on every start and the next order would read as a repeat.
     const createdAt = new Date(now.getTime() - (c.order.hoursAgo ?? n * 5 + 2) * HOUR_MS);
-    // Vencimientos por día de la semana: "tres para el sábado" es cierto siembres el día que siembres.
+    // Due dates by weekday: "three for Saturday" holds whatever day you seed.
     const dueOn = c.order.due ? resolveDue(c.order.due, biz.timezone, now) ?? undefined : undefined;
     const order = recalcTotals({
       ...newOrder({
@@ -92,9 +92,9 @@ async function seedDemo(store: Store, biz: Business, pkg: BusinessPackage, now: 
 }
 
 /**
- * 30 días de cobros con más movimiento los viernes y sábados. Cada venta es una orden cerrada
- * de verdad: con partidas, con su cliente de mostrador y en la etapa de cierre del perfil, para
- * que el reporte de ventas tenga top de ítems y el histórico no se cuele entre lo abierto.
+ * 30 days of payments, busier on Fridays and Saturdays. Each sale is a real closed order:
+ * with lines, its walk-in customer and the profile's closed stage, so the sales report
+ * has top items and the history does not leak into the open orders.
  */
 async function seedPayments(
   store: Store, biz: Business, profile: Profile, catalog: CatalogItem[], now: Date, seed: number
@@ -107,14 +107,14 @@ async function seedPayments(
   const today = businessToday(biz.timezone, now);
 
   for (let dayOffset = 29; dayOffset >= 0; dayOffset--) {
-    // Fecha civil del negocio; el día de la semana sale de esa fecha, no del reloj UTC.
+    // The business's civil date; the weekday comes from that date, not the UTC clock.
     const civil = shiftDays(today, -dayOffset);
     const weekday = new Date(`${civil}T12:00:00Z`).getUTCDay();
-    if (weekday === 0) continue; // cerrado los domingos
+    if (weekday === 0) continue; // closed on Sundays
 
     const sales = weekday === 5 || weekday === 6 ? 4 + Math.floor(random() * 3) : 2 + Math.floor(random() * 3);
     for (let i = 0; i < sales; i++) {
-      // 14:05Z–19:05Z cae entre las 8 y las 14 h en Chicago: siempre dentro del mismo día civil.
+      // 14:05Z–19:05Z falls between 8:00 and 14:00 in Chicago: always within the same civil day.
       const paidAt = `${civil}T${String(14 + (i % 6)).padStart(2, '0')}:05:00.000Z`;
       const lines = pickItems(menu, 2 + Math.floor(random() * 2), random)
         .map(item => line(item, 1 + Math.floor(random() * 2)));
@@ -136,18 +136,18 @@ async function seedPayments(
   }
 }
 
-/** Lo que un cliente compra. Ingredientes e insumos son entradas del negocio, no partidas. */
+/** What a customer buys. Ingredients and supplies are business inputs, not lines. */
 function sellable(items: CatalogItem[]): CatalogItem[] {
   return items.filter(i => i.kind !== 'ingredient' && i.kind !== 'supply');
 }
 
 function itemById(items: CatalogItem[], id: string): CatalogItem {
   const found = items.find(i => i.id === id);
-  if (!found) throw new Error(`la semilla pide un ítem que no está en el catálogo: ${id}`);
+  if (!found) throw new Error(`the seed asks for an item that is not in the catalog: ${id}`);
   return found;
 }
 
-/** Partida al precio de catálogo. La semilla no descuenta stock: el inventario está curado a mano. */
+/** A line at catalog price. The seed does not deduct stock: the inventory is curated by hand. */
 function line(item: CatalogItem, quantity: number): OrderLine {
   return {
     itemId: item.id, name: item.name, quantity,
@@ -155,7 +155,7 @@ function line(item: CatalogItem, quantity: number): OrderLine {
   };
 }
 
-/** Toma `count` ítems distintos barajando con el PRNG, nunca con Math.random. */
+/** Picks `count` distinct items by shuffling with the PRNG, never with Math.random. */
 function pickItems(catalog: CatalogItem[], count: number, random: () => number): CatalogItem[] {
   const pool = [...catalog];
   for (let i = pool.length - 1; i > 0; i--) {

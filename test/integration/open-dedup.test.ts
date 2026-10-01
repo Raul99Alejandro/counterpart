@@ -26,8 +26,8 @@ const open = (client: Client) => client.callTool({
 });
 const orderId = (r: { structuredContent?: unknown }) => (r.structuredContent as { orderId: string }).orderId;
 
-describe('ventana de idempotencia de open (§7.8), en su borde', () => {
-  it('a 1 min 59 s es la misma orden', async () => {
+describe('open idempotency window (§7.8), at its edge', () => {
+  it('at 1 min 59 s it is the same order', async () => {
     const clock = { now: START };
     const client = await connect(clock);
     const first = orderId(await open(client));
@@ -35,7 +35,7 @@ describe('ventana de idempotencia de open (§7.8), en su borde', () => {
     expect(orderId(await open(client))).toBe(first);
   });
 
-  it('a 2 min 1 s es una orden nueva', async () => {
+  it('at 2 min 1 s it is a new order', async () => {
     const clock = { now: START };
     const client = await connect(clock);
     const first = orderId(await open(client));

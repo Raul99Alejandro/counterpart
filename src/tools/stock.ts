@@ -49,7 +49,7 @@ export function registerStock(server: McpServer, ctx: ToolContext): void {
   );
 }
 
-/** Por qué no hay nada que contar: depende del tipo de ítem, no del negocio. */
+/** Why there is nothing to count: it depends on the item kind, not the business. */
 function notCounted(item: CatalogItem): string {
   if (item.kind === 'labor') return `${item.name} is a service, so there is nothing to count.`;
   if (item.kind === 'product') return `${item.name} is made to order, so there is nothing to count.`;

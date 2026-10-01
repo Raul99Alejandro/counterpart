@@ -2,19 +2,19 @@ import { SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
 import { openStore, storeConfig } from '../src/store/from-env.js';
 import { issueToken, secretsManagerWriter } from './token.js';
 
-// Uso: npm run token -- <businessId> [--secret]   (con COUNTERPART_STORE=dynamo)
-// Sin --secret imprime el token en stdout. Con --secret lo guarda en Secrets Manager y no lo imprime.
+// Usage: npm run token -- <businessId> [--secret]   (with COUNTERPART_STORE=dynamo)
+// Without --secret it prints the token to stdout. With --secret it saves it in Secrets Manager and does not print it.
 const args = process.argv.slice(2);
 const bizId = args.find(a => !a.startsWith('--'));
 const toSecret = args.includes('--secret');
 if (!bizId) {
-  console.error('Uso: npm run token -- <businessId> [--secret]');
+  console.error('Usage: npm run token -- <businessId> [--secret]');
   process.exit(1);
 }
 
 const cfg = storeConfig(process.env);
 if (cfg.kind !== 'dynamo') {
-  console.error('Un token solo sirve si queda guardado: usa COUNTERPART_STORE=dynamo.');
+  console.error('A token is only useful if it is stored: use COUNTERPART_STORE=dynamo.');
   process.exit(1);
 }
 
@@ -24,11 +24,11 @@ const putSecret = toSecret ? secretsManagerWriter(new SecretsManagerClient({ reg
 try {
   const { token, secretName } = await issueToken({ store, putSecret }, bizId);
   if (secretName) {
-    console.error(`Token emitido para "${bizId}" y guardado en el secreto "${secretName}". En la tabla solo queda su hash.`);
+    console.error(`Token issued for "${bizId}" and saved in the secret "${secretName}". The table only keeps its hash.`);
   } else {
-    // El token va solo a stdout, para poder redirigirlo; el aviso va a stderr.
+    // Only the token goes to stdout, so it can be redirected; the notice goes to stderr.
     console.log(token);
-    console.error(`Token emitido para "${bizId}". Guárdalo ahora: en la tabla solo queda su hash.`);
+    console.error(`Token issued for "${bizId}". Save it now: the table only keeps its hash.`);
   }
 } catch (err) {
   console.error(err instanceof Error ? err.message : String(err));

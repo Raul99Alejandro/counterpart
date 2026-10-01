@@ -3,13 +3,13 @@ import type { Attempt, DraftGenerator } from '../../src/setup/generate.js';
 
 const FLORIST = new URL('../fixtures/setup/florist.json', import.meta.url);
 
-/** Borrador válido de una florería, tal como lo devolvería Nova. Copia fresca en cada llamada. */
+/** A valid flower shop draft, just as Nova would return it. A fresh copy on every call. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function floristDraft(): any {
   return JSON.parse(fs.readFileSync(FLORIST, 'utf8'));
 }
 
-/** Generador de prueba: devuelve (o lanza) las respuestas en orden, repite la última, y guarda cada intento. */
+/** Test generator: returns (or throws) the replies in order, repeats the last one, and records every attempt. */
 export function scriptedGenerator(...replies: Array<unknown | Error>): DraftGenerator & { attempts: Attempt[] } {
   const attempts: Attempt[] = [];
   const queue = [...replies];

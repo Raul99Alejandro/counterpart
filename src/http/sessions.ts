@@ -7,7 +7,7 @@ export interface SessionEntry {
   transport: NodeStreamableHTTPServerTransport;
   server: McpServer;
   businessId: string;
-  /** Estado del negocio para el que se registraron las tools de esta sesión. La activación lo actualiza. */
+  /** Business status this session's tools were registered for. Activation updates it. */
   state: { status: BusinessStatus };
   lastSeen: number;
 }
@@ -15,7 +15,7 @@ export interface SessionEntry {
 export class Sessions {
   private entries = new Map<string, SessionEntry>();
 
-  /** Devuelve la sesión solo si pertenece al negocio del token. */
+  /** Returns the session only if it belongs to the token's business. */
   get(sessionId: string, businessId: string): SessionEntry | null {
     const entry = this.entries.get(sessionId);
     if (!entry || entry.businessId !== businessId) return null;
@@ -26,7 +26,7 @@ export class Sessions {
     this.entries.set(sessionId, entry);
   }
 
-  /** Sesiones abiertas del negocio: el tope por token se compara contra esto. */
+  /** Open sessions for the business: the per-token cap is checked against this. */
   countFor(businessId: string): number {
     let n = 0;
     for (const entry of this.entries.values()) if (entry.businessId === businessId) n += 1;
@@ -37,9 +37,9 @@ export class Sessions {
     const entry = this.entries.get(sessionId);
     if (!entry) return;
     this.entries.delete(sessionId);
-    // try/catch: en pruebas, transport y server pueden ser dobles sin close() real.
-    try { entry.transport.close().catch(err => closeFailed(sessionId, err)); } catch { /* doble de prueba */ }
-    try { entry.server.close().catch(err => closeFailed(sessionId, err)); } catch { /* doble de prueba */ }
+    // try/catch: in tests, transport and server may be doubles without a real close().
+    try { entry.transport.close().catch(err => closeFailed(sessionId, err)); } catch { /* test double */ }
+    try { entry.server.close().catch(err => closeFailed(sessionId, err)); } catch { /* test double */ }
   }
 
   touch(sessionId: string, now: number): void {

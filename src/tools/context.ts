@@ -36,7 +36,7 @@ export function ok(text: string, structuredContent: unknown): ToolResult {
   return { content: [{ type: 'text', text }], structuredContent };
 }
 
-/** Error de dominio: solo texto. El SDK no valida outputSchema cuando isError es true. */
+/** Domain error: text only. The SDK does not validate outputSchema when isError is true. */
 export function fail(text: string): ToolResult {
   return { content: [{ type: 'text', text }], isError: true };
 }
@@ -44,10 +44,10 @@ export function fail(text: string): ToolResult {
 const INTERNAL_TEXT = 'Something went wrong on my end. Nothing was changed.';
 
 /**
- * Frontera de errores (§7.7, `INTERNAL`). Cualquier excepción que no sea un resultado de negocio
- * se registra en JSON con un identificador y se contesta con una sola frase. Sin esto, el SDK
- * convierte la excepción en el texto de la respuesta y el asistente lee el error en voz alta.
- * Los errores de negocio, `ConflictError` incluido, los resuelve cada tool antes de llegar aquí.
+ * Error boundary (§7.7, `INTERNAL`). Any exception that is not a business result is
+ * logged as JSON with an identifier and answered with a single phrase. Without this, the SDK
+ * turns the exception into the response text and the assistant reads the error out loud.
+ * Business errors, `ConflictError` included, are handled by each tool before reaching here.
  */
 export function guard<A extends unknown[]>(
   handler: (...args: A) => Promise<ToolResult>
@@ -69,7 +69,7 @@ export function guard<A extends unknown[]>(
   };
 }
 
-/** Une órdenes con su cliente y su activo. */
+/** Joins orders with their customer and asset. */
 export async function loadRefs(ctx: ToolContext): Promise<OrderRef[]> {
   const [orders, customers, assets] = await Promise.all([
     ctx.store.listOrders(ctx.business.id),

@@ -30,21 +30,21 @@ for (const file of ['auto-repair.yaml', 'bakery.yaml']) {
   const profile = loadTemplate(golden.profile);
   const keyByName = new Map(Object.entries(toolSpecs(profile)).map(([key, spec]) => [spec.name, key as ToolKey]));
 
-  describe(`frases de oro: ${golden.profile}`, () => {
-    it('tiene al menos 20 frases y cubre las nueve tools', () => {
+  describe(`golden phrases: ${golden.profile}`, () => {
+    it('has at least 20 phrases and covers all nine tools', () => {
       expect(golden.phrases.length).toBeGreaterThanOrEqual(20);
       expect(new Set(golden.phrases.map(p => p.tool))).toEqual(new Set(keyByName.keys()));
     });
 
     for (const phrase of golden.phrases) {
-      it(`"${phrase.say}" apunta a una tool real con argumentos válidos`, () => {
+      it(`"${phrase.say}" points to a real tool with valid arguments`, () => {
         const key = keyByName.get(phrase.tool);
-        expect(key, `tool desconocida: ${phrase.tool}`).toBeDefined();
+        expect(key, `unknown tool: ${phrase.tool}`).toBeDefined();
         const schema = inputFor(profile, key!);
         for (const arg of Object.keys(phrase.args)) {
-          expect(Object.keys(schema.shape), `argumento desconocido: ${arg}`).toContain(arg);
+          expect(Object.keys(schema.shape), `unknown argument: ${arg}`).toContain(arg);
         }
-        expect(schema.safeParse(phrase.args).success, 'argumentos inválidos o incompletos').toBe(true);
+        expect(schema.safeParse(phrase.args).success, 'invalid or incomplete arguments').toBe(true);
       });
     }
   });

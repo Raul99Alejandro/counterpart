@@ -5,7 +5,7 @@ export const ITEM_KINDS = ['part', 'labor', 'product', 'ingredient', 'supply'] a
 
 export const slug = z.string().regex(/^[a-z0-9][a-z0-9-]*$/, 'use lowercase letters, digits and dashes');
 
-/** Un ítem tal como lo escribe una persona (paquete) o Nova (asistente). Una sola fuente de verdad (spec B2 §5.3). */
+/** An item as written by a person (package) or by Nova (assistant). A single source of truth (spec B2 §5.3). */
 export const catalogItemSchema = z.object({
   id: slug,
   name: z.string().min(1),
@@ -30,7 +30,7 @@ export function toCatalogItems(items: CatalogItemInput[]): CatalogItem[] {
   return items.map(item => ({ ...item, version: 1 }));
 }
 
-/** Reglas entre ítems que un esquema no expresa: ids únicos, `consumes` hacia ítems existentes y sin ciclos. */
+/** Cross-item rules a schema cannot express: unique ids, `consumes` pointing to existing items, and no cycles. */
 export function catalogProblems(items: Array<Pick<CatalogItem, 'id' | 'consumes'>>, where: string): string[] {
   const problems: string[] = [];
   const firstIndex = new Map<string, number>();

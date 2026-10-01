@@ -15,12 +15,12 @@ async function storeWithShop(): Promise<MemoryStore> {
   return store;
 }
 
-describe('emitir tokens', () => {
-  it('nombra el secreto por negocio', () => {
+describe('issuing tokens', () => {
+  it('names the secret per business', () => {
     expect(secretNameFor('shop')).toBe('counterpart/shop/token');
   });
 
-  it('guarda solo el hash y, con escritor de secretos, el valor en el secreto del negocio', async () => {
+  it('stores only the hash and, with a secret writer, the value in the business secret', async () => {
     const store = await storeWithShop();
     const written: Array<[string, string]> = [];
     const result = await issueToken({
@@ -32,7 +32,7 @@ describe('emitir tokens', () => {
     expect((await store.getBusinessByTokenHash(hashToken('tok-1')))?.id).toBe('shop');
   });
 
-  it('volver a emitir actualiza el mismo secreto y el token anterior sigue siendo válido', async () => {
+  it('issuing again updates the same secret and the previous token stays valid', async () => {
     const store = await storeWithShop();
     const values = new Map<string, string>();
     const putSecret = async (name: string, value: string) => { values.set(name, value); };
@@ -43,12 +43,12 @@ describe('emitir tokens', () => {
     expect((await store.getBusinessByTokenHash(hashToken('tok-1')))?.id).toBe('shop');
   });
 
-  it('sin escritor de secretos no devuelve nombre de secreto', async () => {
+  it('without a secret writer it returns no secret name', async () => {
     const store = await storeWithShop();
     expect(await issueToken({ store, random: () => 'tok-1' }, 'shop')).toEqual({ token: 'tok-1' });
   });
 
-  it('rechaza un negocio inexistente sin escribir nada', async () => {
+  it('rejects a business that does not exist without writing anything', async () => {
     const store = new MemoryStore();
     let wrote = false;
     await expect(issueToken({ store, putSecret: async () => { wrote = true; } }, 'nope')).rejects.toThrow(/nope/);

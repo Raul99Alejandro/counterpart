@@ -1,9 +1,9 @@
-# Entorno local completo: Counterpart contra DynamoDB Local.
+# Full local environment: Counterpart against DynamoDB Local.
 services:
   dynamodb:
     image: amazon/dynamodb-local
-    # -sharedDb: una sola base para cualquier credencial y región (la siembra y el servidor ven
-    # las mismas tablas). -inMemory: nada persiste; al reiniciar el contenedor hay que resembrar.
+    # -sharedDb: a single database for any credentials and region (the seed and the server see
+    # the same tables). -inMemory: nothing persists; after restarting the container you must reseed.
     command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
     ports:
       - "8000:8000"
@@ -20,5 +20,5 @@ services:
       COUNTERPART_ALLOWED_HOSTS: localhost,127.0.0.1
     depends_on:
       - dynamodb
-    # Si arranca antes que DynamoDB Local, crear la tabla falla: se reintenta.
+    # If it starts before DynamoDB Local, creating the table fails: it retries.
     restart: on-failure

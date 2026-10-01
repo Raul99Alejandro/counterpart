@@ -3,17 +3,17 @@ import * as z from 'zod/v4';
 export const TOOL_KEYS = ['snapshot', 'find', 'open', 'move', 'addLine', 'stock', 'reorder', 'closeOut', 'salesReport'] as const;
 export type ToolKey = (typeof TOOL_KEYS)[number];
 
-// Validador para nombres de tools que cumple con la expresión regular
-const toolName = z.string().regex(/^[a-z][a-z0-9_]{2,63}$/, 'nombre de tool inválido');
+// Validator for tool names that match the regular expression
+const toolName = z.string().regex(/^[a-z][a-z0-9_]{2,63}$/, 'invalid tool name');
 
-// Definición de un campo dentro de un activo o en orderFields
+// Definition of a field inside an asset or in orderFields
 const fieldDef = z.object({
   id: z.string().regex(/^[a-z][a-z0-9_]*$/),
   type: z.enum(['string', 'integer']),
   required: z.boolean()
 });
 
-// Esquema completo del perfil de negocio
+// Full business profile schema
 export const profileSchema = z.object({
   id: z.string().min(1),
   nouns: z.object({

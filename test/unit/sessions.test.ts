@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Sessions, type SessionEntry } from '../../src/http/sessions.js';
 
-// Dobles mínimos: countFor solo mira businessId.
+// Minimal doubles: countFor only looks at businessId.
 const entry = (businessId: string): SessionEntry => ({
   businessId, state: { status: 'active' }, lastSeen: 0,
   transport: { close: async () => {} } as unknown as SessionEntry['transport'],
@@ -9,7 +9,7 @@ const entry = (businessId: string): SessionEntry => ({
 });
 
 describe('Sessions.countFor', () => {
-  it('cuenta solo las sesiones del negocio', () => {
+  it('counts only the business sessions', () => {
     const s = new Sessions();
     s.set('a', entry('b1'));
     s.set('b', entry('b1'));
@@ -19,7 +19,7 @@ describe('Sessions.countFor', () => {
     expect(s.countFor('b3')).toBe(0);
   });
 
-  it('una sesión cerrada o barrida deja de contar', () => {
+  it('a closed or swept session stops counting', () => {
     const s = new Sessions();
     s.set('a', entry('b1'));
     s.set('b', entry('b1'));

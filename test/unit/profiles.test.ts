@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { loadTemplate, parseProfile } from '../../src/profiles/load.js';
 
-describe('perfiles', () => {
-  it('carga el perfil del taller', () => {
+describe('profiles', () => {
+  it('loads the auto repair shop profile', () => {
     const p = loadTemplate('auto-repair');
     expect(p.toolNames.open).toBe('open_work_order');
     expect(p.stages.map(s => s.id)).toContain('waiting_on_parts');
@@ -11,7 +11,7 @@ describe('perfiles', () => {
     expect(p.due).toBe('optional');
   });
 
-  it('carga el perfil de la pastelería', () => {
+  it('loads the bakery profile', () => {
     const p = loadTemplate('bakery');
     expect(p.toolNames.open).toBe('take_cake_order');
     expect(p.asset).toBeNull();
@@ -19,23 +19,23 @@ describe('perfiles', () => {
     expect(p.due).toBe('required');
   });
 
-  it('rechaza un closedStage que no está en stages', () => {
+  it('rejects a closedStage that is not in stages', () => {
     expect(() => parseProfile({ ...minimal(), closedStage: 'ghost' })).toThrow(/closedStage/);
   });
 
-  it('rechaza nombres de tool duplicados', () => {
+  it('rejects duplicate tool names', () => {
     const bad = minimal();
     bad.toolNames.find = bad.toolNames.open;
     expect(() => parseProfile(bad)).toThrow(/used twice/);
   });
 
-  it('rechaza un spokenAs con un campo inexistente', () => {
+  it('rejects a spokenAs with a field that does not exist', () => {
     const bad = minimal();
     bad.asset = { noun: 'vehicle', fields: [{ id: 'make', type: 'string', required: true }], spokenAs: '{year} {make}' };
     expect(() => parseProfile(bad)).toThrow(/spokenAs/);
   });
 
-  it('rechaza un orderFields con un id reservado por las tools', () => {
+  it('rejects an orderFields entry with an id reserved by the tools', () => {
     const bad = minimal();
     bad.orderFields = [{ id: 'due', type: 'string', required: true }];
     expect(() => parseProfile(bad)).toThrow(/reserved/);

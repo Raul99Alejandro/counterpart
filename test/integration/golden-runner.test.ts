@@ -29,7 +29,7 @@ beforeAll(async () => {
 
 afterAll(async () => { await client.close(); server.close(); });
 
-/** Un modelo de guion: por cada frase, primero una llamada a tool y luego una respuesta de texto. */
+/** A scripted model: for each phrase, first a tool call and then a text reply. */
 function scripted(calls: Array<{ name: string; input: Record<string, unknown> } | null>): { model: ConverseFn; seen: string[][] } {
   const seen: string[][] = [];
   let phrase = -1;
@@ -46,8 +46,8 @@ function scripted(calls: Array<{ name: string; input: Record<string, unknown> } 
   return { model, seen };
 }
 
-describe('runner de frases de oro', () => {
-  it('ofrece las tools del servidor, ejecuta las llamadas y cuenta aciertos por la primera tool', async () => {
+describe('golden phrase runner', () => {
+  it('offers the server tools, runs the calls and counts hits by the first tool', async () => {
     const { model, seen } = scripted([
       { name: 'find_work_orders', input: { stage: 'waiting_on_parts' } },
       { name: 'get_shop_snapshot', input: {} },
@@ -68,11 +68,11 @@ describe('runner de frases de oro', () => {
     expect(report.results.map(r => [r.got, r.pass])).toEqual([
       ['find_work_orders', true], ['get_shop_snapshot', false], [null, false]
     ]);
-    // Sin tool, el informe guarda lo que respondió el modelo, para diagnosticar.
+    // Without a tool, the report keeps what the model replied, for diagnosis.
     expect(report.results[2]!.reply).toBe('I am not sure.');
   });
 
-  it('compara los argumentos ya canonizados: "the Civic" y "work order 41" son la misma orden', async () => {
+  it('compares the canonicalized arguments: "the Civic" and "work order 41" are the same order', async () => {
     const { model } = scripted([{ name: 'move_work_order_stage', input: { order: 'work order 41', stage: 'in_bay' } }]);
     const canonicalize = async (args: Record<string, unknown>) =>
       ({ ...args, ...(args.order === 'the Civic' || args.order === 'work order 41' ? { order: 'order #civic' } : {}) });

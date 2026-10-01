@@ -16,7 +16,7 @@ export type SetupOutcome = { ok: true; setup: ValidSetup } | { ok: false; spoken
 
 export const SETUP_TOOL = 'save_business_setup';
 
-/** El modelo contestó sin llamar a la herramienta: es un intento fallido y se repara. */
+/** The model replied without calling the tool: it counts as a failed attempt and gets repaired. */
 export class NoSetupInReply extends Error {
   constructor() {
     super(`no ${SETUP_TOOL} call in the reply`);
@@ -24,20 +24,20 @@ export class NoSetupInReply extends Error {
   }
 }
 
-/** Bedrock no respondió (permisos, throttling, modelo): pedir más detalle no lo arregla. */
+/** Bedrock did not respond (permissions, throttling, model): asking for more detail will not fix it. */
 export const UNAVAILABLE_TEXT = "I couldn't reach my drafting service just now. Try again in a minute.";
 
-/** Esquema JSON de la herramienta, derivado de los esquemas zod: una sola fuente de verdad (spec B2 §5.3). */
+/** The tool's JSON schema, derived from the zod schemas: a single source of truth (spec B2 §5.3). */
 export const SETUP_INPUT_SCHEMA: Record<string, unknown> = (() => {
   const { $schema: _ignored, ...schema } = z.toJSONSchema(draftSchema, { io: 'input' }) as Record<string, unknown>;
   return schema;
 })();
 
-/** Un intento y, si falla la validación, una reparación con la lista exacta de errores. */
+/** One attempt and, if validation fails, one repair with the exact list of errors. */
 export async function generateSetup(description: string, generate: DraftGenerator): Promise<SetupOutcome> {
   const first = await attempt(generate, { description });
   if (first.check.ok) return { ok: true, setup: first.check.setup };
-  // El servicio falló: una reparación sería otra llamada fallida.
+  // The service failed: a repair would just be another failed call.
   if (first.unavailable) return { ok: false, errors: first.check.errors, spoken: UNAVAILABLE_TEXT };
   const second = await attempt(generate, { description, previous: { draft: first.draft, errors: first.check.errors } });
   if (second.check.ok) return { ok: true, setup: second.check.setup };
@@ -100,7 +100,7 @@ export function novaDraftGenerator(converse: ConverseFn): DraftGenerator {
           toolSpec: {
             name: SETUP_TOOL,
             description: 'Save the setup for this business.',
-            // El SDK tipa el documento JSON con su propio tipo; el esquema es JSON puro.
+            // The SDK types the JSON document with its own type; the schema is plain JSON.
             inputSchema: { json: SETUP_INPUT_SCHEMA } as unknown as ToolInputSchema
           }
         }],
@@ -113,7 +113,7 @@ export function novaDraftGenerator(converse: ConverseFn): DraftGenerator {
   };
 }
 
-/** Converse contra Bedrock. Solo `src/setup/` llama a un modelo (spec B2 §3). */
+/** Converse against Bedrock. Only `src/setup/` calls a model (spec B2 §3). */
 export function bedrockConverse(client: BedrockRuntimeClient, modelId: string): ConverseFn {
   return async input => {
     const out = await client.send(new ConverseCommand({
@@ -125,7 +125,7 @@ export function bedrockConverse(client: BedrockRuntimeClient, modelId: string): 
   };
 }
 
-/** Default sin modelo configurado: el borrador queda fallido con la frase genérica. */
+/** Default when no model is configured: the draft fails with the generic phrase. */
 export const unavailableGenerator: DraftGenerator = async () => {
   throw new Error('setup generator not configured');
 };

@@ -20,7 +20,7 @@ const bakery: Business = {
 
 let idCounter = 0;
 
-/** Conecta un cliente MCP a un servidor con las tools del contexto dado. */
+/** Connects an MCP client to a server with the tools of the given context. */
 async function connect(ctx: ToolContext): Promise<Client> {
   const server = new McpServer({ name: 'counterpart', version: '0.1.0' });
   registerTools(server, ctx);
@@ -32,7 +32,7 @@ async function connect(ctx: ToolContext): Promise<Client> {
   return client;
 }
 
-/** Pastelería: perfil sin activo, así que la clave de duplicados depende de los campos. */
+/** Bakery: profile with no asset, so the duplicate key depends on the fields. */
 async function bakeryFixture(): Promise<{ client: Client; store: MemoryStore }> {
   idCounter = 0;
   const store = new MemoryStore();
@@ -75,8 +75,8 @@ async function fixture(store: MemoryStore = new MemoryStore()): Promise<{ client
 
 const text = (r: { content: unknown[] }): string => (r.content[0] as { text: string }).text;
 
-describe('tools de escritura', () => {
-  it('abre una orden y crea cliente y vehículo nuevos', async () => {
+describe('write tools', () => {
+  it('opens an order and creates a new customer and vehicle', async () => {
     const { client, store } = await fixture();
     const r = await client.callTool({
       name: 'open_work_order',
@@ -88,15 +88,15 @@ describe('tools de escritura', () => {
     expect((await store.listCustomers('b1')).map(c => c.name)).toContain('Sam Reyes');
   });
 
-  it('no duplica si la misma orden se abre dos veces seguidas', async () => {
+  it('does not duplicate when the same order is opened twice in a row', async () => {
     const { client, store } = await fixture();
     const args = { customerName: 'Sam Reyes', asset: { year: 2020, make: 'Ford', model: 'F-150' } };
     await client.callTool({ name: 'open_work_order', arguments: args });
     await client.callTool({ name: 'open_work_order', arguments: args });
-    expect(await store.listOrders('b1')).toHaveLength(2); // la original más una sola nueva
+    expect(await store.listOrders('b1')).toHaveLength(2); // the original plus a single new one
   });
 
-  it('no confunde dos pedidos distintos del mismo cliente dentro de la ventana', async () => {
+  it('does not mix up two different orders from the same customer within the window', async () => {
     const { client, store } = await bakeryFixture();
     const vanilla = { customerName: 'Grace Kim', flavor: 'vanilla', size: '8-inch', due: 'tomorrow' };
     const chocolate = { customerName: 'Grace Kim', flavor: 'chocolate', size: '10-inch', due: 'saturday' };
@@ -112,12 +112,12 @@ describe('tools de escritura', () => {
       .not.toBe((first.structuredContent as { number: number }).number);
     expect((second.structuredContent as { dueOn: string }).dueOn).toBe('2026-09-19');
 
-    // Repetir el primero sí se deduplica: la clave incluye campos y fecha, no los ignora.
+    // Repeating the first one is deduplicated: the key includes fields and date, it does not ignore them.
     await client.callTool({ name: 'take_cake_order', arguments: vanilla });
     expect(await store.listOrders('b2')).toHaveLength(2);
   });
 
-  it('agrega una partida, descuenta stock y marca backorder', async () => {
+  it('adds a line item, deducts stock and marks a backorder', async () => {
     const { client, store } = await fixture();
     const r = await client.callTool({
       name: 'add_parts_or_labor', arguments: { order: 'the Civic', item: 'brake pads', quantity: 2 }
@@ -129,7 +129,7 @@ describe('tools de escritura', () => {
     expect((await store.listItems('b1'))[0]!.onHand).toBe(0);
   });
 
-  it('cambia de etapa y rechaza mover a la etapa de cierre', async () => {
+  it('changes stage and refuses to move to the closing stage', async () => {
     const { client } = await fixture();
     const good = await client.callTool({ name: 'move_work_order_stage', arguments: { order: 'order 41', stage: 'in_bay' } });
     expect(text(good)).toContain('in the bay');
@@ -139,7 +139,7 @@ describe('tools de escritura', () => {
     expect(text(bad)).toContain('close it out');
   });
 
-  it('cierra cobrando y es idempotente al repetir', async () => {
+  it('closes out with payment and is idempotent on repeat', async () => {
     const { client, store } = await fixture();
     const first = await client.callTool({ name: 'close_out_work_order', arguments: { order: 'the Civic', paymentMethod: 'card' } });
     expect(first.isError).toBeFalsy();
@@ -148,14 +148,14 @@ describe('tools de escritura', () => {
     expect(await store.listPayments('b1', '2026-09-01', '2026-09-30')).toHaveLength(1);
   });
 
-  it('pide aclaración cuando la referencia no existe', async () => {
+  it('asks for clarification when the reference does not exist', async () => {
     const { client } = await fixture();
     const r = await client.callTool({ name: 'move_work_order_stage', arguments: { order: 'the Accord', stage: 'in_bay' } });
     expect(r.isError).toBe(true);
     expect(text(r)).toContain("I couldn't find");
   });
 
-  it('reordena lo bajo y omite lo que ya está pedido', async () => {
+  it('reorders what is low and skips what is already on order', async () => {
     const { client, store } = await fixture();
     const first = await client.callTool({ name: 'reorder_parts', arguments: {} });
     expect(text(first)).toContain('Front brake pads');
@@ -166,7 +166,7 @@ describe('tools de escritura', () => {
     expect(await store.listOpenPurchaseOrders('b1')).toHaveLength(1);
   });
 
-  it('convierte una excepción inesperada en la frase de INTERNAL, sin filtrar el error crudo', async () => {
+  it('turns an unexpected exception into the INTERNAL phrase, without leaking the raw error', async () => {
     class BrokenStore extends MemoryStore {
       override async listItems(): Promise<never> {
         throw new TypeError('cannot read properties of undefined (reading x)');
@@ -182,7 +182,7 @@ describe('tools de escritura', () => {
       expect(text(r)).not.toContain('cannot read properties');
       expect(r.structuredContent).toBeUndefined();
 
-      // El detalle va al log en JSON, con un identificador para poder encontrarlo.
+      // The detail goes to the JSON log, with an identifier so it can be found.
       const internal = cap.lines().filter(l => l.msg === 'internal');
       expect(internal).toHaveLength(1);
       const logged = internal[0] as { code: string; requestId: string; error: string };
@@ -194,7 +194,7 @@ describe('tools de escritura', () => {
     }
   });
 
-  it('convierte un ConflictError de la store en el mensaje hablado, no en el texto interno', async () => {
+  it('turns a store ConflictError into the spoken message, not the internal text', async () => {
     class ConflictingStore extends MemoryStore {
       override async commitOrderWithItems(): Promise<void> {
         throw new ConflictError('order o1');
@@ -206,9 +206,9 @@ describe('tools de escritura', () => {
     });
     expect(r.isError).toBe(true);
     expect(text(r)).toContain('Please try again');
-    expect(text(r)).not.toContain('conflicto');
+    expect(text(r)).not.toContain('version conflict');
   });
-  it('repetir un cierre informa el método de pago que quedó registrado', async () => {
+  it('repeating a close-out reports the payment method that was recorded', async () => {
     const { client } = await fixture();
     await client.callTool({ name: 'close_out_work_order', arguments: { order: 'the Civic', paymentMethod: 'card' } });
     const again = await client.callTool({ name: 'close_out_work_order', arguments: { order: 'the Civic', paymentMethod: 'cash' } });

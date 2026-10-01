@@ -1,6 +1,6 @@
-# Frases de oro: cada una con la tool y los argumentos que debería elegir el modelo.
-# Se corren en orden, en una sola sesión, contra una semilla recién hecha:
-# algunas dependen de las anteriores (por ejemplo, "Sam's truck" es la orden que abre la frase de Sam Reyes).
+# Golden phrases: each one with the tool and arguments the model should pick.
+# They run in order, in a single session, against a freshly made seed:
+# some depend on earlier ones (for example, "Sam's truck" is the order the Sam Reyes phrase opens).
 profile: auto-repair
 phrases:
   - say: "How's the shop looking today?"

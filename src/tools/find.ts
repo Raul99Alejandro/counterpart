@@ -34,7 +34,7 @@ export function registerFind(server: McpServer, ctx: ToolContext): void {
         refs = dueOn ? refs.filter(r => r.order.dueOn === dueOn) : [];
       }
       if (args.query) {
-        // Mismo criterio que las referencias habladas: mismo texto buscado, mismos sustantivos ignorados.
+        // Same rule as spoken references: same searched text, same ignored nouns.
         const tokens = normalizeQuery(args.query, ctx.profile);
         refs = tokens.length === 0 ? [] : refs.filter(r => scoreOrder(tokens, r) >= MATCH_THRESHOLD);
       }

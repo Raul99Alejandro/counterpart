@@ -31,8 +31,8 @@ export function registerSnapshot(server: McpServer, ctx: ToolContext): void {
     },
     guard(async () => {
       const today = businessToday(ctx.business.timezone, ctx.now());
-      // En fechas civiles, no restando 7×24 h al instante: la semana en que termina el horario de
-      // verano, esa resta cae en otro día y el rango pierde el mismo día de la semana pasada.
+      // In calendar dates, not by subtracting 7×24 h from the instant: in the week daylight saving
+      // time ends, that subtraction lands on another day and the range misses the same day last week.
       const weekAgo = shiftDays(today, -7);
       const [refs, items, payments] = await Promise.all([
         loadRefs(ctx),

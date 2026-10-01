@@ -3,17 +3,17 @@ import type { Profile } from '../profiles/schema.js';
 
 export class ConflictError extends Error {
   constructor(what: string) {
-    super(`conflicto de versión en ${what}`);
+    super(`version conflict on ${what}`);
     this.name = 'ConflictError';
   }
 }
 
-/** Perfil guardado de un negocio (spec B2 §5.1). `version` la elige quien escribe; META.profileVersion la repite. */
+/** A business's saved profile (spec B2 §5.1). The writer picks `version`; META.profileVersion repeats it. */
 export interface ProfileRecord { profile: Profile; source: string; version: number }
 
 export type DraftState = 'generating' | 'ready' | 'failed';
 
-/** Borrador del asistente: uno por negocio. `expiresAt` va en segundos epoch, que es lo que lee el TTL de DynamoDB. */
+/** Assistant draft: one per business. `expiresAt` is in epoch seconds, which is what DynamoDB TTL reads. */
 export interface Draft {
   description: string;
   state: DraftState;
@@ -24,19 +24,19 @@ export interface Draft {
   expiresAt: number;
 }
 
-/** Lo que escribe la activación de un negocio, todo o nada. */
+/** What activating a business writes, all or nothing. */
 export interface Activation { business: Business; profile: ProfileRecord; items: CatalogItem[] }
 
 /**
- * Lecturas de un negocio que no existe devuelven vacío o null en los dos stores. Las escrituras suponen
- * un negocio existente: quien llama siempre lo resolvió antes por su token.
+ * Reads for a business that does not exist return empty or null in both stores. Writes assume
+ * an existing business: the caller always resolved it first from its token.
  */
 export interface Store {
   putBusiness(b: Business): Promise<void>;
   getBusiness(bizId: string): Promise<Business | null>;
   putToken(tokenHash: string, bizId: string, createdAt?: string): Promise<void>;
   getBusinessByTokenHash(tokenHash: string): Promise<Business | null>;
-  /** Consume el número antes de escribir la orden: si esa escritura falla, el número se salta. Aceptado (carryover §5). */
+  /** Takes the number before writing the order: if that write fails, the number is skipped. Accepted (carryover §5). */
   takeOrderNumber(bizId: string): Promise<number>;
   listCustomers(bizId: string): Promise<Customer[]>;
   putCustomer(bizId: string, c: Customer): Promise<void>;
@@ -57,6 +57,6 @@ export interface Store {
   getDraft(bizId: string): Promise<Draft | null>;
   putDraft(bizId: string, draft: Draft): Promise<void>;
   deleteDraft(bizId: string): Promise<void>;
-  /** META con la regla de versiones, PROFILE, ítems con la regla de versiones, y borra DRAFT: todo o nada. */
+  /** META with the versioning rule, PROFILE, items with the versioning rule, and deletes DRAFT: all or nothing. */
   activateBusiness(bizId: string, activation: Activation): Promise<void>;
 }

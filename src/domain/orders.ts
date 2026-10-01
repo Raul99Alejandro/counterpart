@@ -2,7 +2,7 @@ import type { Profile } from '../profiles/schema.js';
 import { taxOn } from './money.js';
 import type { Order, Payment } from './types.js';
 
-/** Recalcula subtotal, impuesto y total desde las partidas. */
+/** Recalculates subtotal, tax and total from the lines. */
 export function recalcTotals(order: Order, taxRateBps: number): Order {
   let subtotal = 0;
   let taxable = 0;
@@ -40,7 +40,7 @@ export function moveStage(order: Order, stage: string, profile: Profile, now: Da
   if (!profile.stages.some(s => s.id === stage)) {
     return { ok: false, code: 'INVALID_STAGE', reason: 'unknown_stage' };
   }
-  if (order.stage === stage) return { ok: true, order }; // idempotente
+  if (order.stage === stage) return { ok: true, order }; // idempotent
   return {
     ok: true,
     order: { ...order, stage, stageHistory: [...order.stageHistory, { stage, at: now.toISOString() }] }
@@ -48,8 +48,8 @@ export function moveStage(order: Order, stage: string, profile: Profile, now: Da
 }
 
 /**
- * `paidOn` es la fecha civil del cobro en la zona del negocio. La calcula quien llama,
- * porque el dominio no conoce zonas horarias.
+ * `paidOn` is the calendar date of the payment in the business's time zone. The caller computes it,
+ * because the domain knows nothing about time zones.
  */
 export function closeOut(
   order: Order, method: Payment['method'], profile: Profile, now: Date, paymentId: string, paidOn: string

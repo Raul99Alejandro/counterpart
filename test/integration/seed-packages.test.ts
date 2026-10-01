@@ -5,9 +5,9 @@ import { PACKAGES_DIR, seedAll } from '../../seed/run.js';
 import { checkPackage, loadPackage } from '../../seed/package.js';
 import { addBusiness } from '../../seed/business.js';
 
-const NOW = new Date('2026-09-15T15:00:00Z'); // martes
+const NOW = new Date('2026-09-15T15:00:00Z'); // Tuesday
 
-/** Huella de lo sembrado: si cambia un precio, un stock, una partida o un cobro, cambia la huella. */
+/** Fingerprint of the seeded data: if a price, a stock level, a line item or a payment changes, the fingerprint changes. */
 async function fingerprint(store: MemoryStore, bizId: string) {
   const orders = await store.listOrders(bizId);
   const payments = await store.listPayments(bizId, '0000-01-01', '9999-12-31');
@@ -28,8 +28,8 @@ async function fingerprint(store: MemoryStore, bizId: string) {
   };
 }
 
-describe('siembra del demo', () => {
-  it('siembra exactamente lo mismo que antes de mudarse a paquetes', async () => {
+describe('demo seed', () => {
+  it('seeds exactly the same as before the move to packages', async () => {
     const store = new MemoryStore();
     await seedAll(store, NOW);
     expect(await fingerprint(store, 'shop')).toMatchSnapshot();
@@ -37,18 +37,18 @@ describe('siembra del demo', () => {
   });
 });
 
-describe('paquetes del demo', () => {
+describe('demo packages', () => {
   for (const id of ['shop', 'bakery']) {
-    it(`${id} pasa business:check`, () => {
+    it(`${id} passes business:check`, () => {
       expect(checkPackage(path.join(PACKAGES_DIR, id))).toMatchObject({ ok: true });
     });
   }
 
-  it('addBusiness siembra un paquete y se niega a sembrarlo dos veces', async () => {
+  it('addBusiness seeds a package and refuses to seed it twice', async () => {
     const store = new MemoryStore();
     const pkg = loadPackage(path.join(PACKAGES_DIR, 'bakery'));
     await addBusiness(store, pkg, NOW);
     expect((await store.getBusiness('bakery'))?.status).toBe('active');
-    await expect(addBusiness(store, pkg, NOW)).rejects.toThrow(/Ya existe el negocio "bakery"/);
+    await expect(addBusiness(store, pkg, NOW)).rejects.toThrow(/Business "bakery" already exists/);
   });
 });

@@ -4,8 +4,8 @@ import { parseProfile } from './load.js';
 import type { Profile } from './schema.js';
 
 /**
- * Perfil de cada negocio, leído del store y cacheado por `profileVersion` (spec B2 §5.1).
- * Cierra la deuda de B1 de leer y parsear el YAML en cada petición.
+ * Each business's profile, read from the store and cached by `profileVersion` (spec B2 §5.1).
+ * Pays off the B1 debt of reading and parsing the YAML on every request.
  */
 export class ProfileCache {
   private readonly entries = new Map<string, { version: number; profile: Profile }>();

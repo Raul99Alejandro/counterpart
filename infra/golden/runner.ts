@@ -16,9 +16,9 @@ const SYSTEM: SystemContentBlock[] = [{
   text: 'You are Alexa helping the owner of a small business run their day by voice. '
     + 'Use the available tools to act on every request. Answer in one or two short spoken sentences.'
 }];
-const MAX_STEPS = 4; // llamadas al modelo por frase: tool, resultado, a lo sumo otra tool, respuesta
+const MAX_STEPS = 4; // model calls per phrase: tool, result, at most one more tool, reply
 
-/** Las tools del servidor en el formato de Converse. $schema no lo acepta Bedrock. */
+/** The server's tools in Converse format. Bedrock does not accept $schema. */
 async function toolConfig(client: Client): Promise<ToolConfiguration> {
   const { tools } = await client.listTools();
   const specs: Tool[] = tools.map(t => {
@@ -29,10 +29,10 @@ async function toolConfig(client: Client): Promise<ToolConfiguration> {
 }
 
 /**
- * Corre las frases en orden sobre una sola conversación y una sola sesión MCP, como las diría el
- * usuario (spec base §11.4). Cuenta la PRIMERA tool que elige el modelo en cada frase.
+ * Runs the phrases in order over a single conversation and a single MCP session, as the user
+ * would say them (base spec §11.4). Counts the FIRST tool the model picks for each phrase.
  */
-/** Lleva argumentos a una forma comparable; p. ej. "the Civic" y "work order 41" a la misma orden. */
+/** Brings arguments to a comparable form; e.g. "the Civic" and "work order 41" to the same order. */
 export type Canonicalize = (args: Record<string, unknown>) => Promise<Record<string, unknown>>;
 
 export async function runGolden(opts: {
@@ -66,11 +66,11 @@ export async function runGolden(opts: {
       messages.push({ role: 'user', content: toolResults });
     }
 
-    // Si la conversación terminó en tool results sin texto, se cierra el turno para que la siguiente
-    // frase empiece con un mensaje de usuario válido.
+    // If the conversation ended in tool results without text, close the turn so the next
+    // phrase starts with a valid user message.
     if (messages[messages.length - 1]?.role === 'user') messages.push({ role: 'assistant', content: [{ text: 'OK.' }] });
 
-    // Se canoniza al terminar la frase: las órdenes que la frase cerró o creó ya existen en el store.
+    // Canonicalize after the phrase ends: the orders the phrase closed or created already exist in the store.
     const pass = first !== null && first.name === phrase.tool
       && argsMatch(await canon(phrase.args), await canon((first.input ?? {}) as Record<string, unknown>));
     results.push({ say: phrase.say, expected: phrase.tool, got: first?.name ?? null, gotArgs: first?.input, pass, reply });

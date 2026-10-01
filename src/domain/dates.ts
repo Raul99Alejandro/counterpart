@@ -2,14 +2,14 @@ export type Period = 'today' | 'yesterday' | 'this_week' | 'last_week' | 'this_m
 
 const WEEKDAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
-/** Fecha civil (YYYY-MM-DD) en la zona del negocio. */
+/** Calendar date (YYYY-MM-DD) in the business's time zone. */
 export function businessToday(timezone: string, now: Date): string {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit'
   }).format(now);
 }
 
-/** Índice de día de la semana (0 = domingo) en la zona del negocio. */
+/** Day-of-week index (0 = Sunday) in the business's time zone. */
 function weekdayIndex(dateIso: string): number {
   return new Date(`${dateIso}T12:00:00Z`).getUTCDay();
 }
@@ -21,8 +21,8 @@ export function shiftDays(dateIso: string, days: number): string {
 }
 
 /**
- * Fecha civil que además existe en el calendario. La forma no basta: "2026-02-30" pasa
- * cualquier expresión regular y Date lo corre a marzo, así que se valida yendo y volviendo.
+ * Calendar date that also exists on the calendar. The shape is not enough: "2026-02-30" passes
+ * any regular expression and Date rolls it into March, so it is validated with a round trip.
  */
 function calendarDate(value: string): string | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
@@ -31,7 +31,7 @@ function calendarDate(value: string): string | null {
   return parsed.toISOString().slice(0, 10) === value ? value : null;
 }
 
-/** Resuelve "today", "tomorrow", un día de la semana o YYYY-MM-DD. Devuelve null si no entiende. */
+/** Resolves "today", "tomorrow", a weekday or YYYY-MM-DD. Returns null if it cannot parse it. */
 export function resolveDue(input: string, timezone: string, now: Date): string | null {
   const value = input.trim().toLowerCase();
   const today = businessToday(timezone, now);
@@ -48,7 +48,7 @@ export function resolveDue(input: string, timezone: string, now: Date): string |
   return null;
 }
 
-/** Todas las fechas civiles de `from` a `to`, inclusive. */
+/** Every calendar date from `from` to `to`, inclusive. */
 export function datesBetween(from: string, to: string): string[] {
   const out: string[] = [];
   for (let d = from; d <= to; d = shiftDays(d, 1)) out.push(d);
@@ -68,9 +68,9 @@ function daysInMonth(ym: string): number {
 const dayOf = (ym: string, day: number): string => `${ym}-${String(day).padStart(2, '0')}`;
 
 /**
- * Rangos inclusivos del periodo y del periodo anterior. Semanas de lunes a domingo. Los periodos en
- * curso (`this_week`, `this_month`) van hasta hoy y se comparan contra los mismos días del periodo
- * anterior (spec B2 §5.5.6, que cambia el §7.4 del spec base).
+ * Inclusive ranges for the period and the previous period. Weeks run Monday to Sunday. Periods in
+ * progress (`this_week`, `this_month`) run up to today and are compared against the same days of the
+ * previous period (spec B2 §5.5.6, which changes §7.4 of the base spec).
  */
 export function periodRange(period: Period, timezone: string, now: Date): {
   from: string; to: string; prevFrom: string; prevTo: string;

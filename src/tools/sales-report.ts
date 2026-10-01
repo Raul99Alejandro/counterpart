@@ -43,7 +43,7 @@ export function registerSalesReport(server: McpServer, ctx: ToolContext): void {
         ? `That's ${report.totalCents >= report.prevTotalCents ? 'up' : 'down'} from ${formatMoney(report.prevTotalCents)} the period before`
         : '';
       const best = report.topItems[0]?.name;
-      // Una sola segunda oración, sea cual sea la combinación.
+      // A single second sentence, whatever the combination.
       const second = trend && best ? ` ${trend}, and the best seller was ${best}.`
         : trend ? ` ${trend}.`
         : best ? ` The best seller was ${best}.`

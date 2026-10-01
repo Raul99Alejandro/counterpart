@@ -28,7 +28,7 @@ const uiOf = (tool: { _meta?: unknown }): string | undefined =>
   (tool._meta as { ui?: { resourceUri?: string } } | undefined)?.ui?.resourceUri;
 
 describe('MCP Apps', () => {
-  it('solo el resumen y el reporte de ventas llevan UI', async () => {
+  it('only the snapshot and the sales report carry a UI', async () => {
     const client = await connect('shop');
     const { tools } = await client.listTools();
     const withUi = Object.fromEntries(tools.filter(t => uiOf(t)).map(t => [t.name, uiOf(t)]));
@@ -36,14 +36,14 @@ describe('MCP Apps', () => {
     await client.close();
   });
 
-  it('publica los dos recursos ui://', async () => {
+  it('publishes the two ui:// resources', async () => {
     const client = await connect('bakery');
     const { resources } = await client.listResources();
     expect(resources.map(r => r.uri).sort()).toEqual([UI.salesReport, UI.snapshot].sort());
     await client.close();
   });
 
-  it('sirve cada UI como un solo HTML, sin recursos externos', async () => {
+  it('serves each UI as a single HTML file, with no external resources', async () => {
     const client = await connect('shop');
     for (const uri of [UI.snapshot, UI.salesReport]) {
       const { contents } = await client.readResource({ uri });
@@ -56,7 +56,7 @@ describe('MCP Apps', () => {
     await client.close();
   });
 
-  it('las tools con UI siguen contestando con texto hablable', async () => {
+  it('the tools with a UI still answer with speakable text', async () => {
     const client = await connect('shop');
     const r = await client.callTool({ name: 'get_shop_snapshot', arguments: {} });
     expect((r.content[0] as { text: string }).text).toMatch(/^Today you've taken in \$/);

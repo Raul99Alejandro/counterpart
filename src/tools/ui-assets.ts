@@ -10,12 +10,12 @@ export const UI = {
   setup: 'ui://counterpart/setup.html'
 } as const;
 
-/** Raíz del paquete: sube hasta encontrar package.json. Sirve igual desde src/ que desde dist/. */
+/** Package root: walks up until it finds package.json. Works the same from src/ as from dist/. */
 export function packageRoot(from: string = import.meta.dirname): string {
   let dir = from;
   while (!fsSync.existsSync(path.join(dir, 'package.json'))) {
     const parent = path.dirname(dir);
-    if (parent === dir) throw new Error('no se encontró package.json');
+    if (parent === dir) throw new Error('package.json not found');
     dir = parent;
   }
   return dir;
@@ -29,10 +29,10 @@ export function uiBundlePath(name: UiName): string {
   return path.join(packageRoot(), 'build', 'ui', name, 'index.html');
 }
 
-/** Páginas ya registradas por servidor. La llave es `server.server`: igual a través del proxy de `instrument`. */
+/** Pages already registered per server. The key is `server.server`: the same through the `instrument` proxy. */
 const registered = new WeakMap<object, Set<UiName>>();
 
-/** Registra las páginas pedidas una sola vez por servidor: pedir dos veces la misma no hace nada. */
+/** Registers the requested pages once per server: requesting the same one twice does nothing. */
 export function registerUiResources(server: McpServer, names: UiName[]): void {
   const done = registered.get(server.server) ?? new Set<UiName>();
   registered.set(server.server, done);

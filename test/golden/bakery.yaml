@@ -1,6 +1,6 @@
-# Frases de oro: cada una con la tool y los argumentos que debería elegir el modelo.
-# Se corren en orden, en una sola sesión, contra una semilla recién hecha:
-# algunas dependen del estado que dejan las anteriores.
+# Golden phrases: each one with the tool and arguments the model should pick.
+# They run in order, in a single session, against a freshly made seed:
+# some depend on the state the earlier ones leave behind.
 profile: bakery
 phrases:
   - say: "How's the bakery doing today?"

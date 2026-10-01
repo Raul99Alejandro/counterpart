@@ -3,17 +3,17 @@ import { escapeHtml, money, salesChartSvg, salesReportHtml, setupHtml, snapshotH
 
 const emptySnapshot = { todayRevenueCents: 0, sameDayLastWeekCents: 0, byStage: [], dueToday: [], low: [] };
 
-describe('render de las UIs', () => {
-  it('formatea dinero con separador de miles', () => {
+describe('UI rendering', () => {
+  it('formats money with a thousands separator', () => {
     expect(money(123456)).toBe('$1,234.56');
     expect(money(5)).toBe('$0.05');
   });
 
-  it('escapa HTML', () => {
+  it('escapes HTML', () => {
     expect(escapeHtml(`<b>"x" & 'y'</b>`)).toBe('&lt;b&gt;&quot;x&quot; &amp; &#39;y&#39;&lt;/b&gt;');
   });
 
-  it('no inyecta HTML de los datos', () => {
+  it('does not inject HTML from the data', () => {
     const html = snapshotHtml({
       ...emptySnapshot,
       byStage: [{ stage: 'x', label: '<img src=x onerror=alert(1)>', count: 1 }]
@@ -21,14 +21,14 @@ describe('render de las UIs', () => {
     expect(html).not.toContain('<img');
   });
 
-  it('muestra estados vacíos en el resumen', () => {
+  it('shows empty states in the snapshot', () => {
     const html = snapshotHtml(emptySnapshot);
     expect(html).toContain('Nothing open.');
     expect(html).toContain('Nothing due today.');
     expect(html).toContain('Stock looks fine.');
   });
 
-  it('dibuja una barra por día y nunca produce NaN', () => {
+  it('draws one bar per day and never produces NaN', () => {
     expect(salesChartSvg([])).toContain('No sales in this period');
     expect(salesChartSvg([{ date: '2026-09-15', cents: 0 }])).not.toContain('NaN');
     const svg = salesChartSvg([
@@ -38,7 +38,7 @@ describe('render de las UIs', () => {
     expect(svg).not.toContain('NaN');
   });
 
-  it('omite la comparación cuando no hay periodo anterior', () => {
+  it('leaves out the comparison when there is no previous period', () => {
     const html = salesReportHtml({
       from: '2026-09-14', to: '2026-09-20', prevFrom: '2026-09-07', prevTo: '2026-09-13',
       totalCents: 5000, prevTotalCents: 0, count: 2, averageTicketCents: 2500, daily: [], prevDaily: [], topItems: []
@@ -46,7 +46,7 @@ describe('render de las UIs', () => {
     expect(html).not.toContain('%');
     expect(html).toContain('No items sold.');
   });
-  it('muestra el borrador: etapas con la de cierre marcada, campos y catálogo', () => {
+  it('shows the draft: stages with the closing one marked, fields and catalog', () => {
     const html = setupHtml({
       state: 'ready', businessName: 'Petal and Stem', message: 'Should I turn it on?',
       nouns: { order: 'flower order', orders: 'flower orders', item: 'flower', items: 'flowers', customer: 'customer' },
@@ -61,11 +61,11 @@ describe('render de las UIs', () => {
     expect(html).toContain('$65.00');
   });
 
-  it('muestra el mensaje cuando el borrador no está listo', () => {
+  it('shows the message when the draft is not ready', () => {
     expect(setupHtml({ state: 'generating', businessName: '<b>x</b>', message: 'Still drafting.' }))
       .toBe('<section><h2>&lt;b&gt;x&lt;/b&gt;</h2><p class="empty">Still drafting.</p></section>');
   });
-  it('la gráfica etiqueta los días y dibuja el periodo anterior', () => {
+  it('the chart labels the days and draws the previous period', () => {
     const svg = salesChartSvg(
       [{ date: '2026-09-14', cents: 1000 }, { date: '2026-09-15', cents: 0 }],
       [{ date: '2026-09-07', cents: 500 }, { date: '2026-09-08', cents: 800 }]
@@ -74,7 +74,7 @@ describe('render de las UIs', () => {
     expect(svg).toContain('>Tue</text>');
     expect(svg.match(/class="prev"/g)).toHaveLength(2);
   });
-  it('un periodo de un solo día no dibuja una barra de todo el ancho', () => {
+  it('a one-day period does not draw a full-width bar', () => {
     const svg = salesChartSvg([{ date: '2026-09-28', cents: 1000 }], [{ date: '2026-09-21', cents: 800 }]);
     const widths = [...svg.matchAll(/width="(\d+)"/g)].map(m => Number(m[1]));
     expect(Math.max(...widths)).toBeLessThanOrEqual(64);

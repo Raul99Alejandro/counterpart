@@ -6,7 +6,7 @@ import { registerTools } from '../../src/tools/context.js';
 import { toolContext } from '../helpers/context.js';
 import { seedAll } from '../../seed/run.js';
 
-const NOW = new Date('2026-09-15T15:00:00Z'); // martes
+const NOW = new Date('2026-09-15T15:00:00Z'); // Tuesday
 
 async function connect(bizId: string): Promise<{ client: Client; store: MemoryStore }> {
   const store = new MemoryStore();
@@ -25,11 +25,11 @@ async function connect(bizId: string): Promise<{ client: Client; store: MemorySt
 
 const text = (r: { content: unknown[] }): string => (r.content[0] as { text: string }).text;
 
-describe('flujo completo', () => {
-  it('taller: abrir, cobrar partida, avanzar, cerrar y verlo en el reporte', async () => {
+describe('full flow', () => {
+  it('shop: open, charge a line item, advance, close and see it in the report', async () => {
     const { client } = await connect('shop');
 
-    // Línea base: la semilla ya deja pagos de "hoy", así que hay que medir el delta, no solo que sea > 0.
+    // Baseline: the seed already leaves payments for "today", so measure the delta, not just that it is > 0.
     const before = await client.callTool({ name: 'sales_report', arguments: { period: 'today' } });
     const baseline = before.structuredContent as { count: number; totalCents: number };
 
@@ -64,10 +64,10 @@ describe('flujo completo', () => {
     await client.close();
   });
 
-  it('pastelería: tomar pedido con fecha y encontrarlo por día', async () => {
+  it('bakery: take an order with a date and find it by day', async () => {
     const { client } = await connect('bakery');
 
-    // Línea base: la semilla ya deja pedidos para el sábado, así que hay que medir el delta.
+    // Baseline: the seed already leaves orders for Saturday, so measure the delta.
     const before = await client.callTool({ name: 'find_cake_orders', arguments: { due: 'saturday' } });
     const baselineTotal = (before.structuredContent as { total: number }).total;
 
@@ -85,7 +85,7 @@ describe('flujo completo', () => {
     await client.close();
   });
 
-  it('el resumen de la pastelería no usa vocabulario del taller', async () => {
+  it('the bakery snapshot does not use shop vocabulary', async () => {
     const { client } = await connect('bakery');
     const r = await client.callTool({ name: 'get_bakery_snapshot', arguments: {} });
     expect(text(r)).not.toContain('work order');
@@ -93,8 +93,8 @@ describe('flujo completo', () => {
   });
 });
 
-describe('semilla', () => {
-  it('no deja armada la ventana de duplicados al arrancar', async () => {
+describe('seed', () => {
+  it('does not leave the duplicate window armed at startup', async () => {
     const { client, store } = await connect('bakery');
 
     const open = (await store.listOrders('bakery')).filter(o => o.stage !== 'picked_up');
@@ -103,7 +103,7 @@ describe('semilla', () => {
       expect(NOW.getTime() - new Date(order.createdAt).getTime()).toBeGreaterThan(2 * 60 * 1000);
     }
 
-    // Un segundo pedido distinto de un cliente ya sembrado es un pedido nuevo, no un eco del anterior.
+    // A second, different order from an already seeded customer is a new order, not an echo of the previous one.
     const taken = await client.callTool({
       name: 'take_cake_order',
       arguments: { customerName: 'Grace Kim', flavor: 'chocolate', size: '10-inch', due: 'saturday' }
@@ -117,7 +117,7 @@ describe('semilla', () => {
     await client.close();
   });
 
-  it('las órdenes sembradas traen partidas, así que valen dinero y alimentan el top de ítems', async () => {
+  it('seeded orders have line items, so they are worth money and feed the top items', async () => {
     const { client, store } = await connect('shop');
 
     const open = (await store.listOrders('shop')).filter(o => o.stage !== 'picked_up');
@@ -133,7 +133,7 @@ describe('semilla', () => {
     };
     expect(data.topItems.length).toBeGreaterThan(0);
     expect(data.topItems[0]!.cents).toBeGreaterThan(0);
-    // El histórico del mes ya vendido sigue contando, no solo lo que se cierre en cámara.
+    // The month's sales history still counts, not just what gets closed on camera.
     expect(data.count).toBeGreaterThan(20);
     const paidThisMonth = await store.listPayments('shop', '2026-09-01', '2026-09-30');
     expect(data.totalCents).toBe(paidThisMonth.reduce((sum, p) => sum + p.amountCents, 0));
@@ -141,7 +141,7 @@ describe('semilla', () => {
     await client.close();
   });
 
-  it('el histórico queda cerrado: no aparece como trabajo abierto', async () => {
+  it('the history stays closed: it does not show up as open work', async () => {
     for (const bizId of ['shop', 'bakery'] as const) {
       const { client, store } = await connect(bizId);
       const profileClosed = 'picked_up';
@@ -151,7 +151,7 @@ describe('semilla', () => {
 
       expect(closed.length).toBeGreaterThan(20);
       for (const order of closed) expect(order.closedAt).toBeTruthy();
-      // Todas las órdenes resuelven su cliente: nada se esconde por un customerId inexistente.
+      // Every order resolves its customer: nothing is hidden by a nonexistent customerId.
       const customerIds = new Set((await store.listCustomers(bizId)).map(c => c.id));
       for (const order of orders) expect(customerIds.has(order.customerId)).toBe(true);
 

@@ -6,14 +6,14 @@ import { DEMO_BLANK_TOKEN, DEMO_TOKENS, seedAll, seedLocalBlank } from '../../se
 import { loadTemplate } from '../../src/profiles/load.js';
 
 const MOMENTS: Array<[string, Date]> = [
-  ['martes', new Date('2026-09-15T15:00:00Z')],
-  ['viernes', new Date('2026-09-18T15:00:00Z')],
-  ['sábado', new Date('2026-09-19T15:00:00Z')]
+  ['Tuesday', new Date('2026-09-15T15:00:00Z')],
+  ['Friday', new Date('2026-09-18T15:00:00Z')],
+  ['Saturday', new Date('2026-09-19T15:00:00Z')]
 ];
 
-describe('semilla de la pastelería', () => {
+describe('bakery seed', () => {
   for (const [label, now] of MOMENTS) {
-    it(`deja exactamente tres pasteles para el sábado sembrando en ${label}`, async () => {
+    it(`leaves exactly three cakes for Saturday when seeding on ${label}`, async () => {
       const store = new MemoryStore();
       await seedAll(store, now);
       const saturday = resolveDue('saturday', 'America/Chicago', now);
@@ -23,14 +23,14 @@ describe('semilla de la pastelería', () => {
   }
 });
 
-describe('tokens de demo', () => {
-  it('se instalan por defecto', async () => {
+describe('demo tokens', () => {
+  it('are installed by default', async () => {
     const store = new MemoryStore();
     await seedAll(store, new Date('2026-09-15T15:00:00Z'));
     expect((await store.getBusinessByTokenHash(hashToken(DEMO_TOKENS.shop)))?.id).toBe('shop');
   });
 
-  it('se pueden omitir', async () => {
+  it('can be skipped', async () => {
     const store = new MemoryStore();
     await seedAll(store, new Date('2026-09-15T15:00:00Z'), { demoTokens: false });
     expect(await store.getBusinessByTokenHash(hashToken(DEMO_TOKENS.shop))).toBeNull();
@@ -38,8 +38,8 @@ describe('tokens de demo', () => {
   });
 });
 
-describe('perfiles guardados por la siembra', () => {
-  it('siembra los negocios activos con el perfil copiado de su plantilla', async () => {
+describe('profiles saved by the seed', () => {
+  it('seeds the active businesses with the profile copied from their template', async () => {
     const store = new MemoryStore();
     await seedAll(store, new Date('2026-09-15T15:00:00Z'));
     for (const [bizId, template] of [['shop', 'auto-repair'], ['bakery', 'bakery']] as const) {
@@ -53,8 +53,8 @@ describe('perfiles guardados por la siembra', () => {
   });
 });
 
-describe('floristería en blanco local', () => {
-  it('queda en blanco y responde a su token de demo', async () => {
+describe('local blank florist', () => {
+  it('stays blank and answers to its demo token', async () => {
     const store = new MemoryStore();
     await seedLocalBlank(store);
     const biz = await store.getBusinessByTokenHash(hashToken(DEMO_BLANK_TOKEN));

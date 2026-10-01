@@ -62,7 +62,7 @@ export interface BusinessPackage {
 
 export type PackageCheck = { ok: true; pkg: BusinessPackage } | { ok: false; problems: string[] };
 
-/** Lee un YAML del paquete. `undefined` si falta y es opcional; los problemas van a `problems`. */
+/** Reads a package YAML file. `undefined` if it is missing and optional; problems go to `problems`. */
 function readYaml(dir: string, file: string, required: boolean, problems: string[]): unknown {
   const full = path.join(dir, file);
   if (!fs.existsSync(full)) {
@@ -77,7 +77,7 @@ function readYaml(dir: string, file: string, required: boolean, problems: string
   }
 }
 
-/** Valida un paquete `seed/businesses/<bizId>/` con los mismos esquemas del servidor (spec B2 §5.1). */
+/** Validates a `seed/businesses/<bizId>/` package with the server's own schemas (spec B2 §5.1). */
 export function checkPackage(dir: string): PackageCheck {
   const problems: string[] = [];
   const id = path.basename(dir);
@@ -147,10 +147,10 @@ export function checkPackage(dir: string): PackageCheck {
   };
 }
 
-/** Lo mismo que checkPackage, pero lanza con todos los problemas. Para la siembra. */
+/** Same as checkPackage, but throws with every problem. Used for seeding. */
 export function loadPackage(dir: string): BusinessPackage {
   const result = checkPackage(dir);
-  if (!result.ok) throw new Error(`El paquete ${dir} no es válido:\n- ${result.problems.join('\n- ')}`);
+  if (!result.ok) throw new Error(`The package ${dir} is invalid:\n- ${result.problems.join('\n- ')}`);
   return result.pkg;
 }
 

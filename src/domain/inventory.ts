@@ -1,7 +1,7 @@
 import { pickBest, tokenScore } from './resolver.js';
 import type { CatalogItem, Order, OrderLine, PurchaseOrder } from './types.js';
 
-/** Busca un ítem del catálogo por nombre o sinónimo, con el mismo criterio que las referencias habladas. */
+/** Finds a catalog item by name or synonym, using the same rule as spoken references. */
 export function findItem(query: string, items: CatalogItem[]):
   | { kind: 'one'; item: CatalogItem }
   | { kind: 'none'; suggestions: CatalogItem[] }
@@ -10,17 +10,17 @@ export function findItem(query: string, items: CatalogItem[]):
   const picked = pickBest(scored);
   if (picked.kind === 'one') return { kind: 'one', item: picked.value };
   if (picked.kind === 'ambiguous') return { kind: 'ambiguous', candidates: picked.values };
-  // Sugerencias solo si se parecen en algo: tres ítems con puntaje 0 no son "closest matches".
+  // Suggestions only if they resemble the query at all: three items scoring 0 are not "closest matches".
   const suggestions = scored.filter(s => s.score > 0).sort((a, b) => b.score - a.score).slice(0, 3).map(s => s.value);
   return { kind: 'none', suggestions };
 }
 
-/** Arma la partida y devuelve los ítems con el stock ya descontado. `onHand` nunca baja de cero. */
+/** Builds the line and returns the items with stock already deducted. `onHand` never drops below zero. */
 export function addLineToOrder(
   item: CatalogItem, quantity: number, items: CatalogItem[]
 ): { line: OrderLine; itemUpdates: CatalogItem[] } {
-  // El esquema de la tool ya exige positive(); esto protege a quien llame al dominio directo.
-  if (!(quantity > 0)) throw new RangeError(`la cantidad debe ser mayor que cero, no ${quantity}`);
+  // The tool schema already requires positive(); this protects callers that use the domain directly.
+  if (!(quantity > 0)) throw new RangeError(`quantity must be greater than zero, got ${quantity}`);
   const updates = new Map<string, CatalogItem>();
 
   const take = (target: CatalogItem, qty: number): number => {
@@ -51,7 +51,7 @@ export function lowStock(items: CatalogItem[]): CatalogItem[] {
   return items.filter(i => i.stocked && i.onHand <= i.reorderPoint);
 }
 
-/** Plan de compra agrupado por proveedor. Suma los backorders pendientes y omite lo que ya está pedido. */
+/** Purchase plan grouped by supplier. Adds pending backorders and skips what is already on order. */
 export function planReorder(
   items: CatalogItem[], openOrders: Order[], openPOs: PurchaseOrder[], only?: CatalogItem
 ): { purchaseOrders: Array<{ supplierId: string; lines: Array<{ itemId: string; qty: number }> }>; skipped: CatalogItem[] } {

@@ -4,7 +4,7 @@ export interface RequestContext { requestId: string; businessId?: string; sessio
 
 const storage = new AsyncLocalStorage<RequestContext>();
 
-/** Ejecuta `run` con el contexto de la petición disponible para todo lo que llame, incluidas las tools. */
+/** Runs `run` with the request context available to everything it calls, including the tools. */
 export function withRequest<T>(ctx: RequestContext, run: () => T): T {
   return storage.run(ctx, run);
 }

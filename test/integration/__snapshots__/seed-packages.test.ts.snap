@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`siembra del demo > siembra exactamente lo mismo que antes de mudarse a paquetes 1`] = `
+exports[`demo seed > seeds exactly the same as before the move to packages 1`] = `
 {
   "assets": [
     "shop-asset-1:shop-cust-1:2019 blue sedan:{"year":2019,"make":"blue","model":"sedan","plate":"JHK 4821"}",
@@ -66,7 +66,7 @@ exports[`siembra del demo > siembra exactamente lo mismo que antes de mudarse a 
 }
 `;
 
-exports[`siembra del demo > siembra exactamente lo mismo que antes de mudarse a paquetes 2`] = `
+exports[`demo seed > seeds exactly the same as before the move to packages 2`] = `
 {
   "assets": [],
   "business": {

@@ -3,15 +3,15 @@ import type { FieldDef, Profile, ToolKey } from '../profiles/schema.js';
 
 export interface ToolSpec { name: string; title: string; description: string }
 
-// Frase auxiliar para inyectar sinónimos del perfil en las descripciones
+// Helper phrase to inject the profile's synonyms into the descriptions
 const alsoCalled = (words: string[]): string => words.length === 0 ? '' : ` (also called ${words.join(', ')})`;
 
-// Artículo correcto según si el sustantivo del perfil empieza con sonido vocálico
+// Correct article depending on whether the profile's noun starts with a vowel sound
 const article = (word: string): string => /^[aeiou]/i.test(word) ? 'an' : 'a';
 
 /**
- * Cómo pedirle al modelo la referencia hablada de una orden. Los ejemplos salen del perfil:
- * un taller dice "the vehicle", una pastelería no tiene activo y nombra por cliente.
+ * How to ask the model for the spoken reference to an order. The examples come from the profile:
+ * a repair shop says "the vehicle", a bakery has no asset and names by customer.
  */
 const orderReference = (profile: Profile): string => {
   const { order, customer } = profile.nouns;
@@ -21,10 +21,10 @@ const orderReference = (profile: Profile): string => {
     + `Pass it as the user said it; never ask for the ${order} number.`;
 };
 
-/** Un id de campo dicho en voz alta: `card_message` → `card message`. */
+/** A field id said out loud: `card_message` → `card message`. */
 export const spokenId = (id: string): string => id.replace(/_/g, ' ');
 
-/** Lo que abrir una orden necesita sí o sí, dicho como lista hablada ("a, b and c"). */
+/** What opening an order strictly needs, said as a spoken list ("a, b and c"). */
 function neededToOpen(profile: Profile): string {
   const needed = [
     `the ${profile.nouns.customer}'s name`,
@@ -91,19 +91,19 @@ export function toolSpecs(profile: Profile): Record<ToolKey, ToolSpec> {
   };
 }
 
-// Convierte una definición de campo del perfil en el schema zod correspondiente
-// Cada campo dice qué es: sin descripción, Nova 2 Lite pedía un sabor que la frase ya traía.
+// Turns a profile field definition into the matching zod schema
+// Each field says what it is: without a description, Nova 2 Lite asked for a flavor the sentence already had.
 function fieldSchema(field: FieldDef, owner: string): z.ZodTypeAny {
   const base = field.type === 'integer' ? z.number().int() : z.string().min(1);
   const described = base.describe(`The ${spokenId(field.id)} of the ${owner}, as the user said it.`);
   return field.required ? described : described.optional();
 }
 
-// Shape mutable: z.ZodRawShape es de solo lectura en esta versión de zod,
-// así que armamos el objeto con un tipo propio y lo pasamos a z.object al final.
+// Mutable shape: z.ZodRawShape is read-only in this zod version,
+// so we build the object with our own type and pass it to z.object at the end.
 type MutableShape = Record<string, z.ZodTypeAny>;
 
-// Arma el shape de un z.object a partir de una lista de campos del perfil
+// Builds a z.object shape from a list of profile fields
 function fieldsShape(fields: FieldDef[], owner: string): MutableShape {
   return Object.fromEntries(fields.map(f => [f.id, fieldSchema(f, owner)]));
 }
@@ -119,7 +119,7 @@ export function openInput(profile: Profile): z.ZodObject<z.ZodRawShape> {
     ...fieldsShape(profile.orderFields, order)
   };
 
-  // El objeto del activo solo existe si el perfil define uno
+  // The asset object only exists if the profile defines one
   if (profile.asset) {
     const assetShape = fieldsShape(profile.asset.fields, profile.asset.noun);
     shape.asset = z.object(assetShape).describe(`The ${profile.asset.noun} this ${order} is for.`);
@@ -130,7 +130,7 @@ export function openInput(profile: Profile): z.ZodObject<z.ZodRawShape> {
   return z.object(shape);
 }
 
-// Enum de etapas construido en tiempo de ejecución a partir del perfil
+// Stage enum built at runtime from the profile
 function stageEnum(profile: Profile): z.ZodTypeAny {
   const ids = profile.stages.map(s => s.id) as [string, ...string[]];
   return z.enum(ids);

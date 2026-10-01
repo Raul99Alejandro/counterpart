@@ -7,8 +7,8 @@ const problemsOf = (files: Record<string, string>, folder?: string): string[] =>
   return result.ok ? [] : result.problems;
 };
 
-describe('chequeo de paquetes de negocio', () => {
-  it('acepta un paquete válido con plantilla', () => {
+describe('business package check', () => {
+  it('accepts a valid package with a template', () => {
     const result = checkPackage(writePackage({ 'business.yaml': BUSINESS_YAML, 'catalog.yaml': CATALOG_YAML }));
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -18,49 +18,49 @@ describe('chequeo de paquetes de negocio', () => {
     }
   });
 
-  it('pide un nombre de carpeta que sirva de id', () => {
+  it('asks for a folder name that works as an id', () => {
     expect(problemsOf({ 'business.yaml': BUSINESS_YAML, 'catalog.yaml': CATALOG_YAML }, 'Test Shop')[0])
       .toMatch(/folder name "Test Shop"/);
   });
 
-  it('avisa si falta un archivo', () => {
+  it('reports a missing file', () => {
     expect(problemsOf({ 'business.yaml': BUSINESS_YAML })).toContain('catalog.yaml: file not found');
   });
 
-  it('avisa si el YAML está roto', () => {
+  it('reports broken YAML', () => {
     expect(problemsOf({ 'business.yaml': 'name: [', 'catalog.yaml': CATALOG_YAML })[0]).toMatch(/^business\.yaml: not valid YAML/);
   });
 
-  it('no acepta plantilla y perfil a la vez', () => {
+  it('does not accept a template and a profile together', () => {
     const both = `${BUSINESS_YAML}profile: { id: x }\n`;
     expect(problemsOf({ 'business.yaml': both, 'catalog.yaml': CATALOG_YAML }).join('\n')).toMatch(/either template or profile/);
   });
 
-  it('nombra las plantillas que existen', () => {
+  it('names the templates that exist', () => {
     const bad = BUSINESS_YAML.replace('template: bakery', 'template: florist');
     expect(problemsOf({ 'business.yaml': bad, 'catalog.yaml': CATALOG_YAML }).join('\n'))
       .toMatch(/there is no template "florist"; use one of auto-repair, bakery/);
   });
 
-  it('dice el campo exacto y cómo arreglar un precio', () => {
+  it('names the exact field and how to fix a price', () => {
     const bad = CATALOG_YAML.replace('priceCents: 4500', 'priceCents: 45.5');
     const text = problemsOf({ 'business.yaml': BUSINESS_YAML, 'catalog.yaml': bad }).join('\n');
     expect(text).toMatch(/catalog\.yaml › items\[0\]\.priceCents: .*cents as a whole number/);
   });
 
-  it('detecta un consumes hacia un ítem que no existe', () => {
+  it('detects a consumes entry pointing to an item that does not exist', () => {
     const bad = CATALOG_YAML.replace('consumes: { box-8: 1 }', 'consumes: { box-10: 1 }');
     expect(problemsOf({ 'business.yaml': BUSINESS_YAML, 'catalog.yaml': bad }).join('\n'))
       .toMatch(/items\[0\]\.consumes\.box-10: there is no item with id "box-10"/);
   });
 
-  it('detecta ids repetidos', () => {
+  it('detects duplicate ids', () => {
     const bad = CATALOG_YAML.replace('id: cupcakes', 'id: cake-8');
     expect(problemsOf({ 'business.yaml': BUSINESS_YAML, 'catalog.yaml': bad }).join('\n'))
       .toMatch(/items\[1\]\.id: "cake-8" is already used by items\[0\]/);
   });
 
-  it('detecta ítems que se consumen en círculo', () => {
+  it('detects items that consume each other in a loop', () => {
     const bad = CATALOG_YAML.replace(
       'priceCents: 120, stocked: true, onHand: 40',
       'priceCents: 120, stocked: true, consumes: { cake-8: 1 }, onHand: 40'
@@ -68,7 +68,7 @@ describe('chequeo de paquetes de negocio', () => {
     expect(problemsOf({ 'business.yaml': BUSINESS_YAML, 'catalog.yaml': bad }).join('\n')).toMatch(/consume each other in a loop/);
   });
 
-  it('valida un perfil propio con las reglas del servidor', () => {
+  it('validates a custom profile with the server rules', () => {
     const own = `name: Test Place
 timezone: America/Chicago
 taxRateBps: 0
@@ -88,7 +88,7 @@ profile:
       .toMatch(/business\.yaml › profile: closedStage "finished" is not one of the stages/);
   });
 
-  it('revisa el demo contra el perfil', () => {
+  it('checks the demo against the profile', () => {
     const demo = `customers:
   - name: Grace Kim
     order: { stage: shipped, fields: { size: 8-inch }, due: saturday, lines: [cake-8] }

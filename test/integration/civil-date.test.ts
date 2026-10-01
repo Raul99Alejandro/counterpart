@@ -6,7 +6,7 @@ import { loadTemplate } from '../../src/profiles/load.js';
 import { registerTools, type ToolContext } from '../../src/tools/context.js';
 import type { Business, Order } from '../../src/domain/types.js';
 
-// 20:30 del 15 de septiembre en Chicago = 01:30 del 16 en UTC.
+// 20:30 on September 15 in Chicago = 01:30 on the 16th in UTC.
 const EVENING = new Date('2026-09-16T01:30:00Z');
 
 const business: Business = {
@@ -46,8 +46,8 @@ async function connect(): Promise<Client> {
 
 const text = (r: { content: unknown[] }): string => (r.content[0] as { text: string }).text;
 
-describe('fecha civil del cobro', () => {
-  it('un cobro de noche cuenta en el día del negocio, no en el de UTC', async () => {
+describe('civil date of the payment', () => {
+  it('an evening payment counts on the business day, not the UTC day', async () => {
     const client = await connect();
     const closed = await client.callTool({
       name: 'close_out_work_order', arguments: { order: 'the Civic', paymentMethod: 'card' }
@@ -62,7 +62,7 @@ describe('fecha civil del cobro', () => {
     await client.close();
   });
 
-  it('repetir el cierre de noche sigue siendo idempotente', async () => {
+  it('repeating the evening close-out is still idempotent', async () => {
     const client = await connect();
     await client.callTool({ name: 'close_out_work_order', arguments: { order: 'the Civic', paymentMethod: 'card' } });
     const again = await client.callTool({
@@ -76,10 +76,10 @@ describe('fecha civil del cobro', () => {
   });
 });
 
-describe('rango de la semana del resumen', () => {
-  it('incluye el mismo día de la semana pasada aunque en medio termine el horario de verano', async () => {
-    // Sábado 7 de noviembre, 23:30 en Chicago (CST). Restar 7×24 h cae el 1 de noviembre a las
-    // 00:30 CDT: el rango empezaría el 1 y dejaría fuera el sábado 31 de octubre.
+describe('week range of the snapshot', () => {
+  it('includes the same day last week even when daylight saving time ends in between', async () => {
+    // Saturday November 7, 23:30 in Chicago (CST). Subtracting 7×24 h lands on November 1 at
+    // 00:30 CDT: the range would start on the 1st and leave out Saturday October 31.
     const lateSaturday = new Date('2026-11-08T05:30:00Z');
     const store = new MemoryStore();
     await store.putBusiness(business);

@@ -10,7 +10,7 @@ export const MAX_STAGES = 8;
 export const MIN_ITEMS = 5;
 export const MAX_ITEMS = 60;
 
-/** Lo que Nova tiene que devolver. De aquí sale también el esquema JSON de su herramienta (spec B2 §5.3). */
+/** What Nova must return. Its tool's JSON schema is derived from this too (spec B2 §5.3). */
 export const draftSchema = z.object({ profile: profileSchema, catalog: catalogSchema }).strict();
 
 export interface ValidSetup { profile: Profile; items: CatalogItem[] }
@@ -20,7 +20,7 @@ export const STAGES_QUESTION = "I couldn't tell how an order moves from start to
 export const CATALOG_QUESTION = "I couldn't put together what you sell. What are a few things you sell, and about how much they cost?";
 export const GENERIC_QUESTION = "I couldn't finish your setup. Tell me a bit more about what you sell and the steps an order goes through.";
 
-/** Validación en tres capas (spec B2 §5.3): esquema, reglas del perfil del servidor y reglas propias del asistente. */
+/** Three-layer validation (spec B2 §5.3): schema, the server's profile rules, and the assistant's own rules. */
 export function validateSetup(raw: unknown): SetupCheck {
   const parsed = draftSchema.safeParse(withDashedConsumes(raw));
   if (!parsed.success) return { ok: false, errors: formatIssues(parsed.error) };
@@ -39,7 +39,7 @@ export function validateSetup(raw: unknown): SetupCheck {
     const name = profile.toolNames[key];
     if (reserved.includes(name)) errors.push(`profile.toolNames.${key}: "${name}" is reserved for the setup tools; pick another name`);
   }
-  // Reglas que un YAML escrito a mano nunca rompía y un perfil del modelo sí puede romper.
+  // Rules a hand-written YAML never broke but a model-written profile can.
   if (profile.closedStage === profile.stages[0]?.id) {
     errors.push(`profile.closedStage: "${profile.closedStage}" is the first stage, so every new order would open already closed; close on the last stage`);
   }
@@ -57,7 +57,7 @@ export function validateSetup(raw: unknown): SetupCheck {
   if (items.length < MIN_ITEMS || items.length > MAX_ITEMS) {
     errors.push(`catalog.items: ${items.length} items; use between ${MIN_ITEMS} and ${MAX_ITEMS}`);
   }
-  // Precios > 0 ya los exige el esquema del ítem (`priceCents` positivo).
+  // Prices > 0 are already required by the item schema (positive `priceCents`).
   errors.push(...catalogProblems(items, 'catalog.items'));
 
   if (errors.length > 0) return { ok: false, errors };
@@ -65,18 +65,18 @@ export function validateSetup(raw: unknown): SetupCheck {
 }
 
 /**
- * Nova tiende a agregar un "event_date" obligatorio además de `due`, y la orden pediría dos fechas.
- * Se quita aquí, sin gastar una reparación: `due` ya guarda la fecha de la orden.
+ * Nova tends to add a required "event_date" on top of `due`, and the order would ask for two dates.
+ * It is removed here, without spending a repair: `due` already holds the order's date.
  */
 function withoutDateFields(profile: Profile): Profile {
   if (profile.due === 'none') return profile;
   return { ...profile, orderFields: profile.orderFields.filter(f => !/(^|_)date(_|$)/.test(f.id)) };
 }
 
-/** La frase para el usuario cuando el borrador no se pudo arreglar: pregunta por lo que faltó. */
+/** The phrase for the user when the draft could not be fixed: asks about what was missing. */
 /**
- * Nova a veces escribe en `consumes` el id de un ítem con guion bajo ("rose_stem") aunque el ítem se
- * llame "rose-stem", y la reparación no siempre lo corrige. Es el mismo ítem: se arregla aquí.
+ * Nova sometimes writes an item id in `consumes` with underscores ("rose_stem") even though the item is
+ * called "rose-stem", and the repair does not always fix it. It is the same item, so it is fixed here.
  */
 function withDashedConsumes(raw: unknown): unknown {
   const items = (raw as { catalog?: { items?: unknown } } | null)?.catalog?.items;

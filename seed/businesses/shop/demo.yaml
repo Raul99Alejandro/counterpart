@@ -1,4 +1,4 @@
-# Vehículos genéricos (color y tipo en make/model): el video y el demo no muestran marcas de terceros.
+# Generic vehicles (color and type in make/model): the video and the demo show no third-party brands.
 historySeed: 1234
 customers:
   - name: Dana Lee

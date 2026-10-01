@@ -9,17 +9,17 @@ import { floristDraft, scriptedGenerator } from '../helpers/setup.js';
 
 const text = (r: { content: unknown[] }): string => (r.content[0] as { text: string }).text;
 
-describe('tools de alta', () => {
+describe('setup tools', () => {
   let clock = new Date('2026-09-29T15:00:00Z');
 
-  it('si el cambio de tools falla después de activar, no dice que no cambió nada', async () => {
+  it('if the tool switch fails after activating, it does not say nothing changed', async () => {
     const store = new MemoryStore();
     const business = await newBlankBusiness(store, { id: 'florist', name: 'Petal and Stem' });
     const setup = new SetupService({ store, generate: scriptedGenerator(floristDraft()), now: () => clock });
     const server = new McpServer({ name: 'counterpart', version: '0.1.0' });
     registerSetupTools(server, {
       business, setup,
-      onActivated: () => { throw new Error('perfil raro'); }
+      onActivated: () => { throw new Error('odd profile'); }
     });
     const [clientEnd, serverEnd] = InMemoryTransport.createLinkedPair();
     const client = new Client({ name: 'test', version: '1.0.0' });

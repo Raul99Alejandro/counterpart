@@ -1,4 +1,4 @@
-/** PRNG determinista, para que la semilla sea idéntica en cada corrida. */
+/** Deterministic PRNG, so the seed data is identical on every run. */
 export function mulberry32(seed: number): () => number {
   let a = seed;
   return () => {

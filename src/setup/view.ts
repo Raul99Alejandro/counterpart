@@ -2,7 +2,7 @@ import * as z from 'zod/v4';
 import { spokenId } from '../tools/specs.js';
 import type { ReviewResult } from './service.js';
 
-/** Datos de la UI del borrador (spec B2 §5.4). El texto de la tool basta por sí solo; esto es el extra visual. */
+/** Data for the draft UI (spec B2 §5.4). The tool's text is enough on its own; this is the visual extra. */
 export const setupViewSchema = z.object({
   state: z.enum(['none', 'generating', 'failed', 'ready']),
   businessName: z.string(),

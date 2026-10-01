@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Borra todo lo que crea deploy.sh y verifica que no quedó nada (spec B2 §4.3).
-# Uso: npm run teardown -- --yes [--keep-data]
-#   --keep-data conserva la tabla y los secretos (para redesplegar sin resembrar ni reconfigurar el bridge).
+# Deletes everything deploy.sh creates and verifies that nothing is left (spec B2 §4.3).
+# Usage: npm run teardown -- --yes [--keep-data]
+#   --keep-data keeps the table and the secrets (to redeploy without reseeding or reconfiguring the bridge).
 set -euo pipefail
 
-: "${AWS_PROFILE:?Define AWS_PROFILE y abre sesión con aws sso login}"
+: "${AWS_PROFILE:?Set AWS_PROFILE and sign in with aws sso login}"
 export AWS_REGION="${AWS_REGION:-us-east-1}"
 export AWS_PAGER=""
-# Git Bash convertiría /ecs/counterpart en una ruta de Windows.
+# Git Bash would turn /ecs/counterpart into a Windows path.
 export MSYS_NO_PATHCONV=1
 
 APP=counterpart
@@ -16,10 +16,10 @@ LOG_GROUP=/ecs/counterpart
 CLUSTER=default
 YES=0; KEEP=0
 for arg in "$@"; do
-  case "$arg" in --yes) YES=1 ;; --keep-data) KEEP=1 ;; *) echo "Opción desconocida: $arg" >&2; exit 1 ;; esac
+  case "$arg" in --yes) YES=1 ;; --keep-data) KEEP=1 ;; *) echo "Unknown option: $arg" >&2; exit 1 ;; esac
 done
 if [ "$YES" != 1 ]; then
-  echo "Esto borra el servicio, la imagen, los logs y los roles de $APP$([ "$KEEP" = 1 ] || echo ', la tabla y los secretos'). Repite con --yes." >&2
+  echo "This deletes the service, image, logs and roles of $APP$([ "$KEEP" = 1 ] || echo ', the table and the secrets'). Run it again with --yes." >&2
   exit 1
 fi
 
@@ -28,15 +28,15 @@ step() { printf '\n==> %s\n' "$*"; }
 ARN="$(aws ecs describe-services --cluster "$CLUSTER" --services "$APP" \
   --query "services[?status=='ACTIVE'].serviceArn | [0]" --output text 2>/dev/null || true)"
 if [ -n "$ARN" ] && [ "$ARN" != "None" ]; then
-  step "Servicio de Express Mode (y su balanceador)"
+  step "Express Mode service (and its load balancer)"
   aws ecs delete-express-gateway-service --service-arn "$ARN" >/dev/null
   aws ecs wait services-inactive --cluster "$CLUSTER" --services "$APP"
 fi
 
-step "Repositorio de ECR"
+step "ECR repository"
 aws ecr delete-repository --repository-name "$APP" --force >/dev/null 2>&1 || true
 
-step "Grupo de logs"
+step "Log group"
 aws logs delete-log-group --log-group-name "$LOG_GROUP" 2>/dev/null || true
 
 delete_role() {
@@ -50,14 +50,14 @@ delete_role() {
   aws iam delete-role --role-name "$1"
 }
 
-step "Roles de IAM de la tarea"
+step "Task IAM roles"
 delete_role "$APP-execution"
 delete_role "$APP-task"
 
-# Express Mode usa el rol de infraestructura para borrar su balanceador y sus target groups, y lo hace
-# después de que el servicio queda inactivo. Borrar el rol antes podría dejar el balanceador huérfano,
-# cobrando y sin rol que lo borre: se espera hasta 10 minutos a que desaparezcan.
-step "Esperando a que Express Mode borre el balanceador"
+# Express Mode uses the infrastructure role to delete its load balancer and target groups, and does so
+# after the service goes inactive. Deleting the role first could orphan the load balancer, still
+# billing and with no role to delete it: wait up to 10 minutes for them to disappear.
+step "Waiting for Express Mode to delete the load balancer"
 for _ in $(seq 1 20); do
   LEFT_LB="$(aws elbv2 describe-load-balancers --query "LoadBalancers[?starts_with(LoadBalancerName, 'ecs-express-gateway')].LoadBalancerName | [0]" --output text)"
   LEFT_TG="$(aws elbv2 describe-target-groups --query "TargetGroups[?starts_with(TargetGroupName, 'ecs-gateway')].TargetGroupName | [0]" --output text)"
@@ -65,39 +65,39 @@ for _ in $(seq 1 20); do
   sleep 30
 done
 
-step "Rol de infraestructura de Express Mode"
+step "Express Mode infrastructure role"
 if { [ -z "$LEFT_LB" ] || [ "$LEFT_LB" = "None" ]; } && { [ -z "$LEFT_TG" ] || [ "$LEFT_TG" = "None" ]; }; then
   delete_role "$APP-infrastructure"
 else
-  echo "  Se conserva $APP-infrastructure: el balanceador o sus target groups siguen ahí. Repite el teardown en unos minutos."
+  echo "  Keeping $APP-infrastructure: the load balancer or its target groups are still there. Run the teardown again in a few minutes."
 fi
 
 if [ "$KEEP" != 1 ]; then
-  step "Secretos counterpart/*"
+  step "Secrets counterpart/*"
   for s in $(aws secretsmanager list-secrets --filters Key=name,Values=counterpart/ --query 'SecretList[].Name' --output text); do
     aws secretsmanager delete-secret --secret-id "$s" --force-delete-without-recovery >/dev/null
   done
-  step "Tabla $TABLE"
+  step "Table $TABLE"
   if aws dynamodb describe-table --table-name "$TABLE" >/dev/null 2>&1; then
     aws dynamodb delete-table --table-name "$TABLE" >/dev/null
     aws dynamodb wait table-not-exists --table-name "$TABLE"
   fi
 fi
 
-step "Verificación"
+step "Verification"
 LEFT=0
-report() { if [ -n "$2" ] && [ "$2" != "None" ] && [ "$2" != "0" ]; then echo "QUEDA $1: $2"; LEFT=1; else echo "ok   $1"; fi; }
-report "servicio" "$(aws ecs describe-services --cluster "$CLUSTER" --services "$APP" --query "services[?status=='ACTIVE'].serviceName | [0]" --output text 2>/dev/null || true)"
+report() { if [ -n "$2" ] && [ "$2" != "None" ] && [ "$2" != "0" ]; then echo "LEFT $1: $2"; LEFT=1; else echo "ok   $1"; fi; }
+report "service" "$(aws ecs describe-services --cluster "$CLUSTER" --services "$APP" --query "services[?status=='ACTIVE'].serviceName | [0]" --output text 2>/dev/null || true)"
 report "ECR" "$(aws ecr describe-repositories --query "repositories[?repositoryName=='$APP'].repositoryName | [0]" --output text)"
 report "logs" "$(aws logs describe-log-groups --log-group-name-prefix "$LOG_GROUP" --query 'logGroups[0].logGroupName' --output text)"
 report "roles" "$(aws iam list-roles --query "Roles[?starts_with(RoleName, '$APP-')].RoleName | [0]" --output text)"
-# Lo que más cobra: Express Mode borra su balanceador al borrar el último servicio que lo usa.
-report "balanceador" "$(aws elbv2 describe-load-balancers --query "LoadBalancers[?starts_with(LoadBalancerName, 'ecs-express-gateway')].LoadBalancerName | [0]" --output text)"
+# The most expensive part: Express Mode deletes its load balancer when the last service using it is deleted.
+report "load balancer" "$(aws elbv2 describe-load-balancers --query "LoadBalancers[?starts_with(LoadBalancerName, 'ecs-express-gateway')].LoadBalancerName | [0]" --output text)"
 report "target groups" "$(aws elbv2 describe-target-groups --query "TargetGroups[?starts_with(TargetGroupName, 'ecs-gateway')].TargetGroupName | [0]" --output text)"
 if [ "$KEEP" != 1 ]; then
-  report "secretos" "$(aws secretsmanager list-secrets --filters Key=name,Values=counterpart/ --query 'SecretList[0].Name' --output text)"
-  report "tabla" "$(aws dynamodb list-tables --query "TableNames[?@=='$TABLE'] | [0]" --output text)"
+  report "secrets" "$(aws secretsmanager list-secrets --filters Key=name,Values=counterpart/ --query 'SecretList[0].Name' --output text)"
+  report "table" "$(aws dynamodb list-tables --query "TableNames[?@=='$TABLE'] | [0]" --output text)"
 fi
 echo
-echo "Los stacks del bridge se bajan aparte: en cada clon, npm run destroy."
+echo "The bridge stacks are torn down separately: in each clone, npm run destroy."
 exit "$LEFT"

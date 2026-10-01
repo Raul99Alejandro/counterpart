@@ -8,15 +8,15 @@ import { floristDraft, scriptedGenerator } from '../helpers/setup.js';
 
 const broken = () => { const d = floristDraft(); d.profile.closedStage = 'done'; return d; };
 
-describe('generación del borrador con una reparación', () => {
-  it('acepta el primer intento válido', async () => {
+describe('draft generation with one repair', () => {
+  it('accepts the first valid attempt', async () => {
     const generate = scriptedGenerator(floristDraft());
     const outcome = await generateSetup('I run a flower shop', generate);
     expect(outcome.ok).toBe(true);
     expect(generate.attempts).toHaveLength(1);
   });
 
-  it('repara una vez con la lista exacta de errores', async () => {
+  it('repairs once with the exact list of errors', async () => {
     const generate = scriptedGenerator(broken(), floristDraft());
     const outcome = await generateSetup('I run a flower shop', generate);
     expect(outcome.ok).toBe(true);
@@ -24,14 +24,14 @@ describe('generación del borrador con una reparación', () => {
     expect(generate.attempts[1]?.previous?.draft).toEqual(broken());
   });
 
-  it('se rinde tras la reparación y pregunta por lo que faltó', async () => {
+  it('gives up after the repair and asks about what was missing', async () => {
     const generate = scriptedGenerator(broken());
     const outcome = await generateSetup('I run a flower shop', generate);
     expect(outcome).toMatchObject({ ok: false, spoken: STAGES_QUESTION });
     expect(generate.attempts).toHaveLength(2);
   });
 
-  it('un servicio que falla (permisos, throttling) no paga la reparación y lo dice aparte', async () => {
+  it('a failing service (permissions, throttling) does not spend the repair and says so separately', async () => {
     const generate = scriptedGenerator(new Error('AccessDeniedException'));
     const outcome = await generateSetup('I run a flower shop', generate);
     expect(outcome).toMatchObject({ ok: false, spoken: UNAVAILABLE_TEXT });
@@ -39,7 +39,7 @@ describe('generación del borrador con una reparación', () => {
     if (!outcome.ok) expect(outcome.errors[0]).toMatch(/AccessDeniedException/);
   });
 
-  it('una respuesta sin la herramienta sí se repara', async () => {
+  it('a reply without the tool does get repaired', async () => {
     const generate = scriptedGenerator(new NoSetupInReply(), floristDraft());
     const outcome = await generateSetup('I run a flower shop', generate);
     expect(outcome.ok).toBe(true);
@@ -47,13 +47,13 @@ describe('generación del borrador con una reparación', () => {
   });
 });
 
-describe('generador de Nova', () => {
+describe('Nova generator', () => {
   function fakeConverse(reply: Message): ConverseFn & { calls: Parameters<ConverseFn>[0][] } {
     const calls: Parameters<ConverseFn>[0][] = [];
     return Object.assign(async (input: Parameters<ConverseFn>[0]) => { calls.push(input); return reply; }, { calls });
   }
 
-  it('fuerza la herramienta con el esquema derivado de zod y devuelve su entrada', async () => {
+  it('forces the tool with the zod-derived schema and returns its input', async () => {
     const converse = fakeConverse({ role: 'assistant', content: [{ toolUse: { toolUseId: 't1', name: SETUP_TOOL, input: floristDraft() } }] });
     const draft = await novaDraftGenerator(converse)({ description: 'I run a flower shop' });
     expect(draft).toEqual(floristDraft());
@@ -64,7 +64,7 @@ describe('generador de Nova', () => {
     expect(call.messages[0]?.content?.[0]).toEqual({ text: 'I run a flower shop' });
   });
 
-  it('en la reparación le manda los errores y su intento anterior', async () => {
+  it('on repair it sends the errors and its previous attempt', async () => {
     const converse = fakeConverse({ role: 'assistant', content: [{ toolUse: { toolUseId: 't1', name: SETUP_TOOL, input: {} } }] });
     await novaDraftGenerator(converse)({ description: 'I run a flower shop', previous: { draft: { a: 1 }, errors: ['profile: bad'] } });
     const text = (converse.calls[0]!.messages[0]!.content![0] as { text: string }).text;
@@ -72,7 +72,7 @@ describe('generador de Nova', () => {
     expect(text).toContain('{"a":1}');
   });
 
-  it('una respuesta sin la herramienta es un error', async () => {
+  it('a reply without the tool is an error', async () => {
     const converse = fakeConverse({ role: 'assistant', content: [{ text: 'Sure! Here is your setup.' }] });
     await expect(novaDraftGenerator(converse)({ description: 'x' })).rejects.toBeInstanceOf(NoSetupInReply);
   });

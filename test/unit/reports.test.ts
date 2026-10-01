@@ -24,8 +24,8 @@ const item: CatalogItem = {
   taxable: true, stocked: true, onHand: 1, reorderPoint: 5, reorderQty: 12, consumes: {}, version: 1
 };
 
-describe('reportes', () => {
-  it('arma el resumen del día', () => {
+describe('reports', () => {
+  it('builds the daily snapshot', () => {
     const a = order({ id: 'o1', number: 41, stage: 'in_bay', dueOn: '2026-09-15' });
     const b = order({ id: 'o2', number: 42, stage: 'waiting_on_parts' });
     const s = buildSnapshot({
@@ -42,7 +42,7 @@ describe('reportes', () => {
     expect(s.low).toEqual([{ itemId: 'i1', name: 'Oil filter', onHand: 1, reorderPoint: 5 }]);
   });
 
-  it('arma el reporte de ventas con comparación y top de ítems', () => {
+  it('builds the sales report with comparison and top items', () => {
     const paid = order({
       id: 'o1', number: 41,
       lines: [{ itemId: 'i1', name: 'Oil filter', quantity: 2, unitPriceCents: 900, taxable: true, backordered: 0 }]
@@ -56,15 +56,15 @@ describe('reportes', () => {
     expect(r.prevTotalCents).toBe(8000);
     expect(r.count).toBe(2);
     expect(r.averageTicketCents).toBe(7500);
-    // Serie completa del rango, con ceros (spec B2 §5.5.5).
+    // Full series for the range, with zeros (spec B2 §5.5.5).
     expect(r.daily.filter(d => d.cents > 0)).toEqual([{ date: '2026-09-15', cents: 10000 }, { date: '2026-09-16', cents: 5000 }]);
     expect(r.daily).toHaveLength(7);
-    // Dos pagos de la misma orden no deben duplicar sus líneas en el agregado de artículos.
+    // Two payments for the same order must not double its lines in the item totals.
     expect(r.topItems).toEqual([{ name: 'Oil filter', quantity: 2, cents: 1800 }]);
   });
 });
 
-it('el reporte trae todos los días del rango y la serie del periodo anterior alineada', () => {
+it('the report includes every day of the range and the previous period series aligned', () => {
   const pay = (id: string, paidOn: string, amountCents: number): Payment =>
     ({ id, orderId: id, amountCents, method: 'cash', paidAt: `${paidOn}T18:00:00.000Z`, paidOn });
   const report = buildSalesReport({

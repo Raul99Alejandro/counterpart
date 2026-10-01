@@ -12,13 +12,13 @@ import { MemoryStore } from '../../src/store/memory.js';
 import { DEMO_TOKENS, seedAll } from '../../seed/run.js';
 import { runGolden, type Canonicalize, type ConverseFn, type GoldenPhrase } from './runner.js';
 
-// Uso: npm run golden -- <auto-repair|bakery>   (con AWS_PROFILE y acceso a Nova 2 Lite)
-// Siembra un servidor local nuevo, corre las frases en orden y escribe build/golden/<perfil>.json.
+// Usage: npm run golden -- <auto-repair|bakery>   (with AWS_PROFILE and access to Nova 2 Lite)
+// Seeds a fresh local server, runs the phrases in order and writes build/golden/<profile>.json.
 const TOKEN_BY_PROFILE: Record<string, string> = { 'auto-repair': DEMO_TOKENS.shop, bakery: DEMO_TOKENS.bakery };
 const BUSINESS_BY_PROFILE: Record<string, string> = { 'auto-repair': 'shop', bakery: 'bakery' };
 const profile = process.argv[2] ?? '';
 const token = TOKEN_BY_PROFILE[profile];
-if (!token) { console.error('Uso: npm run golden -- <auto-repair|bakery>'); process.exit(1); }
+if (!token) { console.error('Usage: npm run golden -- <auto-repair|bakery>'); process.exit(1); }
 
 const modelId = process.env.GOLDEN_MODEL_ID ?? 'us.amazon.nova-2-lite-v1:0';
 const bedrock = new BedrockRuntimeClient({ region: process.env.AWS_REGION ?? 'us-east-1' });
@@ -33,8 +33,8 @@ const store = new MemoryStore();
 await seedAll(store);
 const startedAt = new Date().toISOString();
 
-// Una referencia a una orden ("the Civic", "work order 41") se compara por la orden a la que la
-// resuelven las tools: órdenes abiertas y las que esta corrida cerró. Si no resuelve a una sola, queda el texto.
+// An order reference ("the Civic", "work order 41") is compared by the order the tools resolve it
+// to: open orders and the ones this run closed. If it does not resolve to exactly one, the text stays.
 const business = (await store.getBusiness(BUSINESS_BY_PROFILE[profile]!))!;
 const toolCtx = { business, profile: await new ProfileCache(store).forBusiness(business), store, now: () => new Date(), newId: (p: string) => p };
 const canonicalize: Canonicalize = async args => {
@@ -62,14 +62,14 @@ await client.close();
 server.close();
 
 for (const r of report.results) {
-  console.log(`${r.pass ? 'ok  ' : 'FAIL'} "${r.say}" → ${r.got ?? '(ninguna)'}${r.pass ? '' : ` (esperada ${r.expected}) ${JSON.stringify(r.gotArgs ?? {})}`}`);
-  if (!r.pass && r.got === null && r.reply) console.log(`       modelo: ${r.reply.slice(0, 200)}`);
+  console.log(`${r.pass ? 'ok  ' : 'FAIL'} "${r.say}" → ${r.got ?? '(none)'}${r.pass ? '' : ` (expected ${r.expected}) ${JSON.stringify(r.gotArgs ?? {})}`}`);
+  if (!r.pass && r.got === null && r.reply) console.log(`       model: ${r.reply.slice(0, 200)}`);
 }
 const ratio = report.passed / report.total;
-console.log(`\n${profile}: ${report.passed}/${report.total} (${Math.round(ratio * 100)}%) · modelo ${modelId} · modo converse`);
+console.log(`\n${profile}: ${report.passed}/${report.total} (${Math.round(ratio * 100)}%) · model ${modelId} · converse mode`);
 
 const outDir = path.join(import.meta.dirname, '..', '..', 'build', 'golden');
 fs.mkdirSync(outDir, { recursive: true });
 fs.writeFileSync(path.join(outDir, `${profile}.json`), JSON.stringify({ modelId, mode: 'converse', ...report }, null, 2));
-// Meta del spec: 18 de 20 o más, es decir, 90%.
+// Spec target: 18 of 20 or better, that is, 90%.
 process.exit(ratio >= 0.9 ? 0 : 1);

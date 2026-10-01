@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-# Build: TypeScript y UIs, con todas las dependencias.
+# Build: TypeScript and UIs, with every dependency.
 FROM node:24-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -12,7 +12,7 @@ COPY infra ./infra
 COPY ui ./ui
 RUN npm run build
 
-# Final: dependencias de producción, código compilado y bundles de UI.
+# Final: production dependencies, compiled code and UI bundles.
 FROM node:24-slim
 ENV NODE_ENV=production PORT=3000 HOST=0.0.0.0
 WORKDIR /app

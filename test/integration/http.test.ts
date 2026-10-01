@@ -8,7 +8,7 @@ import { MemoryStore } from '../../src/store/memory.js';
 import { templateRecord } from '../../src/profiles/load.js';
 import type { Business } from '../../src/domain/types.js';
 
-const TOKEN = 'token-de-prueba';
+const TOKEN = 'test-token';
 const business: Business = {
   id: 'b1', name: 'Oak Street Auto', status: 'active', profileVersion: 1,
   timezone: 'America/Chicago', taxRateBps: 825, nextOrderNumber: 41, version: 1
@@ -33,13 +33,13 @@ beforeAll(async () => {
 afterAll(() => { server.close(); });
 
 describe('HTTP', () => {
-  it('responde el health check', async () => {
+  it('answers the health check', async () => {
     const r = await fetch(`${base}/ping`);
     expect(r.status).toBe(200);
     expect(await r.text()).toBe('ok');
   });
 
-  it('rechaza sin token', async () => {
+  it('rejects without a token', async () => {
     const r = await fetch(`${base}/mcp`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' },
@@ -48,11 +48,11 @@ describe('HTTP', () => {
     expect(r.status).toBe(401);
   });
 
-  it('abre sesión con token válido y expone las nueve tools', async () => {
+  it('opens a session with a valid token and exposes the nine tools', async () => {
     const transport = new StreamableHTTPClientTransport(new URL(`${base}/mcp`), {
-      // new Headers(init?.headers) preserva los headers del SDK (p. ej. accept) sea cual
-      // sea su forma (Headers, objeto plano o tuplas); un simple spread de un Headers pierde
-      // sus entradas porque Headers no expone propiedades propias enumerables.
+      // new Headers(init?.headers) keeps the SDK headers (e.g. accept) whatever their
+      // shape (Headers, plain object or tuples); a simple spread of a Headers loses
+      // its entries because Headers has no enumerable own properties.
       fetch: (input: string | URL | Request, init?: RequestInit) => {
         const headers = new Headers(init?.headers);
         headers.set('authorization', `Bearer ${TOKEN}`);
@@ -69,17 +69,17 @@ describe('HTTP', () => {
     await client.close();
   });
 
-  it('el token de otro negocio no abre la sesión, pero el propio sigue funcionando', async () => {
+  it('another business token does not open the session, but the own token keeps working', async () => {
     const businessB: Business = {
       id: 'b2', name: 'Maple Street Bakery', status: 'active', profileVersion: 1,
       timezone: 'America/Chicago', taxRateBps: 825, nextOrderNumber: 1, version: 1
     };
-    const TOKEN_B = 'token-de-otro-negocio';
+    const TOKEN_B = 'other-business-token';
     await store.putBusiness(businessB);
     await store.putProfile(businessB.id, templateRecord('bakery'));
     await store.putToken(hashToken(TOKEN_B), 'b2');
 
-    // Abrir sesión como el negocio A (b1) y capturar el session id que asigna el servidor.
+    // Open a session as business A (b1) and capture the session id the server assigns.
     const transportA = new StreamableHTTPClientTransport(new URL(`${base}/mcp`), {
       fetch: (input: string | URL | Request, init?: RequestInit) => {
         const headers = new Headers(init?.headers);
@@ -92,8 +92,8 @@ describe('HTTP', () => {
     const sessionId = transportA.sessionId;
     expect(sessionId).toBeTruthy();
 
-    // Un pedido posterior con ese mismo session id pero el token del negocio B: rechazado con 404,
-    // igual que un id desconocido, para no revelar que la sesión existe en otro negocio.
+    // A later request with that same session id but business B's token: rejected with 404,
+    // just like an unknown id, so as not to reveal that the session exists in another business.
     const withOtherToken = await fetch(`${base}/mcp`, {
       method: 'POST',
       headers: {
@@ -106,8 +106,8 @@ describe('HTTP', () => {
     });
     expect(withOtherToken.status).toBe(404);
 
-    // El mismo session id con el token propio del negocio A: la sesión sigue viva, no fue el
-    // session id lo que se rechazó arriba, sino el negocio del token.
+    // The same session id with business A's own token: the session is still alive; it was not the
+    // session id that was rejected above, but the token's business.
     const withOwnToken = await fetch(`${base}/mcp`, {
       method: 'POST',
       headers: {
@@ -124,13 +124,13 @@ describe('HTTP', () => {
     await clientA.close();
   });
 
-  it('un session id inventado recibe 404 para que el cliente abra una sesión nueva', async () => {
+  it('a made-up session id gets 404 so the client opens a new session', async () => {
     const r = await fetch(`${base}/mcp`, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
         accept: 'application/json, text/event-stream',
-        'mcp-session-id': 'sesion-que-no-existe',
+        'mcp-session-id': 'session-that-does-not-exist',
         authorization: `Bearer ${TOKEN}`
       },
       body: JSON.stringify({ jsonrpc: '2.0', id: 300, method: 'tools/list', params: {} })
@@ -138,7 +138,7 @@ describe('HTTP', () => {
     expect(r.status).toBe(404);
     expect(await r.json()).toEqual({ error: 'session not found' });
   });
-  it('sin session id solo acepta initialize y no deja servidores huérfanos', async () => {
+  it('without a session id it only accepts initialize and leaves no orphaned servers', async () => {
     const connect = vi.spyOn(McpServer.prototype, 'connect');
     try {
       const res = await fetch(`${base}/mcp`, {

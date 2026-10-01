@@ -16,16 +16,16 @@ const cfg = storeConfig(process.env);
 const { store, client } = openStore(cfg);
 
 if (cfg.kind === 'memory') {
-  // En memoria nada persiste: el demo se siembra en cada arranque.
+  // Nothing persists in memory: the demo is seeded on every start.
   await seedAll(store);
   await seedLocalBlank(store);
 } else if (cfg.endpoint && client) {
-  // Contra DynamoDB Local la tabla puede no existir todavía. En AWS la crea la infraestructura.
+  // Against DynamoDB Local the table may not exist yet. On AWS the infrastructure creates it.
   await ensureTable(client, cfg.table);
 }
 
 const hosts = hostPolicy(process.env);
-// El asistente de configuración es lo único del servidor que llama a un modelo (spec B2 §3).
+// The setup assistant is the only part of the server that calls a model (spec B2 §3).
 const setupModel = process.env.COUNTERPART_SETUP_MODEL_ID ?? 'us.amazon.nova-2-lite-v1:0';
 const generate = novaDraftGenerator(bedrockConverse(new BedrockRuntimeClient({ region: cfg.region }), setupModel));
 const app = createApp({ store, host, devBusinessId, hosts, generate });

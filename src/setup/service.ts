@@ -7,13 +7,13 @@ import { GENERIC_QUESTION } from './validate.js';
 
 export const DRAFTS_PER_HOUR = 5;
 export const DRAFT_TTL_SECONDS = 24 * 60 * 60;
-/** Un borrador "generating" más viejo que esto quedó huérfano: el proceso se reinició a mitad de la generación. */
+/** A "generating" draft older than this was orphaned: the process restarted mid-generation. */
 export const STALE_GENERATION_MS = 5 * 60 * 1000;
 export const STALE_TEXT = "My last draft didn't finish. Tell me about your business again.";
 const HOUR_MS = 60 * 60 * 1000;
 /**
- * Tiempo mínimo entre el resumen y la activación. Nova llegó a llamar la activación un segundo
- * después de revisar, en el mismo turno y sin que nadie dijera que sí; una persona tarda más.
+ * Minimum time between the summary and activation. Nova once called activation one second
+ * after reviewing, in the same turn and without anyone saying yes; a person takes longer.
  */
 export const MIN_CONFIRM_MS = 4000;
 
@@ -32,18 +32,18 @@ export type ActivateResult =
   | { status: 'needs_confirmation' };
 
 /**
- * El asistente de configuración (spec B2 §5.2–5.3). La generación es asíncrona: el bridge da 6.5 s
- * por turno y un borrador con Nova tarda más (S4). Corre en el proceso, que es uno solo, y deja el
- * resultado en el registro DRAFT. Nada se activa sin `confirm: true`.
+ * The setup assistant (spec B2 §5.2–5.3). Generation is asynchronous: the bridge allows 6.5 s
+ * per turn and a Nova draft takes longer (S4). It runs in-process, which is a single process, and leaves the
+ * result in the DRAFT record. Nothing is activated without `confirm: true`.
  */
 export class SetupService {
   private readonly starts = new Map<string, number[]>();
   private readonly running = new Set<Promise<void>>();
-  /** Generación en curso por negocio: revisar puede esperarla. */
+  /** In-flight generation per business: review can wait for it. */
   private readonly runs = new Map<string, Promise<void>>();
-  /** Arranques en curso por negocio: se marca antes del primer await, para que dos llamadas a la vez no generen dos veces. */
+  /** In-flight starts per business: marked before the first await, so two concurrent calls do not generate twice. */
   private readonly starting = new Set<string>();
-  /** Último resumen listo que se le mostró al usuario, por negocio y borrador. */
+  /** Last ready summary shown to the user, per business and draft. */
   private readonly reviewed = new Map<string, { createdAt: string; at: number }>();
 
   constructor(private readonly deps: { store: Store; generate: DraftGenerator; now: () => Date }) {}
@@ -60,7 +60,7 @@ export class SetupService {
 
   private async begin(bizId: string, description: string): Promise<StartResult> {
     const now = this.deps.now();
-    // Una sesión abierta antes de activar todavía tiene las tools de alta: no se genera nada.
+    // A session opened before activation still has the setup tools: nothing is generated.
     if ((await this.deps.store.getBusiness(bizId))?.status !== 'blank') return 'already_active';
     if ((await this.current(bizId, now))?.state === 'generating') return 'busy';
 
@@ -86,8 +86,8 @@ export class SetupService {
   }
 
   /**
-   * Con `waitMs`, espera a que termine la generación en curso (hasta ese tope) antes de contestar.
-   * Si contesta "todavía no" al instante, el agente vuelve a preguntar en bucle dentro del mismo turno.
+   * With `waitMs`, waits for the in-flight generation to finish (up to that cap) before answering.
+   * If it answers "not yet" right away, the agent keeps asking in a loop within the same turn.
    */
   async review(bizId: string, opts: { waitMs?: number } = {}): Promise<ReviewResult> {
     const run = this.runs.get(bizId);
@@ -96,8 +96,8 @@ export class SetupService {
     if (!draft) return { state: 'none' };
     if (draft.state === 'generating') return { state: 'generating' };
     if (draft.state === 'failed') return { state: 'failed', spoken: draft.error ?? GENERIC_QUESTION };
-    // La primera vez que se muestra este borrador: revisarlo otra vez no reinicia la espera,
-    // o el modelo que revisa antes de activar atraparía a la persona en un bucle.
+    // The first time this draft is shown: reviewing it again does not restart the wait,
+    // or a model that reviews before activating would trap the person in a loop.
     if (this.reviewed.get(bizId)?.createdAt !== draft.createdAt) {
       this.reviewed.set(bizId, { createdAt: draft.createdAt, at: this.deps.now().getTime() });
     }
@@ -113,19 +113,19 @@ export class SetupService {
       await store.deleteDraft(bizId);
       return { status: 'discarded' };
     }
-    // El "sí" tiene que venir de una persona que oyó el resumen: no del modelo en el mismo turno.
+    // The "yes" must come from a person who heard the summary, not from the model in the same turn.
     const seen = this.reviewed.get(bizId);
     if (!seen || seen.createdAt !== draft.createdAt || this.deps.now().getTime() - seen.at < MIN_CONFIRM_MS) {
-      // Un intento rechazado reinicia la espera: reintentar en el mismo turno no la cumple.
-      // Sin revisión previa no se registra nada: el resumen todavía no se mostró.
+      // A rejected attempt restarts the wait: retrying in the same turn does not satisfy it.
+      // Without a prior review nothing is recorded: the summary has not been shown yet.
       if (seen?.createdAt === draft.createdAt) this.reviewed.set(bizId, { ...seen, at: this.deps.now().getTime() });
       return { status: 'needs_confirmation' };
     }
 
     const business = await store.getBusiness(bizId);
     if (!business || business.status !== 'blank') return { status: 'none' };
-    // Nunca una versión ya vista: un reset borra PROFILE con el proceso vivo y la caché de perfiles
-    // (por versión) serviría el perfil del borrador anterior. La hora en ms es creciente y única.
+    // Never a version already seen: a reset deletes PROFILE while the process is alive, and the profile
+    // cache (keyed by version) would serve the previous draft's profile. The time in ms is increasing and unique.
     const previous = (await store.getProfile(bizId))?.version ?? 0;
     const version = Math.max(previous + 1, this.deps.now().getTime());
     const active: Business = { ...business, status: 'active', profileVersion: version };
@@ -140,12 +140,12 @@ export class SetupService {
     return { status: 'activated', business: { ...active, version: active.version + 1 }, profile: draft.profile! };
   }
 
-  /** Espera a que terminen las generaciones en curso. Para pruebas y para un apagado ordenado. */
+  /** Waits for in-flight generations to finish. For tests and for a clean shutdown. */
   async settled(): Promise<void> {
     while (this.running.size > 0) await Promise.all([...this.running]);
   }
 
-  /** El borrador vigente: caducado → null (el TTL de DynamoDB llega tarde); "generating" huérfano → failed. */
+  /** The current draft: expired → null (DynamoDB TTL arrives late); orphaned "generating" → failed. */
   private async current(bizId: string, now: Date): Promise<Draft | null> {
     const draft = await this.deps.store.getDraft(bizId);
     if (!draft || draft.expiresAt * 1000 <= now.getTime()) return null;
@@ -159,7 +159,7 @@ export class SetupService {
     try {
       const outcome = await generateSetup(description, this.deps.generate);
       const latest = await this.deps.store.getDraft(bizId);
-      // Otro borrador lo reemplazó o se descartó mientras se generaba: no se pisa.
+      // Another draft replaced it or it was discarded while generating: do not overwrite.
       if (!latest || latest.createdAt !== createdAt) return;
       if (outcome.ok) {
         await this.deps.store.putDraft(bizId, { ...latest, state: 'ready', profile: outcome.setup.profile, catalog: outcome.setup.items });
@@ -168,13 +168,13 @@ export class SetupService {
         await this.deps.store.putDraft(bizId, { ...latest, state: 'failed', error: outcome.spoken });
       }
     } catch (err) {
-      // Nunca una promesa rechazada sin manejar: el borrador queda "generating" y a los 5 minutos cuenta como huérfano.
+      // Never an unhandled rejected promise: the draft stays "generating" and after 5 minutes counts as orphaned.
       log({ level: 'error', msg: 'setup_crashed', businessId: bizId, error: err instanceof Error ? `${err.name}: ${err.message}` : String(err) });
     }
   }
 }
 
-/** Espera que no retiene el proceso vivo. */
+/** A wait that does not keep the process alive. */
 function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms).unref());
 }

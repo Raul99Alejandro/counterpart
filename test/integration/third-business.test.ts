@@ -12,8 +12,8 @@ import { toolContext } from '../helpers/context.js';
 const NOW = new Date('2026-09-29T15:00:00Z');
 const text = (r: { content: unknown[] }): string => (r.content[0] as { text: string }).text;
 
-describe('un negocio nuevo sin código', () => {
-  it('el paquete bike-shop sirve sus nueve tools con sus propios nombres', async () => {
+describe('a new business with no code', () => {
+  it('the bike-shop package serves its nine tools under its own names', async () => {
     const store = new MemoryStore();
     const pkg = loadPackage(path.join(PACKAGES_DIR, 'bike-shop'));
     await seedPackage(store, pkg, NOW);
@@ -37,12 +37,12 @@ describe('un negocio nuevo sin código', () => {
     expect(text(found)).toContain('Kai Moreno');
   });
 
-  it('crea un negocio en blanco listo para el asistente', async () => {
+  it('creates a blank business ready for the assistant', async () => {
     const store = new MemoryStore();
     const business = await newBlankBusiness(store, { id: 'florist', name: 'Petal and Stem' });
     expect(business).toMatchObject({ status: 'blank', profileVersion: 0, nextOrderNumber: 1, timezone: 'America/Chicago' });
     expect(await store.getProfile('florist')).toBeNull();
-    await expect(newBlankBusiness(store, { id: 'florist', name: 'Again' })).rejects.toThrow(/Ya existe/);
-    await expect(newBlankBusiness(store, { id: 'Petal Stem', name: 'x' })).rejects.toThrow(/no sirve/);
+    await expect(newBlankBusiness(store, { id: 'florist', name: 'Again' })).rejects.toThrow(/already exists/);
+    await expect(newBlankBusiness(store, { id: 'Petal Stem', name: 'x' })).rejects.toThrow(/is invalid/);
   });
 });

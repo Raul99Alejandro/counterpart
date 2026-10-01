@@ -28,7 +28,7 @@ svg { width: 100%; height: auto; }
 svg rect { fill: var(--accent); }
 svg text { fill: var(--muted); font-size: 12px; }
 
-/* Borrador de configuración */
+/* Setup draft */
 .steps { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; padding: 0; margin: 0; counter-reset: step; }
 .steps li { counter-increment: step; padding: 4px 10px; border-radius: 999px; border: 1px solid currentColor; opacity: .85; }
 .steps li::before { content: counter(step) ". "; opacity: .6; }
@@ -39,7 +39,7 @@ td.num, th.num { text-align: right; }
 rect.prev { fill: rgba(127, 127, 127, .35); }
 text.axis { font-size: 11px; fill: currentColor; opacity: .6; }
 
-/* Pantallas grandes (Echo Show, TV): tarjetas y cifras que se leen desde lejos. */
+/* Large screens (Echo Show, TV): cards and figures readable from a distance. */
 @media (min-width: 900px) {
   body { font-size: 17px; }
   main { padding: 26px; gap: 20px; height: 100vh; align-content: stretch; }
@@ -54,7 +54,7 @@ text.axis { font-size: 11px; fill: currentColor; opacity: .6; }
   .fill { border-radius: 7px; }
   .count { font-size: 20px; font-weight: 650; }
 
-  /* Resumen del día: la cifra grande a la izquierda, las etapas a la derecha, pendientes abajo. */
+  /* Daily snapshot: the big figure on the left, the stages on the right, pending items below. */
   body.snapshot main { grid-template-columns: 1fr 1.8fr; grid-template-rows: 1.25fr 1fr; }
   body.snapshot main > section:nth-child(2) { display: flex; flex-direction: column; justify-content: space-evenly; }
   body.snapshot .bar { font-size: 19px; }
@@ -63,7 +63,7 @@ text.axis { font-size: 11px; fill: currentColor; opacity: .6; }
   body.snapshot section.split { grid-column: 1 / -1; grid-template-columns: 1fr 1fr; background: none; border: 0; padding: 0; gap: 20px; }
   body.snapshot section.split > div { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px 24px; }
 
-  /* Ventas: tres cifras arriba, la gráfica y lo más vendido lado a lado. */
+  /* Sales: three figures on top, the chart and best sellers side by side. */
   body.sales main { grid-template-columns: 2fr 1fr; grid-template-rows: auto 1fr; }
   body.sales main > section:nth-child(2) { display: flex; flex-direction: column; min-height: 0; }
   body.sales main > section:nth-child(2) svg { flex: 1 1 0; min-height: 0; width: 100%; height: 100%; }
@@ -71,7 +71,7 @@ text.axis { font-size: 11px; fill: currentColor; opacity: .6; }
   body.sales section.kpis > div { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px 24px; }
   body.sales svg text.axis { font-size: 13px; }
 
-  /* Borrador: quién es y sus pasos a la izquierda, el catálogo en dos columnas a la derecha. */
+  /* Draft: the business and its steps on the left, the catalog in two columns on the right. */
   body.setup main { grid-template-columns: 1fr 1.9fr; grid-template-rows: auto auto 1fr; }
   body.setup main > section:nth-child(4) { grid-column: 2; grid-row: 1 / span 3; }
   body.setup section.kpi .kpi-value { font-size: 34px; }

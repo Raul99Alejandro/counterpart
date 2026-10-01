@@ -6,10 +6,10 @@ import { issueToken, secretsManagerWriter } from '../infra/token.js';
 import { addBusiness, newBlankBusiness } from './business.js';
 import { checkPackage, loadPackage } from './package.js';
 
-// Uso:
-//   npm run business:check -- <carpeta>
-//   npm run business:add -- <carpeta> [--secret] [--reset]
-//   npm run business:new -- <bizId> "<nombre>" [--secret] [--reset]
+// Usage:
+//   npm run business:check -- <folder>
+//   npm run business:add -- <folder> [--secret] [--reset]
+//   npm run business:new -- <bizId> "<name>" [--secret] [--reset]
 const [command, ...args] = process.argv.slice(2);
 const positional = args.filter(a => !a.startsWith('--'));
 
@@ -18,18 +18,18 @@ function fail(message: string): never {
   process.exit(1);
 }
 
-// Un error esperado (negocio repetido, paquete inválido) sale como una línea, sin stack.
+// An expected error (duplicate business, invalid package) prints as one line, without a stack.
 try {
   switch (command) {
     case 'check': {
-      const dir = positional[0] ?? fail('Uso: npm run business:check -- <carpeta>');
+      const dir = positional[0] ?? fail('Usage: npm run business:check -- <folder>');
       const result = checkPackage(dir);
-      if (!result.ok) fail(`El paquete tiene ${result.problems.length} problema(s):\n- ${result.problems.join('\n- ')}`);
-      console.log(`Paquete "${result.pkg.id}" válido: ${result.pkg.items.length} ítems, perfil ${result.pkg.profileSource}, ${result.pkg.demo.customers.length} clientes de demo.`);
+      if (!result.ok) fail(`The package has ${result.problems.length} problem(s):\n- ${result.problems.join('\n- ')}`);
+      console.log(`Package "${result.pkg.id}" is valid: ${result.pkg.items.length} items, profile ${result.pkg.profileSource}, ${result.pkg.demo.customers.length} demo customers.`);
       break;
     }
     case 'add': {
-      const dir = positional[0] ?? fail('Uso: npm run business:add -- <carpeta> [--secret] [--reset]');
+      const dir = positional[0] ?? fail('Usage: npm run business:add -- <folder> [--secret] [--reset]');
       const pkg = loadPackage(dir);
       const { store, client, local, table, region } = openDynamo();
       if (local) await ensureTable(client, table);
@@ -38,14 +38,14 @@ try {
         await clearBusinesses(client, table, [pkg.id]);
       }
       await addBusiness(store, pkg, new Date());
-      console.error(`Negocio "${pkg.id}" sembrado desde ${dir}.`);
-      // Con --reset los tokens ya emitidos siguen valiendo: la tabla no los borra.
+      console.error(`Business "${pkg.id}" seeded from ${dir}.`);
+      // With --reset, tokens already issued stay valid: the table does not delete them.
       if (!args.includes('--reset')) await emitToken(store, pkg.id, args.includes('--secret'), region);
       break;
     }
     case 'new': {
       const [bizId, name] = positional;
-      if (!bizId || !name) fail('Uso: npm run business:new -- <bizId> "<nombre>" [--secret] [--reset]');
+      if (!bizId || !name) fail('Usage: npm run business:new -- <bizId> "<name>" [--secret] [--reset]');
       const { store, client, local, table, region } = openDynamo();
       if (local) await ensureTable(client, table);
       const reset = args.includes('--reset');
@@ -54,12 +54,12 @@ try {
         await clearBusinesses(client, table, [bizId]);
       }
       await newBlankBusiness(store, { id: bizId, name });
-      console.error(`Negocio en blanco "${bizId}" (${name}) creado. Solo expone las tools de alta.`);
+      console.error(`Blank business "${bizId}" (${name}) created. It only exposes the setup tools.`);
       if (!reset) await emitToken(store, bizId, args.includes('--secret'), region);
       break;
     }
     default:
-      fail('Subcomandos: check, add, new');
+      fail('Subcommands: check, add, new');
   }
 } catch (err) {
   fail(err instanceof Error ? err.message : String(err));
@@ -67,14 +67,14 @@ try {
 
 function openDynamo() {
   const cfg = storeConfig(process.env);
-  if (cfg.kind !== 'dynamo') fail('Esta CLI escribe en la tabla: usa COUNTERPART_STORE=dynamo (con DYNAMODB_ENDPOINT para DynamoDB Local).');
+  if (cfg.kind !== 'dynamo') fail('This CLI writes to the table: use COUNTERPART_STORE=dynamo (with DYNAMODB_ENDPOINT for DynamoDB Local).');
   const { store, client } = openStore(cfg);
   return { store, client: client!, local: cfg.endpoint !== undefined, table: cfg.table, region: cfg.region };
 }
 
 function requireRemoteReset(local: boolean, bizId: string): void {
   if (!local && process.env.COUNTERPART_ALLOW_REMOTE_RESET !== '1') {
-    fail(`Sin DYNAMODB_ENDPOINT esto apunta a AWS. Para borrar y volver a crear "${bizId}" en la tabla remota define COUNTERPART_ALLOW_REMOTE_RESET=1.`);
+    fail(`Without DYNAMODB_ENDPOINT this points to AWS. To delete and recreate "${bizId}" in the remote table, set COUNTERPART_ALLOW_REMOTE_RESET=1.`);
   }
 }
 
@@ -82,9 +82,9 @@ async function emitToken(store: Store, bizId: string, toSecret: boolean, region:
   const putSecret = toSecret ? secretsManagerWriter(new SecretsManagerClient({ region })) : undefined;
   const { token, secretName } = await issueToken({ store, putSecret }, bizId);
   if (secretName) {
-    console.error(`Token emitido y guardado en el secreto "${secretName}". En la tabla solo queda su hash.`);
+    console.error(`Token issued and saved in the secret "${secretName}". The table only keeps its hash.`);
   } else {
     console.log(token);
-    console.error('Token emitido. Guárdalo ahora: en la tabla solo queda su hash.');
+    console.error('Token issued. Save it now: the table only keeps its hash.');
   }
 }

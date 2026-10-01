@@ -82,7 +82,7 @@ export const say = {
       + `Closest matches are ${list(suggestions.map(s => s.name))}.`;
   },
 
-  // Choque de versión al escribir: otra llamada modificó el mismo registro primero.
+  // Version clash on write: another call changed the same record first.
   conflict(profile: Profile, orderNumber?: number): string {
     const what = orderNumber !== undefined ? say.orderName(profile, orderNumber) : `the ${profile.nouns.items} list`;
     return `Someone else just updated ${what}. Please try again.`;

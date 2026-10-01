@@ -1,2 +1,2 @@
-# Los scripts de bash fallan con fin de línea CRLF, también en Git Bash.
+# Bash scripts fail with CRLF line endings, in Git Bash too.
 *.sh text eol=lf

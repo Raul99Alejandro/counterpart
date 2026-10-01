@@ -10,11 +10,11 @@ import { ConflictError, type Activation, type Draft, type ProfileRecord, type St
 
 type Row = Record<string, unknown>;
 
-/** Partición de un negocio. `table.ts` la usa para borrar negocios completos. */
+/** A business's partition. `table.ts` uses it to delete whole businesses. */
 export const bizKey = (bizId: string): string => `BIZ#${bizId}`;
 const TRANSACTION_LIMIT = 100;
 
-/** Cliente de DynamoDB. Con `endpoint` apunta a DynamoDB Local y usa credenciales de mentira. */
+/** DynamoDB client. With `endpoint` it points to DynamoDB Local and uses fake credentials. */
 export function dynamoClient(opts: { region: string; endpoint?: string }): DynamoDBClient {
   return new DynamoDBClient({
     region: opts.region,
@@ -24,7 +24,7 @@ export function dynamoClient(opts: { region: string; endpoint?: string }): Dynam
   });
 }
 
-/** Quita las llaves de la tabla para devolver la entidad tal como la usa el dominio. */
+/** Strips the table keys to return the entity as the domain uses it. */
 function strip<T>(row: Row): T {
   const { pk: _pk, sk: _sk, ...entity } = row;
   return entity as T;
@@ -45,7 +45,7 @@ export class DynamoStore implements Store {
     this.doc = DynamoDBDocumentClient.from(client, { marshallOptions: { removeUndefinedValues: true } });
   }
 
-  /** Put con la regla de versiones del contrato: crear siempre, actualizar solo si la versión coincide. */
+  /** Put with the contract's versioning rule: always create, update only if the version matches. */
   private versionedPut(pk: string, sk: string, entity: { version: number }) {
     return {
       TableName: this.table,
@@ -124,7 +124,7 @@ export class DynamoStore implements Store {
       }));
       return out.Attributes!.nextOrderNumber as number;
     } catch (err) {
-      if (err instanceof ConditionalCheckFailedException) throw new Error(`negocio desconocido: ${bizId}`);
+      if (err instanceof ConditionalCheckFailedException) throw new Error(`unknown business: ${bizId}`);
       throw err;
     }
   }
@@ -144,15 +144,15 @@ export class DynamoStore implements Store {
 
   async putItems(bizId: string, items: CatalogItem[]): Promise<void> {
     if (items.length === 0) return;
-    if (items.length > TRANSACTION_LIMIT) throw new Error(`putItems admite hasta ${TRANSACTION_LIMIT} ítems por llamada`);
+    if (items.length > TRANSACTION_LIMIT) throw new Error(`putItems accepts up to ${TRANSACTION_LIMIT} items per call`);
     await this.guarded('items', () => this.doc.send(new TransactWriteCommand({
       TransactItems: items.map(i => ({ Put: this.versionedPut(bizKey(bizId), `ITEM#${i.id}`, i) }))
     })));
   }
 
   async commitOrderWithItems(bizId: string, order: Order, items: CatalogItem[]): Promise<void> {
-    if (items.length + 1 > TRANSACTION_LIMIT) throw new Error('demasiados ítems para una sola transacción');
-    // Una transacción: DynamoDB valida todas las condiciones antes de escribir cualquier registro.
+    if (items.length + 1 > TRANSACTION_LIMIT) throw new Error('too many items for a single transaction');
+    // One transaction: DynamoDB checks every condition before writing any record.
     await this.guarded(`order ${order.id}`, () => this.doc.send(new TransactWriteCommand({
       TransactItems: [
         ...items.map(i => ({ Put: this.versionedPut(bizKey(bizId), `ITEM#${i.id}`, i) })),
@@ -176,7 +176,7 @@ export class DynamoStore implements Store {
   }
 
   listPayments(bizId: string, from: string, to: string): Promise<Payment[]> {
-    // '~' ordena después de '#' y de los dígitos: cubre todos los cobros del último día.
+    // '~' sorts after '#' and the digits: it covers every payment on the last day.
     return this.queryAll<Payment>({
       KeyConditionExpression: 'pk = :pk AND sk BETWEEN :from AND :to',
       ExpressionAttributeValues: { ':pk': bizKey(bizId), ':from': `PAY#${from}`, ':to': `PAY#${to}~` }
@@ -189,8 +189,8 @@ export class DynamoStore implements Store {
 
   async putPurchaseOrders(bizId: string, pos: PurchaseOrder[]): Promise<void> {
     if (pos.length === 0) return;
-    if (pos.length > TRANSACTION_LIMIT) throw new Error(`putPurchaseOrders admite hasta ${TRANSACTION_LIMIT} órdenes por llamada`);
-    // Una transacción: un reorden con varios proveedores queda completo o no queda.
+    if (pos.length > TRANSACTION_LIMIT) throw new Error(`putPurchaseOrders accepts up to ${TRANSACTION_LIMIT} orders per call`);
+    // One transaction: a reorder across several suppliers is written in full or not at all.
     await this.doc.send(new TransactWriteCommand({
       TransactItems: pos.map(po => ({ Put: { TableName: this.table, Item: { ...po, pk: bizKey(bizId), sk: `PO#${po.id}` } } }))
     }));
@@ -217,9 +217,9 @@ export class DynamoStore implements Store {
   }
 
   async activateBusiness(bizId: string, a: Activation): Promise<void> {
-    // META, PROFILE y DRAFT más los ítems: una transacción admite hasta 100 operaciones.
+    // META, PROFILE and DRAFT plus the items: a transaction accepts up to 100 operations.
     if (a.items.length + 3 > TRANSACTION_LIMIT) {
-      throw new Error(`activateBusiness admite hasta ${TRANSACTION_LIMIT - 3} ítems`);
+      throw new Error(`activateBusiness accepts up to ${TRANSACTION_LIMIT - 3} items`);
     }
     const pk = bizKey(bizId);
     await this.guarded('business', () => this.doc.send(new TransactWriteCommand({

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Despliega Counterpart en ECS Express Mode (spec B2 §4.3). Idempotente: correrlo dos veces no duplica nada.
-# Requiere AWS_PROFILE con sesión activa, Docker corriendo y el AWS CLI v2.
+# Deploys Counterpart to ECS Express Mode (spec B2 §4.3). Idempotent: running it twice duplicates nothing.
+# Requires AWS_PROFILE with an active session, Docker running and AWS CLI v2.
 set -euo pipefail
 
-: "${AWS_PROFILE:?Define AWS_PROFILE (por ejemplo, counterpart) y abre sesión con aws sso login}"
+: "${AWS_PROFILE:?Set AWS_PROFILE (for example, counterpart) and sign in with aws sso login}"
 export AWS_REGION="${AWS_REGION:-us-east-1}"
 export AWS_PAGER=""
-# Git Bash convierte los argumentos que parecen rutas (/ecs/counterpart) en rutas de Windows. Se apaga,
-# y las rutas locales van en formato D:/..., que entienden bash, aws, docker y git por igual.
+# Git Bash converts arguments that look like paths (/ecs/counterpart) into Windows paths. That is turned off,
+# and local paths use the D:/... form, which bash, aws, docker and git all understand.
 export MSYS_NO_PATHCONV=1
 native() { if command -v cygpath >/dev/null 2>&1; then cygpath -m "$1"; else printf '%s' "$1"; fi; }
 
@@ -27,14 +27,14 @@ if [ -n "$(git -C "$ROOT" status --porcelain)" ]; then TAG="$TAG-dirty"; fi
 step() { printf '\n==> %s\n' "$*"; }
 
 step "ECS: cluster $CLUSTER"
-# Una cuenta nueva puede no tenerlo. create-cluster sobre uno existente lo devuelve sin cambios; un cluster no cuesta.
+# A new account may not have one. create-cluster on an existing one returns it unchanged; a cluster costs nothing.
 aws ecs create-cluster --cluster-name "$CLUSTER" >/dev/null
 
-step "ECR: repositorio $APP"
+step "ECR: repository $APP"
 aws ecr describe-repositories --repository-names "$APP" >/dev/null 2>&1 \
   || aws ecr create-repository --repository-name "$APP" --image-scanning-configuration scanOnPush=true >/dev/null
 
-step "DynamoDB: tabla $TABLE"
+step "DynamoDB: table $TABLE"
 if ! aws dynamodb describe-table --table-name "$TABLE" >/dev/null 2>&1; then
   aws dynamodb create-table --table-name "$TABLE" --billing-mode PAY_PER_REQUEST \
     --attribute-definitions AttributeName=pk,AttributeType=S AttributeName=sk,AttributeType=S \
@@ -46,11 +46,11 @@ if [ "$TTL_STATUS" = "DISABLED" ]; then
   aws dynamodb update-time-to-live --table-name "$TABLE" --time-to-live-specification Enabled=true,AttributeName=expiresAt >/dev/null
 fi
 
-step "CloudWatch Logs: $LOG_GROUP, 14 días"
+step "CloudWatch Logs: $LOG_GROUP, 14 days"
 aws logs create-log-group --log-group-name "$LOG_GROUP" 2>/dev/null || true
 aws logs put-retention-policy --log-group-name "$LOG_GROUP" --retention-in-days 14
 
-ensure_role() { # nombre, archivo de confianza
+ensure_role() { # name, trust policy file
   aws iam get-role --role-name "$1" >/dev/null 2>&1 \
     || aws iam create-role --role-name "$1" --assume-role-policy-document "file://$HERE/iam/$2" >/dev/null
 }
@@ -65,25 +65,25 @@ sed -e "s/__ACCOUNT__/$ACCOUNT/g" -e "s/__REGION__/$AWS_REGION/g" "$HERE/iam/tas
 aws iam put-role-policy --role-name "$APP-task" --policy-name "$APP-task" --policy-document "file://$POLICY_FILE"
 rm -f "$POLICY_FILE"
 ensure_role "$APP-infrastructure" ecs-trust.json
-# El CLI aplica --query página por página: sale un "None" por cada página sin coincidencia.
+# The CLI applies --query page by page: it prints a "None" for each page without a match.
 INFRA_POLICY="$(aws iam list-policies --scope AWS \
   --query "Policies[?contains(PolicyName, 'ExpressGateway')].Arn" --output text | tr '\t' '\n' | grep '^arn:' | head -1 || true)"
 if [ -z "$INFRA_POLICY" ]; then
-  echo "No encontré la política administrada de Express Mode (nombre con 'ExpressGateway')." >&2; exit 1
+  echo "Could not find the Express Mode managed policy (name containing 'ExpressGateway')." >&2; exit 1
 fi
 aws iam attach-role-policy --role-name "$APP-infrastructure" --policy-arn "$INFRA_POLICY"
 ROLE_ARN() { aws iam get-role --role-name "$1" --query Role.Arn --output text; }
 EXECUTION_ARN="$(ROLE_ARN "$APP-execution")"
 TASK_ARN="$(ROLE_ARN "$APP-task")"
 INFRA_ARN="$(ROLE_ARN "$APP-infrastructure")"
-sleep 10 # IAM tarda unos segundos en propagar un rol recién creado
+sleep 10 # IAM takes a few seconds to propagate a newly created role
 
-step "Imagen: $APP:$TAG"
+step "Image: $APP:$TAG"
 aws ecr get-login-password | docker login --username AWS --password-stdin "$REGISTRY" >/dev/null
 docker build --platform linux/amd64 -t "$IMAGE_REPO:$TAG" "$ROOT"
 docker push "$IMAGE_REPO:$TAG" >/dev/null
 
-container_json() { # hosts permitidos
+container_json() { # allowed hosts
   cat <<JSON
 {
   "image": "$IMAGE_REPO:$TAG",
@@ -99,14 +99,14 @@ container_json() { # hosts permitidos
 JSON
 }
 
-# El waiter del CLI se rinde a los 10 minutos, y un despliegue de Express Mode (canario más tiempo de
-# observación) puede tardar más. Hasta 3 esperas seguidas antes de darlo por fallido.
+# The CLI waiter gives up after 10 minutes, and an Express Mode deployment (canary plus bake
+# time) can take longer. Up to 3 waits in a row before calling it failed.
 wait_stable() {
   for _ in 1 2 3; do
     if aws ecs wait services-stable --cluster "$CLUSTER" --services "$APP" 2>/dev/null; then return 0; fi
-    echo "  El servicio sigue desplegando; espero otros 10 minutos."
+    echo "  The service is still deploying; waiting another 10 minutes."
   done
-  echo "El servicio no quedó estable en 30 minutos. Revisa: aws ecs describe-services --cluster $CLUSTER --services $APP" >&2
+  echo "The service did not become stable in 30 minutes. Check: aws ecs describe-services --cluster $CLUSTER --services $APP" >&2
   return 1
 }
 
@@ -123,7 +123,7 @@ endpoint_host() {
 
 ARN="$(service_arn)"
 if [ -z "$ARN" ] || [ "$ARN" = "None" ]; then
-  step "ECS Express Mode: crear el servicio (primera vez, /mcp cerrado hasta conocer el hostname)"
+  step "ECS Express Mode: create the service (first time, /mcp closed until the hostname is known)"
   ARN="$(aws ecs create-express-gateway-service \
     --service-name "$APP" --cluster "$CLUSTER" \
     --execution-role-arn "$EXECUTION_ARN" --task-role-arn "$TASK_ARN" --infrastructure-role-arn "$INFRA_ARN" \
@@ -135,7 +135,7 @@ if [ -z "$ARN" ] || [ "$ARN" = "None" ]; then
 fi
 
 HOST="$(endpoint_host "$ARN")"
-if [ -z "$HOST" ] || [ "$HOST" = "None" ]; then echo "El servicio no reporta endpoint público todavía." >&2; exit 1; fi
+if [ -z "$HOST" ] || [ "$HOST" = "None" ]; then echo "The service does not report a public endpoint yet." >&2; exit 1; fi
 
 update_service() {
   aws ecs update-express-gateway-service --service-arn "$ARN" \
@@ -150,24 +150,24 @@ mcp_status() {
   curl -s -o /dev/null -w '%{http_code}' -X POST "https://$HOST/mcp" -H 'content-type: application/json' -d '{}' || true
 }
 
-step "ECS Express Mode: imagen $TAG con Host permitido $HOST"
+step "ECS Express Mode: image $TAG with allowed Host $HOST"
 update_service
 
-# Express Mode puede revertir una actualización que llega mientras su despliegue anterior sigue
-# moviendo tráfico ("found 2 target groups which are serving traffic"), y el servicio queda estable
-# con la revisión vieja. La prueba real: /mcp debe pedir token (401), no seguir cerrado (503).
-step "Verificación: /mcp pide token"
+# Express Mode can roll back an update that arrives while its previous deployment is still
+# shifting traffic ("found 2 target groups which are serving traffic"), and the service settles
+# on the old revision. The real test: /mcp must ask for a token (401), not stay closed (503).
+step "Verification: /mcp asks for a token"
 for attempt in 1 2 3; do
   CODE="$(mcp_status)"
   if [ "$CODE" = 401 ]; then break; fi
-  echo "  /mcp respondió $CODE; reintento la actualización en 60 s ($attempt/3)."
+  echo "  /mcp answered $CODE; retrying the update in 60 s ($attempt/3)."
   sleep 60
   update_service
 done
 if [ "$(mcp_status)" != 401 ]; then
-  echo "/mcp no quedó abierto con el hostname permitido. Revisa los eventos: aws ecs describe-services --cluster $CLUSTER --services $APP" >&2
+  echo "/mcp did not open with the allowed hostname. Check the events: aws ecs describe-services --cluster $CLUSTER --services $APP" >&2
   exit 1
 fi
 
-step "Listo"
+step "Done"
 echo "https://$HOST/mcp"

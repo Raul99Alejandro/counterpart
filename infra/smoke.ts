@@ -1,16 +1,16 @@
 import { GetSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
 import { runSmoke } from './smoke-checks.js';
 
-// Uso:
-//   npm run smoke -- <url del /mcp> --secret counterpart/shop/token [--other-secret counterpart/bakery/token]
-//   SMOKE_TOKEN=... [SMOKE_OTHER_TOKEN=...] npm run smoke -- <url del /mcp>     (local)
-// Los tokens nunca van como argumento: se verían en la lista de procesos y en el historial.
+// Usage:
+//   npm run smoke -- <url of /mcp> --secret counterpart/shop/token [--other-secret counterpart/bakery/token]
+//   SMOKE_TOKEN=... [SMOKE_OTHER_TOKEN=...] npm run smoke -- <url of /mcp>     (local)
+// Tokens are never passed as arguments: they would show in the process list and the shell history.
 const args = process.argv.slice(2);
 const flag = (name: string) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : undefined; };
 const flagValues = new Set([flag('--secret'), flag('--other-secret')]);
 const url = args.find(a => !a.startsWith('--') && !flagValues.has(a));
 if (!url) {
-  console.error('Uso: npm run smoke -- <url del /mcp> [--secret <nombre>] [--other-secret <nombre>]');
+  console.error('Usage: npm run smoke -- <url of /mcp> [--secret <name>] [--other-secret <name>]');
   process.exit(1);
 }
 
@@ -24,7 +24,7 @@ const read = async (name: string | undefined, fallback: string | undefined): Pro
 const token = await read(flag('--secret'), process.env.SMOKE_TOKEN);
 const otherToken = await read(flag('--other-secret'), process.env.SMOKE_OTHER_TOKEN);
 if (!token) {
-  console.error('Falta el token: --secret <nombre> o SMOKE_TOKEN.');
+  console.error('Missing token: --secret <name> or SMOKE_TOKEN.');
   process.exit(1);
 }
 

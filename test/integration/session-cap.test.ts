@@ -7,7 +7,7 @@ import { MemoryStore } from '../../src/store/memory.js';
 import { templateRecord } from '../../src/profiles/load.js';
 import type { Business } from '../../src/domain/types.js';
 
-const TOKEN = 'token-tope';
+const TOKEN = 'token-cap';
 const business: Business = {
   id: 'b1', name: 'Oak Street Auto', status: 'active', profileVersion: 1,
   timezone: 'America/Chicago', taxRateBps: 825, nextOrderNumber: 41, version: 1
@@ -39,8 +39,8 @@ async function initialize(): Promise<Response> {
   });
 }
 
-describe('tope de sesiones por negocio', () => {
-  it('rechaza con 429 la sesión que pasa del tope y acepta otra cuando una se cierra', async () => {
+describe('session cap per business', () => {
+  it('rejects the session over the cap with 429 and accepts another once one closes', async () => {
     const first = await initialize();
     const second = await initialize();
     expect([first.status, second.status]).toEqual([200, 200]);
@@ -50,7 +50,7 @@ describe('tope de sesiones por negocio', () => {
     const third = await initialize();
     expect(third.status).toBe(429);
 
-    // Cerrar una sesión con DELETE libera su cupo.
+    // Closing a session with DELETE frees its slot.
     const closing = await fetch(`${base}/mcp`, {
       method: 'DELETE', headers: { ...headers, 'mcp-session-id': first.headers.get('mcp-session-id')! }
     });
