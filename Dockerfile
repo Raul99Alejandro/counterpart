@@ -20,6 +20,8 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/build/ui ./build/ui
+# The Agent Skill: the demo agent reads it as its instructions.
+COPY skills ./skills
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { createMcpExpressApp, hostHeaderValidation } from '@modelcontextprotocol/express';
 import { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node';
 import { isInitializeRequest, McpServer } from '@modelcontextprotocol/server';
+import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
 import type { Express, NextFunction, Request, Response } from 'express';
 import { ProfileCache } from '../profiles/cache.js';
 import type { Profile } from '../profiles/schema.js';
@@ -17,6 +18,7 @@ import { Sessions } from './sessions.js';
 import { log } from '../log.js';
 import { currentRequest, withRequest, type RequestContext } from './request-context.js';
 import type { HostPolicy } from './hosts.js';
+import { demoRouter, type DemoDeps } from '../demo/routes.js';
 
 const IDLE_MS = 30 * 60 * 1000;
 
@@ -27,6 +29,8 @@ export const MAX_SESSIONS_PER_BUSINESS = 10;
 export function createApp(deps: {
   store: Store; devBusinessId?: string; host: string; hosts?: HostPolicy; maxSessionsPerBusiness?: number;
   generate?: DraftGenerator; now?: () => Date;
+  /** The judges' demo at /demo; off unless given. */
+  demo?: DemoDeps;
 }): Express {
   if (deps.devBusinessId && deps.host !== '127.0.0.1') {
     throw new Error('COUNTERPART_DEV_BUSINESS is only allowed when listening on 127.0.0.1');
@@ -63,6 +67,19 @@ export function createApp(deps: {
       }
     });
   }
+  /** The same server a /mcp session gets, over an in-memory transport: real MCP without a loopback request. */
+  async function openInProcess(business: Business): Promise<{ client: Client; close: () => Promise<void> }> {
+    const server = new McpServer({ name: 'counterpart', version: '0.1.0' });
+    await registerFor(server, business, { status: business.status });
+    const [clientEnd, serverEnd] = InMemoryTransport.createLinkedPair();
+    const client = new Client({ name: 'counterpart-demo', version: '0.1.0' });
+    await server.server.connect(serverEnd);
+    await client.connect(clientEnd);
+    return { client, close: async () => { await client.close(); await server.close(); } };
+  }
+
+  if (deps.demo) app.use('/demo', demoRouter({ ...deps.demo, store: deps.store, now, openInProcess }));
+
   const sweeper = setInterval(() => sessions.sweep(Date.now(), IDLE_MS), 60_000);
   sweeper.unref();
 

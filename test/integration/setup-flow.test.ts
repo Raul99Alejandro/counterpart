@@ -128,7 +128,9 @@ describe('setup assistant over MCP', () => {
     const client = await connect('token-json');
     const started = await client.callTool({ name: 'set_up_my_business', arguments: { description: 'I run a flower shop' } });
     expect((started.structuredContent as { message: string }).message).toBe(text(started));
-    expect(text(started)).toMatch(/Don't check on it yet/);
+    // The spoken text is for the person; the instruction not to poll goes to the model in `next`.
+    expect(text(started)).toBe("I'm drafting your setup. Ask me what I came up with in about twenty seconds.");
+    expect((started.structuredContent as { next: string }).next).toMatch(/Do not call review_business_setup/);
     const activated = await client.callTool({ name: 'activate_business_setup', arguments: { confirm: true } });
     expect((activated.structuredContent as { message: string }).message).toBe(text(activated));
     await settled();

@@ -6,6 +6,7 @@ import { log } from './log.js';
 import { openStore, storeConfig } from './store/from-env.js';
 import { ensureTable } from './store/table.js';
 import { bedrockConverse, novaDraftGenerator } from './setup/generate.js';
+import { agentConverse } from './demo/agent.js';
 import { seedAll, seedLocalBlank } from '../seed/run.js';
 
 const port = Number(process.env.PORT ?? 3000);
@@ -27,8 +28,11 @@ if (cfg.kind === 'memory') {
 const hosts = hostPolicy(process.env);
 // The setup assistant is the only part of the server that calls a model (spec B2 §3).
 const setupModel = process.env.COUNTERPART_SETUP_MODEL_ID ?? 'us.amazon.nova-2-lite-v1:0';
-const generate = novaDraftGenerator(bedrockConverse(new BedrockRuntimeClient({ region: cfg.region }), setupModel));
-const app = createApp({ store, host, devBusinessId, hosts, generate });
+const bedrock = new BedrockRuntimeClient({ region: cfg.region });
+const generate = novaDraftGenerator(bedrockConverse(bedrock, setupModel));
+// The judges' demo at /demo: a Nova agent stands in for the Alexa+ orchestrator (docs: demo-for-judges).
+const demo = process.env.COUNTERPART_DEMO === '1' ? { converse: agentConverse(bedrock, setupModel) } : undefined;
+const app = createApp({ store, host, devBusinessId, hosts, generate, demo });
 const httpServer = app.listen(port, host, () => {
   log({ level: 'info', msg: 'listening', port, host, store: cfg.kind, hosts: hosts.kind });
 });

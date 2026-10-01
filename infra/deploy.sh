@@ -93,7 +93,8 @@ container_json() { # allowed hosts
     { "name": "COUNTERPART_STORE", "value": "dynamo" },
     { "name": "DYNAMODB_TABLE", "value": "$TABLE" },
     { "name": "AWS_REGION", "value": "$AWS_REGION" },
-    { "name": "COUNTERPART_ALLOWED_HOSTS", "value": "$1" }
+    { "name": "COUNTERPART_ALLOWED_HOSTS", "value": "$1" },
+    { "name": "COUNTERPART_DEMO", "value": "${COUNTERPART_DEMO:-1}" }
   ]
 }
 JSON

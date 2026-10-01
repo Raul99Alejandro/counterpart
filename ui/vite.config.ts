@@ -2,10 +2,11 @@ import path from 'node:path';
 import { defineConfig } from 'vite';
 import { viteSingleFile } from 'vite-plugin-singlefile';
 
-// One UI per run: `UI_NAME=snapshot`, `UI_NAME=sales-report` or `UI_NAME=setup`.
+// One UI per run: `UI_NAME=snapshot`, `sales-report` or `setup` (MCP Apps), or `demo` (the judges' page).
+const NAMES = ['snapshot', 'sales-report', 'setup', 'demo'];
 const name = process.env.UI_NAME;
-if (name !== 'snapshot' && name !== 'sales-report' && name !== 'setup') {
-  throw new Error('UI_NAME must be "snapshot", "sales-report" or "setup"');
+if (!name || !NAMES.includes(name)) {
+  throw new Error(`UI_NAME must be one of: ${NAMES.join(', ')}`);
 }
 
 export default defineConfig({

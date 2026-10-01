@@ -22,11 +22,14 @@ export interface SetupToolContext {
 const [SET_UP, REVIEW, ACTIVATE] = SETUP_TOOL_NAMES;
 
 const START_TEXT: Record<StartResult, string> = {
-  started: "I'm drafting your setup. Don't check on it yet: tell the user to ask you what you came up with in about twenty seconds.",
-  busy: "I'm still working on your last description. Don't check on it yet: tell the user to ask again in about twenty seconds.",
+  started: "I'm drafting your setup. Ask me what I came up with in about twenty seconds.",
+  busy: "I'm still working on your last description. Ask me again in about twenty seconds.",
   limited: "That's a lot of drafts in one hour. Give me a little while before trying again.",
   already_active: 'Your business is already set up. Open me again to use it.'
 };
+
+/** For the model, not the person: the draft takes longer than a turn, and polling in a loop breaks the turn (friction log #20). */
+const DONT_POLL = 'End the turn now. Do not call review_business_setup until the user asks what you came up with.';
 
 /** How long review waits for an in-flight draft. The bridge lets a tool keep running past the turn. */
 export const REVIEW_WAIT_MS = 20_000;
@@ -72,12 +75,15 @@ export function registerSetupTools(server: McpServer, ctx: SetupToolContext): Re
         description: z.string().min(3).describe('What the business does and sells, and the steps an order goes through, in the user\'s words.')
       }),
       // The bridge passes Nova the JSON, not the text: the phrase goes here too.
-      outputSchema: z.object({ status: z.enum(['started', 'busy', 'limited', 'already_active']), message: z.string() }),
+      outputSchema: z.object({
+        status: z.enum(['started', 'busy', 'limited', 'already_active']), message: z.string(), next: z.string().optional()
+      }),
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false }
     },
     guard(async ({ description }: { description: string }) => {
       const status = await ctx.setup.start(bizId, description);
-      return ok(START_TEXT[status], { status, message: START_TEXT[status] });
+      const next = status === 'started' || status === 'busy' ? { next: DONT_POLL } : {};
+      return ok(START_TEXT[status], { status, message: START_TEXT[status], ...next });
     })
   );
 

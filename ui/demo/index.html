@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="description" content="Try Counterpart by voice: a simulated Alexa+ experience that runs a small business's orders through Counterpart's real MCP tools." />
+    <title>Counterpart demo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <header class="masthead">
+      <p class="brand"><span class="brand-mark" aria-hidden="true"></span>Counterpart</p>
+      <p class="disclaimer">Simulated Alexa+ experience — an Amazon Nova 2 Lite agent on Bedrock plays the Alexa+ orchestrator and calls Counterpart's real MCP tools.</p>
+    </header>
+
+    <main class="layout">
+      <section class="stage-col" aria-label="Device">
+        <nav class="switcher" aria-label="Choose a business">
+          <div role="tablist" id="tabs"></div>
+        </nav>
+
+        <div class="device">
+          <div class="bezel">
+            <div class="screen" id="screen" data-state="idle">
+              <div class="statusbar">
+                <span id="screen-business">Counterpart</span>
+                <span id="clock" aria-hidden="true"></span>
+              </div>
+
+              <div class="app-area" id="app-area" hidden></div>
+
+              <div class="exchange" id="exchange">
+                <p class="heard" id="heard"></p>
+                <p class="reply" id="reply" aria-live="polite" aria-atomic="true"></p>
+              </div>
+
+              <div class="overlay" id="overlay" hidden>
+                <div class="overlay-body">
+                  <span class="spinner" id="overlay-spinner" aria-hidden="true"></span>
+                  <p id="overlay-text" role="status"></p>
+                  <button type="button" class="btn" id="overlay-action" hidden></button>
+                </div>
+              </div>
+
+              <div class="lightbar" aria-hidden="true"></div>
+            </div>
+          </div>
+          <div class="fabric" aria-hidden="true"></div>
+        </div>
+
+        <form class="composer" id="composer" autocomplete="off">
+          <button type="button" class="mic" id="mic" aria-label="Talk: tap or hold, then speak" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z"/></svg>
+          </button>
+          <label class="visually-hidden" for="text">Type what you'd say</label>
+          <input id="text" name="text" type="text" maxlength="300" placeholder="Type what you'd say…" enterkeyhint="send" />
+          <button type="submit" class="btn send" id="send">Send</button>
+          <button type="button" class="icon-btn" id="mute" aria-pressed="false" aria-label="Mute spoken replies" title="Mute spoken replies">
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="on"><path d="M4 9v6h4l5 4V5L8 9H4Zm12.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4ZM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6Z"/></svg>
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="off"><path d="M4 9v6h4l5 4V5L8 9H4Zm16.6 6.2-1.4 1.4L17 14.4l-2.2 2.2-1.4-1.4 2.2-2.2-2.2-2.2 1.4-1.4 2.2 2.2 2.2-2.2 1.4 1.4-2.2 2.2 2.2 2.2Z"/></svg>
+          </button>
+        </form>
+        <p class="hint" id="hint"></p>
+
+        <div class="chips" id="chips" aria-label="Try saying"></div>
+      </section>
+
+      <aside class="side-col">
+        <section class="panel" aria-labelledby="log-title">
+          <h2 id="log-title">Conversation</h2>
+          <ol class="log" id="log"></ol>
+        </section>
+
+        <section class="panel" aria-labelledby="traffic-title">
+          <h2 id="traffic-title">MCP traffic</h2>
+          <p class="panel-note">Tool calls the agent made to Counterpart, newest first.</p>
+          <ol class="traffic" id="traffic"></ol>
+        </section>
+
+        <details class="panel inspector" id="inspector">
+          <summary>Use these tokens with the MCP Inspector</summary>
+          <div class="inspector-body">
+            <dl class="kv">
+              <dt>URL</dt><dd><code id="mcp-url"></code></dd>
+              <dt>Transport</dt><dd>Streamable HTTP</dd>
+              <dt>Header</dt><dd><code>Authorization: Bearer &lt;token&gt;</code></dd>
+              <dt>Expires</dt><dd id="expires"></dd>
+            </dl>
+            <ul class="tokens" id="tokens"></ul>
+            <p class="panel-note">Each token opens one business in your sandbox. Nobody else sees your data.</p>
+          </div>
+        </details>
+      </aside>
+    </main>
+
+    <footer class="footer">
+      <a href="https://github.com/Raul99Alejandro/counterpart" target="_blank" rel="noopener">Source on GitHub</a>
+      <a href="https://youtu.be/5FErlAKw83U" target="_blank" rel="noopener">Watch the demo video</a>
+    </footer>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
