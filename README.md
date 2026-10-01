@@ -4,6 +4,8 @@
 
 Counterpart is a self-hosted [MCP](https://modelcontextprotocol.io) server that lets Alexa+ run a small business's day by voice: open a job, move it along, add parts or labor, check and reorder stock, take payment, and hear how the day is going. Built for the Alexa+ track of *Build, Ship, Shape: Amazon Developer Hackathon* (2026).
 
+**Demo video (2:37): [watch on YouTube](https://youtu.be/wUaltrp2b34).** An auto shop run by voice, the same answers as MCP Apps on a screen, and a new flower shop set up just by describing it, all on the real system deployed on AWS.
+
 ## The idea
 
 A mechanic under a car and a baker with frosting on their hands have the same problem: the system that runs their shop is on a computer across the room. Their businesses look nothing alike, but they share a shape — orders that move through stages, items that get used up, payments at the end.
