@@ -69,14 +69,14 @@ text.axis { font-size: 11px; fill: currentColor; opacity: .6; }
   .count { font-size: 20px; font-weight: 650; }
 
   /* Order cards on a large screen: big enough to read across the room. */
-  body.orders main { align-content: start; }
-  body.orders .orders-head h1 { font-size: 26px; }
+  body.orders main { align-content: center; gap: 28px; }
+  body.orders .orders-head h1 { font-size: 34px; }
   body.orders .carousel { grid-auto-columns: minmax(260px, 1fr); gap: 18px; }
-  body.orders .order-card { padding: 20px 22px; gap: 10px; border-radius: 16px; }
-  body.orders .order-card h2 { font-size: 24px; }
-  body.orders .order-customer { font-size: 18px; }
+  body.orders .order-card { padding: 28px 30px; gap: 14px; border-radius: 18px; min-height: 260px; }
+  body.orders .order-card h2 { font-size: 34px; }
+  body.orders .order-customer { font-size: 22px; }
   body.orders .stage-pill { font-size: 15px; padding: 4px 12px; }
-  body.orders .order-total { font-size: 22px; }
+  body.orders .order-total { font-size: 30px; }
 
   /* Daily snapshot: the big figure on the left, the stages on the right, pending items below. */
   body.snapshot main { grid-template-columns: 1fr 1.8fr; grid-template-rows: 1.25fr 1fr; }
