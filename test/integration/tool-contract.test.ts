@@ -90,6 +90,23 @@ describe('spoken sentence in the data', () => {
   });
 });
 
+describe('server instructions', () => {
+  // Hosts put them in the agent's prompt (the Alexa bridge does): the Agent Skill's guidance reaches any agent.
+  it('announces the Agent Skill as its instructions when a client connects', async () => {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${DEMO_TOKENS.shop}`, 'content-type': 'application/json', accept: 'application/json, text/event-stream' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 't', version: '0' } } })
+    });
+    const body = await res.text();
+    const json = body.startsWith('{') ? body : body.split('\n').find(l => l.startsWith('data:'))!.slice(5);
+    const instructions = (JSON.parse(json) as { result: { instructions?: string } }).result.instructions ?? '';
+    expect(instructions).toContain('Never ask for an order number');
+    expect(instructions).toContain('confirm: true');
+    expect(instructions).not.toContain('name: counterpart');
+  });
+});
+
 describe('protocol version', () => {
   it('answers 2025-11-25 when asked for it', async () => {
     expect(await negotiate('2025-11-25')).toBe('2025-11-25');

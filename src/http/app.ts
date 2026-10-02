@@ -19,6 +19,7 @@ import { log } from '../log.js';
 import { currentRequest, withRequest, type RequestContext } from './request-context.js';
 import type { HostPolicy } from './hosts.js';
 import { demoRouter, type DemoDeps } from '../demo/routes.js';
+import { skillInstructions } from '../skill.js';
 
 const IDLE_MS = 30 * 60 * 1000;
 
@@ -69,7 +70,7 @@ export function createApp(deps: {
   }
   /** The same server a /mcp session gets, over an in-memory transport: real MCP without a loopback request. */
   async function openInProcess(business: Business): Promise<{ client: Client; close: () => Promise<void> }> {
-    const server = new McpServer({ name: 'counterpart', version: '0.1.0' });
+    const server = new McpServer({ name: 'counterpart', version: '0.1.0' }, { instructions: skillInstructions() });
     await registerFor(server, business, { status: business.status });
     const [clientEnd, serverEnd] = InMemoryTransport.createLinkedPair();
     const client = new Client({ name: 'counterpart-demo', version: '0.1.0' });
@@ -155,7 +156,7 @@ export function createApp(deps: {
         return;
       }
 
-      const server = new McpServer({ name: 'counterpart', version: '0.1.0' });
+      const server = new McpServer({ name: 'counterpart', version: '0.1.0' }, { instructions: skillInstructions() });
       const state = { status: business.status };
       await registerFor(server, business, state);
 

@@ -1,11 +1,9 @@
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
 import {
   ConverseCommand, type BedrockRuntimeClient, type ContentBlock, type Message, type Tool, type ToolConfiguration
 } from '@aws-sdk/client-bedrock-runtime';
 import type { Client } from '@modelcontextprotocol/client';
 import type { ConverseFn } from '../setup/generate.js';
-import { packageRoot } from '../tools/ui-assets.js';
+import { skillInstructions } from '../skill.js';
 
 /** Model calls per turn: pick a tool, read its result, maybe one more tool, then the reply. */
 const MAX_MODEL_CALLS = 5;
@@ -23,7 +21,6 @@ export interface TurnResult {
   ui?: { resourceUri: string; toolName: string; toolInput: Record<string, unknown>; toolResult: Record<string, unknown> };
 }
 
-const SKILL_PATH = path.join(packageRoot(), 'skills', 'counterpart', 'SKILL.md');
 const DEMO_NOTE = '\n\n## In this demo\n\nYou are Alexa on an Echo Show, talking with the owner of the business the tools belong to. '
   + 'Your words are spoken aloud: one or two short sentences, no lists, no markdown. '
   + 'Act only through the tools: never say an order was opened, changed, closed or reordered unless a tool did it in this turn. '
@@ -33,7 +30,7 @@ let cachedPrompt: string | undefined;
 
 /** The Agent Skill (frontmatter removed) plus a note about the demo device. */
 export function agentSystemPrompt(): string {
-  cachedPrompt ??= readFileSync(SKILL_PATH, 'utf8').replace(/^---[\s\S]*?\n---\s*/, '').trim() + DEMO_NOTE;
+  cachedPrompt ??= skillInstructions() + DEMO_NOTE;
   return cachedPrompt;
 }
 
