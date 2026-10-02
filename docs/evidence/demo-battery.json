@@ -1,0 +1,70 @@
+{
+  "date": "2026-10-02T03:31:32.570Z",
+  "modelId": "us.amazon.nova-2-lite-v1:0",
+  "runs": 10,
+  "passed": 150,
+  "total": 150,
+  "steps": {
+    "shop: How's the shop looking today?": {
+      "ok": 10,
+      "total": 10
+    },
+    "shop: What's waiting on parts?": {
+      "ok": 10,
+      "total": 10
+    },
+    "shop: Add front brake pads to the blue sedan.": {
+      "ok": 10,
+      "total": 10
+    },
+    "shop: Move the blue sedan into the bay.": {
+      "ok": 10,
+      "total": 10
+    },
+    "shop: Close out the silver crossover, they paid by card.": {
+      "ok": 10,
+      "total": 10
+    },
+    "shop: Yes.": {
+      "ok": 10,
+      "total": 10
+    },
+    "shop: How did last week go?": {
+      "ok": 10,
+      "total": 10
+    },
+    "bakery: What cakes are due Saturday?": {
+      "ok": 10,
+      "total": 10
+    },
+    "bakery: Cake order for Ana Ruiz, chocolate, 8-inch, Saturday.": {
+      "ok": 10,
+      "total": 10
+    },
+    "bakery: Are we low on anything?": {
+      "ok": 10,
+      "total": 10
+    },
+    "blank: I run a flower shop. We take orders for bouquets and centerpieces, then we arrange them, and they're ready for pickup or delivered.": {
+      "ok": 10,
+      "total": 10
+    },
+    "blank: What did you come up with?": {
+      "ok": 10,
+      "total": 10
+    },
+    "blank: Yes, go ahead and turn it on.": {
+      "ok": 10,
+      "total": 10
+    },
+    "blank: Take an order for Maria Lopez, a dozen roses for Friday.": {
+      "ok": 10,
+      "total": 10
+    },
+    "blank: What bouquet orders are due Friday?": {
+      "ok": 10,
+      "total": 10
+    }
+  },
+  "failures": []
+}

@@ -25,15 +25,19 @@ export function askToConfirm(store: Store, key: string, totalCents: number, meth
 }
 
 /**
- * True when this yes answers a question asked for the same total and method, long enough ago for a person
- * to have heard it and recently enough to still be about it. The question is used up either way.
+ * True when this yes answers a question asked for the same total and method, in an earlier turn, and
+ * recently enough to still be about it. The question is used up either way. When the caller knows when the
+ * user's turn began, "earlier turn" is exact; otherwise a person needs at least MIN_CONFIRM_MS to answer.
  */
-export function takeConfirmation(store: Store, key: string, totalCents: number, method: string, now: Date): boolean {
+export function takeConfirmation(
+  store: Store, key: string, totalCents: number, method: string, now: Date, turnStartedAt?: number
+): boolean {
   const map = pendingFor(store);
   const pending = map.get(key);
   if (!pending) return false;
   const age = now.getTime() - pending.at;
-  if (age < MIN_CONFIRM_MS) return false;
+  const earlierTurn = turnStartedAt !== undefined ? pending.at < turnStartedAt : age >= MIN_CONFIRM_MS;
+  if (!earlierTurn) return false;
   map.delete(key);
   return pending.totalCents === totalCents && pending.method === method && age <= CONFIRM_TTL_MS;
 }

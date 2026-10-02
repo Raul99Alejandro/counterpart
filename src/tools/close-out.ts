@@ -9,6 +9,7 @@ import { closeOutInput, toolSpecs } from './specs.js';
 import { fail, guard, loadRefs, ok, stageLabel, type ToolContext, spoken } from './context.js';
 import type { Payment } from '../domain/types.js';
 import { askToConfirm, takeConfirmation } from './confirmations.js';
+import { currentRequest } from '../http/request-context.js';
 
 /** For the model, not the person: the bridge shows it the JSON, and it kept confirming in the same turn. */
 const ASK_FIRST = 'End the turn now and wait for the owner to answer. Call this tool again with confirm: true only after the owner says yes in their next turn.';
@@ -70,7 +71,8 @@ export function registerCloseOut(server: McpServer, ctx: ToolContext): void {
       // Money moves only after the owner hears the amount and says yes, in a later turn. A yes for
       // another amount or method, or too soon to be a person's, asks again.
       const key = `${ctx.business.id}:${order.id}`;
-      if (!confirm || !takeConfirmation(ctx.store, key, order.totalCents, paymentMethod, ctx.now())) {
+      const turnStartedAt = currentRequest()?.turnStartedAt;
+      if (!confirm || !takeConfirmation(ctx.store, key, order.totalCents, paymentMethod, ctx.now(), turnStartedAt)) {
         askToConfirm(ctx.store, key, order.totalCents, paymentMethod, ctx.now());
         return ok(say.confirmClose(ctx.profile, found.ref, order.totalCents, paymentMethod), {
           status: 'needs_confirmation', next: ASK_FIRST, orderId: order.id, number: order.number,

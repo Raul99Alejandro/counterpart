@@ -12,8 +12,15 @@ Measured on the deployed system (AWS us-east-1) on October 1, 2026, at commit `c
 | Cost of setting up a business by voice | about **$0.006** per draft: 1 Nova 2 Lite call, ~3,100 input and ~1,700 output tokens; 5.2–11 s, which is why it runs in the background | Bedrock CloudWatch metrics, 3 drafts |
 | Hosting | about **$1.65 a day** fixed (load balancer, public IPv4, Fargate task), plus usage | AWS Cost Explorer, September 25–30 |
 | End-to-end check | 6/6 smoke checks against the deployed `/mcp` | `npm run smoke` |
+| Judges' demo reliability | **150/150** turns correct over 10 full runs of the demo script (auto shop with the two-step close-out, bakery, and a flower shop set up by voice): right tool, exact amounts, and no payment without the owner's yes | `infra/demo-battery.ts`, results in [evidence/demo-battery.json](evidence/demo-battery.json) |
 
 At these prices, a shop that talks to Counterpart 100 times a day spends about **$0.27 a day on the model**, and setting up a new business costs less than a cent.
+
+## Demo reliability
+
+`npx tsx infra/demo-battery.ts 10 3` starts the server with the real Nova 2 Lite agent and runs the judges' demo script ten times, three runs at a time, through the same HTTP API the page uses. Every turn must call the expected tool and say the expected words: the exact amounts ($253.71, $110.00), the two-step close-out (the question, then "Closed…" only after the owner's "Yes." in the next turn), and the voice setup through to the new business's first order. Result on October 2, 2026: **150/150 turns** ([evidence/demo-battery.json](evidence/demo-battery.json)).
+
+The first run of this battery found a real bug: a "yes" given right after the question was refused, because the server only knew the time since the question. The demo now tells the server when each turn begins, so the owner's yes in the next turn always counts and the model can never confirm a payment in the same turn.
 
 ## Tool latency
 

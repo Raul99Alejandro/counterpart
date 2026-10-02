@@ -21,7 +21,7 @@ const converse: ConverseFn = async () => {
 beforeAll(async () => {
   const store = new MemoryStore();
   await seedAll(store);
-  const limits = new DemoLimits({ sandboxesPerIpPerHour: 3, sandboxesPerDay: 10, turnsPerSandboxPerDay: 4, turnsPerDay: 50, speechPerSandboxPerDay: 20, speechPerDay: 100 });
+  const limits = new DemoLimits({ sandboxesPerIpPerHour: 3, sandboxesPerDay: 30, turnsPerSandboxPerDay: 4, turnsPerDay: 50, speechPerSandboxPerDay: 20, speechPerDay: 100 });
   const speak = async (text: string) => new TextEncoder().encode(`mp3:${text}`);
   server = createApp({ store, host: '127.0.0.1', demo: { converse, limits, speak } }).listen(0, '127.0.0.1');
   await new Promise<void>(resolve => server.once('listening', () => resolve()));
@@ -72,6 +72,26 @@ describe('demo routes', () => {
     expect((await post('/demo/api/speech', { token: DEMO_TOKENS.shop, text: 'Hi' })).status).toBe(401);
   });
 
+  it('takes a yes in the next turn however fast it comes, but never in the same turn', async () => {
+    const shop = (await newSandbox('10.0.0.6')).businesses.find(b => b.kind === 'shop')!;
+    const close = { order: 'the silver crossover', paymentMethod: 'card' };
+    // Same turn: the model asks and confirms at once. Nothing is charged.
+    replies = [
+      { role: 'assistant', content: [{ toolUse: { toolUseId: 't1', name: 'close_out_work_order', input: close } }] },
+      { role: 'assistant', content: [{ toolUse: { toolUseId: 't2', name: 'close_out_work_order', input: { ...close, confirm: true } } }] },
+      { role: 'assistant', content: [{ text: 'Done.' }] }
+    ];
+    const asked = await (await post('/demo/api/turn', { token: shop.token, text: 'Close out the silver crossover, card.', history: [] })).json() as { reply: string };
+    expect(asked.reply).toMatch(/Should I close it out by card\?/);
+    // Next turn, right away: the owner's yes charges.
+    replies = [
+      { role: 'assistant', content: [{ toolUse: { toolUseId: 't3', name: 'close_out_work_order', input: { ...close, confirm: true } } }] },
+      { role: 'assistant', content: [{ text: 'Done.' }] }
+    ];
+    const yes = await (await post('/demo/api/turn', { token: shop.token, text: 'Yes.', history: [] })).json() as { reply: string };
+    expect(yes.reply).toMatch(/^Closed work order 47/);
+  });
+
   it('refuses tokens that are not from a demo sandbox', async () => {
     const res = await post('/demo/api/turn', { token: DEMO_TOKENS.shop, text: 'Hi', history: [] });
     expect(res.status).toBe(401);
@@ -84,6 +104,15 @@ describe('demo routes', () => {
     expect((await fetch(`${base}/demo/api/ui?token=${token}&uri=${encodeURIComponent('file:///etc/passwd')}`)).status).toBe(400);
     expect((await post('/demo/api/turn', { token, text: 'x'.repeat(301), history: [] })).status).toBe(400);
     expect((await post('/demo/api/turn', { token, text: '', history: [] })).status).toBe(400);
+  });
+
+  it('counts the address the load balancer saw, not one the visitor wrote', async () => {
+    // The load balancer appends the real address; anything before it came from the client.
+    for (let i = 0; i < 3; i++) {
+      const res = await post('/demo/api/sandbox', {}, { 'x-forwarded-for': `1.2.3.${i}, 10.0.0.7` });
+      expect(res.status).toBe(201);
+    }
+    expect((await post('/demo/api/sandbox', {}, { 'x-forwarded-for': '9.9.9.9, 10.0.0.7' })).status).toBe(429);
   });
 
   it('limits sandboxes per address and turns per sandbox', async () => {

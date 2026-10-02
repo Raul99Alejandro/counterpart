@@ -1,6 +1,10 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 
-export interface RequestContext { requestId: string; businessId?: string; sessionId?: string }
+export interface RequestContext {
+  requestId: string; businessId?: string; sessionId?: string;
+  /** When the user's turn began, if the caller knows its turns (the judges' demo does; an MCP client does not). */
+  turnStartedAt?: number;
+}
 
 const storage = new AsyncLocalStorage<RequestContext>();
 

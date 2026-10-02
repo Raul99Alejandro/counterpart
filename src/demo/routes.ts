@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import express, { type Request, type Response, type Router } from 'express';
@@ -5,6 +6,7 @@ import type { Client } from '@modelcontextprotocol/client';
 import { z } from 'zod';
 import type { Business } from '../domain/types.js';
 import { businessFor } from '../http/auth.js';
+import { withRequest } from '../http/request-context.js';
 import { log } from '../log.js';
 import type { ConverseFn } from '../setup/generate.js';
 import type { Store } from '../store/store.js';
@@ -83,7 +85,9 @@ export function demoRouter(deps: DemoDeps & {
     const { client, close } = await deps.openInProcess(business);
     try {
       const started = performance.now();
-      const turn = await runTurn({ client, converse: deps.converse, text: parsed.data.text, history: parsed.data.history.slice(-12) });
+      // The turn's start lets a close-out tell the owner's yes (a later turn) from the model confirming itself.
+      const turn = await withRequest({ requestId: randomUUID(), businessId: business.id, turnStartedAt: deps.now().getTime() },
+        () => runTurn({ client, converse: deps.converse, text: parsed.data.text, history: parsed.data.history.slice(-12) }));
       const after = (await deps.store.getBusiness(business.id)) ?? business;
       log({
         level: 'info', msg: 'demo_turn', businessId: business.id, tools: turn.calls.map(c => c.tool),
@@ -130,8 +134,11 @@ export function demoRouter(deps: DemoDeps & {
   return router;
 }
 
-/** The visitor's address: the load balancer puts it first in X-Forwarded-For. */
+/**
+ * The visitor's address: the load balancer appends it last to X-Forwarded-For. Anything before it came
+ * from the client and could be made up to get around the per-address limit.
+ */
 function clientIp(req: Request): string {
   const forwarded = req.header('x-forwarded-for');
-  return forwarded?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
+  return forwarded?.split(',').at(-1)?.trim() || req.socket.remoteAddress || 'unknown';
 }
