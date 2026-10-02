@@ -63,6 +63,8 @@ describe('MCP Apps', () => {
     expect(data.heading).toBe('Work orders waiting on parts');
     expect(data.total).toBe(data.orders.length);
     expect(data.orders[0]).toMatchObject({ label: expect.any(String), customer: expect.any(String) });
+    // Money as Alexa should say it: the bridge's model read totalCents 19361 as "nineteen dollars".
+    expect((data.orders[0] as unknown as { total: string }).total).toMatch(/^\$\d[\d,]*\.\d\d$/);
     const due = await client.callTool({ name: 'find_work_orders', arguments: { query: 'blue sedan' } });
     expect((due.structuredContent as { heading: string }).heading).toBe('Work orders matching "blue sedan"');
     await client.close();

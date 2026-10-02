@@ -1,6 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
 import { resolveDue } from '../domain/dates.js';
+import { formatMoney } from '../domain/money.js';
 import { refLabel } from '../domain/reports.js';
 import { MATCH_THRESHOLD, normalizeQuery, scoreOrder } from '../domain/resolver.js';
 import { say } from '../speech/say.js';
@@ -14,7 +15,9 @@ const output = spoken({
   total: z.number(),
   orders: z.array(z.object({
     orderId: z.string(), number: z.number(), label: z.string(), customer: z.string(),
-    stage: z.string(), stageLabel: z.string(), dueOn: z.string().optional(), totalCents: z.number()
+    stage: z.string(), stageLabel: z.string(), dueOn: z.string().optional(), totalCents: z.number(),
+    /** The total as Alexa should say it. */
+    total: z.string()
   }))
 });
 
@@ -55,7 +58,7 @@ export function registerFind(server: McpServer, ctx: ToolContext): void {
       const listed = refs.slice(0, 10).map(r => ({
         orderId: r.order.id, number: r.order.number, label: refLabel(r), customer: r.customer.name,
         stage: r.order.stage, stageLabel: stageLabel(ctx.profile, r.order.stage),
-        dueOn: r.order.dueOn, totalCents: r.order.totalCents
+        dueOn: r.order.dueOn, totalCents: r.order.totalCents, total: formatMoney(r.order.totalCents)
       }));
 
       const text = refs.length === 0
